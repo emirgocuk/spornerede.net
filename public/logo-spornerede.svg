@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 46" role="img" aria-label="Spor Nerede?">
+  <defs>
+    <style type="text/css"><![CDATA[
+      @import url("https://fonts.googleapis.com/css2?family=Outfit:wght@900&amp;display=swap");
+      .t {
+        font-family: Outfit, "Segoe UI", system-ui, sans-serif;
+        font-weight: 900;
+        letter-spacing: -0.04em;
+      }
+      .l1 { fill: #212529; font-size: 16px; }
+      .l2 { fill: #212529; font-size: 14px; }
+      .q { fill: #E30A17; font-size: 40px; font-weight: 900; }
+    ]]></style>
+  </defs>
+  <text x="0" y="16" class="t l1">Spor</text>
+  <text x="0" y="32" class="t l2">Nerede</text>
+  <text x="68" y="38" class="t q">?</text>
+</svg>

@@ -1,0 +1,732 @@
+{
+  "id": "bc777ae0-ef70-4cd1-80c7-56472869b6fd",
+  "prevId": "c00c6306-7669-4f0c-88f1-ba025e9238ea",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.branslar": {
+      "name": "branslar",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "slug": {
+          "name": "slug",
+          "type": "varchar(120)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ad": {
+          "name": "ad",
+          "type": "varchar(120)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "aciklama": {
+          "name": "aciklama",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "emoji": {
+          "name": "emoji",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "renk": {
+          "name": "renk",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'#E30A17'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "branslar_slug_unique": {
+          "name": "branslar_slug_unique",
+          "columns": [
+            {
+              "expression": "slug",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.ilceler": {
+      "name": "ilceler",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "il_id": {
+          "name": "il_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "slug": {
+          "name": "slug",
+          "type": "varchar(120)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ad": {
+          "name": "ad",
+          "type": "varchar(120)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "ilceler_il_id_slug_unique": {
+          "name": "ilceler_il_id_slug_unique",
+          "columns": [
+            {
+              "expression": "il_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "slug",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "ilceler_il_id_iller_id_fk": {
+          "name": "ilceler_il_id_iller_id_fk",
+          "tableFrom": "ilceler",
+          "tableTo": "iller",
+          "columnsFrom": [
+            "il_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.iller": {
+      "name": "iller",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "slug": {
+          "name": "slug",
+          "type": "varchar(80)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ad": {
+          "name": "ad",
+          "type": "varchar(120)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "iller_slug_unique": {
+          "name": "iller_slug_unique",
+          "columns": [
+            {
+              "expression": "slug",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.kulup_branslar": {
+      "name": "kulup_branslar",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "kulup_id": {
+          "name": "kulup_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "brans_id": {
+          "name": "brans_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "kulup_branslar_unique": {
+          "name": "kulup_branslar_unique",
+          "columns": [
+            {
+              "expression": "kulup_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "brans_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "kulup_branslar_kulup_id_kulupler_id_fk": {
+          "name": "kulup_branslar_kulup_id_kulupler_id_fk",
+          "tableFrom": "kulup_branslar",
+          "tableTo": "kulupler",
+          "columnsFrom": [
+            "kulup_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "kulup_branslar_brans_id_branslar_id_fk": {
+          "name": "kulup_branslar_brans_id_branslar_id_fk",
+          "tableFrom": "kulup_branslar",
+          "tableTo": "branslar",
+          "columnsFrom": [
+            "brans_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.kulup_uyelikleri": {
+      "name": "kulup_uyelikleri",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "kulup_id": {
+          "name": "kulup_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "paket_id": {
+          "name": "paket_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "odeme_durumu": {
+          "name": "odeme_durumu",
+          "type": "odeme_durumu",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "baslangic_tarihi": {
+          "name": "baslangic_tarihi",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bitis_tarihi": {
+          "name": "bitis_tarihi",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "kulup_uyelikleri_kulup_id_kulupler_id_fk": {
+          "name": "kulup_uyelikleri_kulup_id_kulupler_id_fk",
+          "tableFrom": "kulup_uyelikleri",
+          "tableTo": "kulupler",
+          "columnsFrom": [
+            "kulup_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "kulup_uyelikleri_paket_id_uyelik_paketleri_id_fk": {
+          "name": "kulup_uyelikleri_paket_id_uyelik_paketleri_id_fk",
+          "tableFrom": "kulup_uyelikleri",
+          "tableTo": "uyelik_paketleri",
+          "columnsFrom": [
+            "paket_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.kulupler": {
+      "name": "kulupler",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "ad": {
+          "name": "ad",
+          "type": "varchar(160)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "slug": {
+          "name": "slug",
+          "type": "varchar(180)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "il_id": {
+          "name": "il_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ilce_id": {
+          "name": "ilce_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "adres": {
+          "name": "adres",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "yas_araligi": {
+          "name": "yas_araligi",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "fiyat_bilgisi": {
+          "name": "fiyat_bilgisi",
+          "type": "varchar(120)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "telefon": {
+          "name": "telefon",
+          "type": "varchar(30)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "email": {
+          "name": "email",
+          "type": "varchar(180)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "aciklama": {
+          "name": "aciklama",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "one_cikan": {
+          "name": "one_cikan",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "puan": {
+          "name": "puan",
+          "type": "numeric(3, 2)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'0'"
+        },
+        "yorum_sayisi": {
+          "name": "yorum_sayisi",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "durum": {
+          "name": "durum",
+          "type": "kulup_durumu",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "kulupler_slug_unique": {
+          "name": "kulupler_slug_unique",
+          "columns": [
+            {
+              "expression": "slug",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "kulupler_il_ilce_idx": {
+          "name": "kulupler_il_ilce_idx",
+          "columns": [
+            {
+              "expression": "il_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "ilce_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "kulupler_durum_idx": {
+          "name": "kulupler_durum_idx",
+          "columns": [
+            {
+              "expression": "durum",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "kulupler_il_id_iller_id_fk": {
+          "name": "kulupler_il_id_iller_id_fk",
+          "tableFrom": "kulupler",
+          "tableTo": "iller",
+          "columnsFrom": [
+            "il_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "kulupler_ilce_id_ilceler_id_fk": {
+          "name": "kulupler_ilce_id_ilceler_id_fk",
+          "tableFrom": "kulupler",
+          "tableTo": "ilceler",
+          "columnsFrom": [
+            "ilce_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.uyelik_paketleri": {
+      "name": "uyelik_paketleri",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "kod": {
+          "name": "kod",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ad": {
+          "name": "ad",
+          "type": "varchar(120)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "aciklama": {
+          "name": "aciklama",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "ucret": {
+          "name": "ucret",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'0'"
+        },
+        "para_birimi": {
+          "name": "para_birimi",
+          "type": "varchar(8)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'TRY'"
+        },
+        "periyot": {
+          "name": "periyot",
+          "type": "uyelik_periyot",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'monthly'"
+        },
+        "aktif": {
+          "name": "aktif",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "uyelik_paketleri_kod_unique": {
+          "name": "uyelik_paketleri_kod_unique",
+          "columns": [
+            {
+              "expression": "kod",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.kulup_durumu": {
+      "name": "kulup_durumu",
+      "schema": "public",
+      "values": [
+        "pending",
+        "approved",
+        "rejected"
+      ]
+    },
+    "public.odeme_durumu": {
+      "name": "odeme_durumu",
+      "schema": "public",
+      "values": [
+        "pending",
+        "paid",
+        "expired"
+      ]
+    },
+    "public.uyelik_periyot": {
+      "name": "uyelik_periyot",
+      "schema": "public",
+      "values": [
+        "monthly",
+        "yearly",
+        "one_time"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

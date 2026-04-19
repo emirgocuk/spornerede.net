@@ -1,0 +1,275 @@
+---
+/**
+ * NewsBar.astro
+ * Haberler / Duyurular bölümü — Landing page orta kısmı.
+ * Başlangıçta statik veri, ileride CMS ile beslenir.
+ */
+
+const haberler = [
+  {
+    id: 1,
+    kategori: 'Etkinlik',
+    kategoriRenk: 'red',
+    tarih: '18 Nisan 2026',
+    baslik: 'Bahar Maratonu Başvuruları Açıldı',
+    ozet: '2026 Bahar Maratonu için başvurular başladı. 5K, 10K ve yarı maraton kategorileri mevcut.',
+    link: '#',
+  },
+  {
+    id: 2,
+    kategori: 'Müdürlük',
+    kategoriRenk: 'blue',
+    tarih: '15 Nisan 2026',
+    baslik: 'Gençlik Spor Kulübü Lisans Başvuruları',
+    ozet: 'Gençlik ve Spor İl Müdürlükleri 2026-27 sezonu için kulüp lisans yenileme başvurularını açtı.',
+    link: '#',
+  },
+  {
+    id: 3,
+    kategori: 'Başarı',
+    kategoriRenk: 'green',
+    tarih: '12 Nisan 2026',
+    baslik: 'Genç Sporcu Milli Takıma Davet Edildi',
+    ozet: 'Bir spor kulübünden Ayşe Demir, U16 Türkiye Jimnastik Milli Takımı\'na seçildi.',
+    link: '#',
+  },
+  {
+    id: 4,
+    kategori: 'Kurs',
+    kategoriRenk: 'orange',
+    tarih: '10 Nisan 2026',
+    baslik: 'Ücretsiz Yaz Spor Okulları Başlıyor',
+    ozet: 'Belediyeler birçok ilçede ücretsiz yaz spor okulları açıyor. Ön kayıt başladı.',
+    link: '#',
+  },
+  {
+    id: 5,
+    kategori: 'Duyuru',
+    kategoriRenk: 'purple',
+    tarih: '8 Nisan 2026',
+    baslik: 'Hakemlik Sınavı Tarihleri Açıklandı',
+    ozet: 'Futbol, basketbol ve voleybol branşlarında hakemlik sınavları Mayıs 2026\'da yapılacak.',
+    link: '#',
+  },
+];
+
+const kategoriRenkler: Record<string, string> = {
+  red:    'badge-red',
+  blue:   'badge-blue',
+  green:  'badge-green',
+  orange: 'badge-orange',
+  purple: 'badge-purple',
+};
+---
+
+<section class="newsbar-section section" aria-labelledby="haberler-baslik">
+  <div class="container">
+    <div class="newsbar-header">
+      <div>
+        <h2 id="haberler-baslik" class="section-title">
+          Haberler & <span class="title-underline">Duyurular</span>
+        </h2>
+        <p class="section-subtitle">Spor dünyasının güncel haberleri ve duyuruları</p>
+      </div>
+      <a href="/haberler" class="btn btn-outline btn-sm" aria-label="Tüm haberleri görüntüle">
+        Tümünü Gör →
+      </a>
+    </div>
+
+    <!-- Haberler listesi -->
+    <div class="haberler-grid" role="list">
+      {haberler.map((haber, index) => (
+        <article
+          class={`haber-kart animate-fade-in-up`}
+          style={`animation-delay: ${index * 0.08}s`}
+          role="listitem"
+        >
+          <!-- Kategori badge -->
+          <div class="haber-meta">
+            <span class={`haber-kategori ${kategoriRenkler[haber.kategoriRenk] ?? 'badge-gray'}`}>
+              {haber.kategori}
+            </span>
+            <time class="haber-tarih" datetime={haber.tarih}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                <line x1="16" y1="2" x2="16" y2="6"/>
+                <line x1="8" y1="2" x2="8" y2="6"/>
+                <line x1="3" y1="10" x2="21" y2="10"/>
+              </svg>
+              {haber.tarih}
+            </time>
+          </div>
+
+          <!-- Başlık & Özet -->
+          <h3 class="haber-baslik">
+            <a href={haber.link} class="haber-link">
+              {haber.baslik}
+            </a>
+          </h3>
+          <p class="haber-ozet">{haber.ozet}</p>
+
+          <!-- Footer link -->
+          <a href={haber.link} class="haber-devami" aria-label={`${haber.baslik} haberini oku`}>
+            Devamını Oku
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <line x1="5" y1="12" x2="19" y2="12"/>
+              <polyline points="12 5 19 12 12 19"/>
+            </svg>
+          </a>
+        </article>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  /* ===== SECTION ===== */
+  .newsbar-section {
+    background:
+      radial-gradient(circle at 20% 0%, rgba(227, 10, 23, 0.08), transparent 42%),
+      radial-gradient(circle at 80% 100%, rgba(227, 10, 23, 0.06), transparent 38%),
+      #FFF8F8;
+    border-top: 1px solid #F7DFE1;
+    border-bottom: 1px solid #F7DFE1;
+  }
+
+  /* ===== BAŞLIK ALANI ===== */
+  .newsbar-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 2.5rem;
+    flex-wrap: wrap;
+  }
+
+  /* ===== HABER GRİD ===== */
+  .haberler-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  @media (min-width: 640px) {
+    .haberler-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  @media (min-width: 1024px) {
+    .haberler-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+
+  /* ===== HABER KART ===== */
+  .haber-kart {
+    background: rgba(255, 255, 255, 0.94);
+    border: 1px solid #F0DCDD;
+    border-radius: 1rem;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    transition: all 0.25s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .haber-kart::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: linear-gradient(180deg, #E30A17, #FF2D3A);
+    border-radius: 4px 0 0 4px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+
+  .haber-kart:hover {
+    border-color: #E30A17;
+    box-shadow: 0 8px 32px rgba(227, 10, 23, 0.1);
+    transform: translateY(-3px);
+  }
+
+  .haber-kart:hover::before {
+    opacity: 1;
+  }
+
+  /* ===== META ===== */
+  .haber-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .haber-kategori {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 0.2rem 0.7rem;
+    border-radius: 9999px;
+  }
+
+  /* Kategori renkleri */
+  .badge-red    { background:#FFF1F2; color:#E30A17; border:1px solid #FFE0E2; }
+  .badge-blue   { background:#EFF6FF; color:#1D4ED8; border:1px solid #DBEAFE; }
+  .badge-green  { background:#F0FDF4; color:#15803D; border:1px solid #BBF7D0; }
+  .badge-orange { background:#FFF7ED; color:#C2410C; border:1px solid #FED7AA; }
+  .badge-purple { background:#FAF5FF; color:#7C3AED; border:1px solid #E9D5FF; }
+  .badge-gray   { background:#F1F3F5; color:#495057; border:1px solid #DEE2E6; }
+
+  .haber-tarih {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.75rem;
+    color: #6C757D;
+    font-weight: 500;
+  }
+
+  /* ===== BAŞLIK & ÖZET ===== */
+  .haber-baslik {
+    font-size: 0.98rem;
+    font-weight: 700;
+    color: #212529;
+    line-height: 1.45;
+    flex: 1;
+  }
+
+  .haber-link {
+    text-decoration: none;
+    color: inherit;
+    transition: color 0.15s ease;
+  }
+
+  .haber-link:hover {
+    color: #E30A17;
+  }
+
+  .haber-ozet {
+    font-size: 0.85rem;
+    color: #6C757D;
+    line-height: 1.6;
+    flex: 1;
+  }
+
+  /* ===== DEVAMI OKU ===== */
+  .haber-devami {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #E30A17;
+    text-decoration: none;
+    margin-top: auto;
+    transition: gap 0.15s ease;
+  }
+
+  .haber-devami:hover {
+    gap: 0.6rem;
+  }
+</style>

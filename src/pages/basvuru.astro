@@ -1,0 +1,687 @@
+---
+/**
+ * basvuru.astro
+ * Kulüp Başvuru Sayfası — /basvuru
+ * Kulüplerin platforma kayıt için dolduracağı form.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { CITIES, MEMBERSHIP_PLANS } from '../data/mockData';
+
+// Form submit sonrası durum (server tarafı handle edildiğinde kullanılır)
+const success = Astro.url.searchParams.get('success') === '1';
+
+const bransListesi = [
+  'Futbol', 'Basketbol', 'Voleybol', 'Tenis', 'Yüzme', 'Karate',
+  'Judo', 'Taekwondo', 'Jimnastik', 'Atletizm', 'Hentbol', 'Badminton',
+  'Masa Tenisi', 'Boks', 'Güreş', 'Satranç', 'Dans', 'Okçuluk',
+  'At Binicilik', 'Golf', 'Diğer',
+];
+
+const ilceler = [
+  'Cankaya', 'Kecioren', 'Yenimahalle', 'Etimesgut', 'Sincan', 'Mamak', 'Golbasi',
+  'Altindag', 'Pursaklar', 'Cubuk', 'Polatli',
+];
+
+const adimlar = [
+  { num: '1', label: 'Kulüp Bilgileri' },
+  { num: '2', label: 'İletişim' },
+  { num: '3', label: 'Paket' },
+];
+---
+
+<BaseLayout
+  title="Kulübünü Ekle — Başvuru Formu"
+  description="SporNerede.net'e kulübünüzü veya kursunuzu ekleyin. Türkiye genelinde spor arayan ailelere ulaşın. Başvuru formu hızlı ve kolay."
+  keywords="spor kulübü ekle, spor kursu ekle, spornerede başvuru, kulüp listesi"
+>
+
+  <div class="basvuru-page">
+
+    <!-- ===== HERO ÜSTÜ ===== -->
+    <div class="basvuru-hero">
+      <div class="basvuru-hero-bg" aria-hidden="true">
+        <div class="bh-orb bh-orb-1"></div>
+        <div class="bh-orb bh-orb-2"></div>
+      </div>
+      <div class="container basvuru-hero-content">
+        <div class="basvuru-badge">🏆 Platforma Katıl</div>
+        <h1 class="basvuru-title">Kulübünüzü<br />Listeleyin</h1>
+        <p class="basvuru-desc">
+          Başvurunuz 24 saat içinde incelenir. Onaylandıktan sonra profiliniz yayına alınır.
+        </p>
+        <!-- Adım göstergesi -->
+        <div class="adimlar" aria-label="Form Adımları" role="list">
+          {adimlar.map((adim, i) => (
+            <div class="adim" role="listitem">
+              <div class={`adim-num ${i === 0 ? 'adim-aktif' : ''}`} aria-current={i === 0 ? 'step' : undefined}>
+                {adim.num}
+              </div>
+              <span class="adim-label">{adim.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== FORM ALANI ===== -->
+    <div class="basvuru-form-wrapper">
+      <div class="container">
+        <div class="basvuru-grid">
+
+          <!-- Form -->
+          <main class="basvuru-form-card" id="main-content">
+
+            {success ? (
+              <!-- Başarı durumu -->
+              <div class="success-state" role="alert" aria-live="polite">
+                <div class="success-icon" aria-hidden="true">✅</div>
+                <h2 class="success-title">Başvurunuz Alındı!</h2>
+                <p class="success-desc">
+                  Başvurunuzu inceleyeceğiz ve 24 saat içinde iletişim bilgileriniz üzerinden size dönüş yapacağız.
+                </p>
+                <a href="/" class="btn btn-primary">Ana Sayfaya Dön</a>
+              </div>
+            ) : (
+              <form
+                id="basvuru-form"
+                method="post"
+                action="/api/basvuru"
+                novalidate
+                aria-label="Kulüp Başvuru Formu"
+              >
+
+                <!-- Bölüm 1: Kulüp Bilgileri -->
+                <div class="form-section">
+                  <h2 class="form-section-title">
+                    <span class="form-section-num" aria-hidden="true">1</span>
+                    Kulüp / Kurs Bilgileri
+                  </h2>
+
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label class="form-label" for="kulup-ad">
+                        Kulüp / Kurs Adı <span class="required" aria-label="zorunlu alan">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        id="kulup-ad"
+                        name="kulupad"
+                        class="form-input"
+                        placeholder="Örn: Türkiye Futbol Akademisi"
+                        required
+                        autocomplete="organization"
+                        aria-required="true"
+                      />
+                    </div>
+                  </div>
+
+                  <div class="form-row form-row-2col">
+                    <div class="form-group">
+                      <label class="form-label" for="kulup-il">
+                        Il <span class="required" aria-label="zorunlu alan">*</span>
+                      </label>
+                      <select id="kulup-il" name="il" class="form-select" required aria-required="true">
+                        <option value="">Il secin...</option>
+                        {CITIES.map((il) => (
+                          <option value={il}>{il}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label" for="kulup-ilce">
+                        İlçe <span class="required" aria-label="zorunlu alan">*</span>
+                      </label>
+                      <select id="kulup-ilce" name="ilce" class="form-select" required aria-required="true">
+                        <option value="">İlçe seçin...</option>
+                        {ilceler.map((ilce) => (
+                          <option value={ilce}>{ilce}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div class="form-group">
+                      <label class="form-label" for="kulup-brans">
+                        Branş <span class="required" aria-label="zorunlu alan">*</span>
+                      </label>
+                      <select id="kulup-brans" name="brans" class="form-select" required aria-required="true">
+                        <option value="">Branş seçin...</option>
+                        {bransListesi.map((brans) => (
+                          <option value={brans}>{brans}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label class="form-label" for="kulup-adres">
+                        Tam Adres
+                      </label>
+                      <input
+                        type="text"
+                        id="kulup-adres"
+                        name="adres"
+                        class="form-input"
+                        placeholder="Mahalle, cadde/sokak, no — ilçe, il"
+                        autocomplete="street-address"
+                      />
+                    </div>
+                  </div>
+
+                  <div class="form-row form-row-2col">
+                    <div class="form-group">
+                      <label class="form-label" for="kulup-yas">Yaş Aralığı</label>
+                      <input
+                        type="text"
+                        id="kulup-yas"
+                        name="yasaraligi"
+                        class="form-input"
+                        placeholder="Örn: 6–18"
+                      />
+                    </div>
+
+                    <div class="form-group">
+                      <label class="form-label" for="kulup-fiyat">Aylık Ücret (₺)</label>
+                      <input
+                        type="text"
+                        id="kulup-fiyat"
+                        name="fiyat"
+                        class="form-input"
+                        placeholder="Örn: 500"
+                      />
+                    </div>
+                  </div>
+
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label class="form-label" for="kulup-aciklama">Kulüp / Kurs Hakkında</label>
+                      <textarea
+                        id="kulup-aciklama"
+                        name="aciklama"
+                        class="form-textarea"
+                        rows={4}
+                        placeholder="Kulübünüz veya kursunuz hakkında kısa bilgi verin. Antrenörler, tesisler, başarılar..."
+                      ></textarea>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Bölüm 2: İletişim Bilgileri -->
+                <div class="form-section">
+                  <h2 class="form-section-title">
+                    <span class="form-section-num" aria-hidden="true">2</span>
+                    İletişim Bilgileri
+                  </h2>
+
+                  <div class="form-row form-row-2col">
+                    <div class="form-group">
+                      <label class="form-label" for="yetkili-ad">
+                        Yetkili Kişi Adı <span class="required" aria-label="zorunlu alan">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        id="yetkili-ad"
+                        name="yetkili"
+                        class="form-input"
+                        placeholder="Ad Soyad"
+                        required
+                        autocomplete="name"
+                        aria-required="true"
+                      />
+                    </div>
+
+                    <div class="form-group">
+                      <label class="form-label" for="yetkili-telefon">
+                        Telefon <span class="required" aria-label="zorunlu alan">*</span>
+                      </label>
+                      <input
+                        type="tel"
+                        id="yetkili-telefon"
+                        name="telefon"
+                        class="form-input"
+                        placeholder="0555 123 45 67"
+                        required
+                        autocomplete="tel"
+                        aria-required="true"
+                      />
+                    </div>
+                  </div>
+
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label class="form-label" for="yetkili-email">
+                        E-posta <span class="required" aria-label="zorunlu alan">*</span>
+                      </label>
+                      <input
+                        type="email"
+                        id="yetkili-email"
+                        name="email"
+                        class="form-input"
+                        placeholder="kulup@orneksiteniz.com"
+                        required
+                        autocomplete="email"
+                        aria-required="true"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-section">
+                  <h2 class="form-section-title">
+                    <span class="form-section-num" aria-hidden="true">3</span>
+                    Uyelik Paketi
+                  </h2>
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label class="form-label" for="uyelik-paket">
+                        Paket <span class="required" aria-label="zorunlu alan">*</span>
+                      </label>
+                      <select id="uyelik-paket" name="paket" class="form-select" required aria-required="true">
+                        <option value="">Paket secin...</option>
+                        {MEMBERSHIP_PLANS.map((plan) => (
+                          <option value={plan.kod}>{plan.ad} - {plan.ucret} TL</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Submit -->
+                <div class="form-submit-area">
+                  <p class="form-gizlilik">
+                    Başvurarak <a href="/gizlilik" class="gizlilik-link">Gizlilik Politikası</a>'nı kabul etmiş olursunuz. Bilgileriniz üçüncü taraflarla paylaşılmaz.
+                  </p>
+                  <button type="submit" class="btn btn-primary btn-lg submit-btn" id="basvuru-submit-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    Başvuruyu Gönder
+                  </button>
+                </div>
+
+              </form>
+            )}
+          </main>
+
+          <!-- Sağ: Bilgi paneli -->
+          <aside class="basvuru-sidebar" aria-label="Başvuru Bilgileri">
+            <div class="sidebar-card">
+              <div class="sidebar-icon" aria-hidden="true">⚡</div>
+              <h3 class="sidebar-title">Neden SporNerede?</h3>
+              <ul class="sidebar-list" role="list">
+                <li><span aria-hidden="true">✅</span> Ücretli üyelik modeli</li>
+                <li><span aria-hidden="true">✅</span> 24 saat içinde onay</li>
+                <li><span aria-hidden="true">✅</span> Binlerce aileye ulaşın</li>
+                <li><span aria-hidden="true">✅</span> Başvuru iletişim bilgisi</li>
+                <li><span aria-hidden="true">✅</span> Premium öne çıkarma seçeneği</li>
+              </ul>
+            </div>
+
+            <div class="sidebar-card sidebar-iletisim">
+              <h3 class="sidebar-subtitle">Sorularınız mı var?</h3>
+              <p class="sidebar-contact-text">Başvuru süreciyle ilgili yardım için bize ulaşın:</p>
+              <a href="mailto:info@spornerede.net" class="sidebar-email">
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                  <polyline points="22,6 12,13 2,6"/>
+                </svg>
+                info@spornerede.net
+              </a>
+            </div>
+          </aside>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</BaseLayout>
+
+<style>
+  /* ===== GENEL SAYFA ===== */
+  .basvuru-page {
+    min-height: 100vh;
+    background: #F8F9FA;
+  }
+
+  /* ===== HERO ===== */
+  .basvuru-hero {
+    position: relative;
+    background: linear-gradient(135deg, #0D0D0D 0%, #1a0002 60%, #2d0005 100%);
+    color: #ffffff;
+    padding: 4rem 0 3rem;
+    overflow: hidden;
+  }
+
+  .basvuru-hero-bg {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .bh-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(60px);
+  }
+
+  .bh-orb-1 {
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(227,10,23,0.2) 0%, transparent 70%);
+    top: -100px;
+    right: 5%;
+  }
+
+  .bh-orb-2 {
+    width: 200px;
+    height: 200px;
+    background: radial-gradient(circle, rgba(255,255,255,0.04) 0%, transparent 70%);
+    bottom: 0;
+    left: 10%;
+  }
+
+  .basvuru-hero-content {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .basvuru-badge {
+    display: inline-block;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.85);
+    font-size: 0.8rem;
+    font-weight: 700;
+    padding: 0.35rem 0.875rem;
+    border-radius: 9999px;
+    width: fit-content;
+    backdrop-filter: blur(8px);
+  }
+
+  .basvuru-title {
+    font-size: clamp(1.75rem, 5vw, 3rem);
+    font-weight: 900;
+    color: #ffffff;
+    letter-spacing: -0.03em;
+    line-height: 1.15;
+  }
+
+  .basvuru-desc {
+    font-size: 1rem;
+    color: rgba(255,255,255,0.6);
+    max-width: 480px;
+  }
+
+  /* ===== ADIMLAR ===== */
+  .adimlar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+  }
+
+  .adim {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .adim:not(:last-child)::after {
+    content: '→';
+    color: rgba(255,255,255,0.25);
+    font-size: 0.8rem;
+    margin-left: 0.25rem;
+  }
+
+  .adim-num {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: rgba(255,255,255,0.5);
+    font-size: 0.78rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .adim-aktif {
+    background: #E30A17;
+    border-color: #E30A17;
+    color: #ffffff;
+  }
+
+  .adim-label {
+    font-size: 0.78rem;
+    color: rgba(255,255,255,0.55);
+    font-weight: 600;
+  }
+
+  /* ===== FORM WRAPPER ===== */
+  .basvuru-form-wrapper {
+    padding: 3rem 0 5rem;
+  }
+
+  .basvuru-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    align-items: flex-start;
+  }
+
+  @media (min-width: 1024px) {
+    .basvuru-grid { grid-template-columns: 1fr 320px; }
+  }
+
+  /* ===== FORM KART ===== */
+  .basvuru-form-card {
+    background: #ffffff;
+    border-radius: 1.25rem;
+    border: 1px solid #E9ECEF;
+    padding: 2.5rem;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.07);
+  }
+
+  /* ===== FORM SECTION ===== */
+  .form-section {
+    margin-bottom: 2.5rem;
+    padding-bottom: 2.5rem;
+    border-bottom: 1px solid #F1F3F5;
+  }
+
+  .form-section:last-of-type {
+    border-bottom: none;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0;
+  }
+
+  .form-section-title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #212529;
+    margin-bottom: 1.75rem;
+  }
+
+  .form-section-num {
+    width: 30px;
+    height: 30px;
+    background: #E30A17;
+    color: #ffffff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.82rem;
+    font-weight: 800;
+    flex-shrink: 0;
+  }
+
+  /* ===== FORM ROWS ===== */
+  .form-row {
+    margin-bottom: 1.25rem;
+  }
+
+  .form-row-2col {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+
+  @media (min-width: 640px) {
+    .form-row-2col { grid-template-columns: 1fr 1fr; }
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .required {
+    color: #E30A17;
+    font-size: 1rem;
+    line-height: 1;
+  }
+
+  /* ===== SUBMIT ALANI ===== */
+  .form-submit-area {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+
+  .form-gizlilik {
+    font-size: 0.8rem;
+    color: #6C757D;
+    line-height: 1.5;
+  }
+
+  .gizlilik-link {
+    color: #E30A17;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .submit-btn {
+    align-self: stretch;
+    justify-content: center;
+  }
+
+  @media (min-width: 640px) {
+    .submit-btn { align-self: flex-start; }
+  }
+
+  /* ===== BAŞARI DURUMU ===== */
+  .success-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 3rem 1rem;
+    gap: 1.25rem;
+  }
+
+  .success-icon {
+    font-size: 3.5rem;
+  }
+
+  .success-title {
+    font-size: 1.75rem;
+    font-weight: 900;
+    color: #212529;
+  }
+
+  .success-desc {
+    font-size: 0.95rem;
+    color: #6C757D;
+    max-width: 400px;
+    line-height: 1.6;
+  }
+
+  /* ===== SIDEBAR ===== */
+  .basvuru-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .sidebar-card {
+    background: #ffffff;
+    border: 1px solid #E9ECEF;
+    border-radius: 1rem;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .sidebar-icon {
+    font-size: 2rem;
+  }
+
+  .sidebar-title {
+    font-size: 1rem;
+    font-weight: 800;
+    color: #212529;
+  }
+
+  .sidebar-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+  }
+
+  .sidebar-list li {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    font-size: 0.87rem;
+    color: #495057;
+    font-weight: 500;
+  }
+
+  .sidebar-iletisim {
+    background: #F8F9FA;
+  }
+
+  .sidebar-subtitle {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #212529;
+  }
+
+  .sidebar-contact-text {
+    font-size: 0.82rem;
+    color: #6C757D;
+  }
+
+  .sidebar-email {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #E30A17;
+    text-decoration: none;
+    transition: opacity 0.15s ease;
+  }
+
+  .sidebar-email:hover {
+    opacity: 0.8;
+  }
+</style>

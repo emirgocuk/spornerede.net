@@ -1,0 +1,373 @@
+---
+/**
+ * ClubCTA.astro
+ * Landing page'deki kulüp başvuru CTA bölümü.
+ */
+import footwearImage from '../assets/images/footwear.webp';
+import basketballImage from '../assets/images/basketball.webp';
+import voleyballImage from '../assets/images/voleyball.webp';
+
+const faydalar = [
+  { emoji: '🎯', baslik: 'Hedef Kitleye Ulaş', aciklama: 'Spor kursu veya kulüp arayan ailelere Türkiye genelinde ulaşın' },
+  { emoji: '✅', baslik: 'Profesyonel Profil', aciklama: 'Kulübünüz için güçlü ve güven veren bir vitrin oluşturun' },
+  { emoji: '📈', baslik: 'Büyü',               aciklama: 'Öne çıkarma ve editör onaylı seçenekleriyle görünürlüğünü artır' },
+];
+---
+
+<section class="cta-section section" aria-labelledby="cta-baslik">
+  <!-- Dekoratif arka plan -->
+  <div class="cta-bg" aria-hidden="true">
+    <div class="cta-orb cta-orb-1"></div>
+    <div class="cta-orb cta-orb-2"></div>
+    <div class="cta-pattern"></div>
+  </div>
+
+  <div class="container cta-content">
+    <div class="cta-text">
+      <div class="cta-eyebrow">Türkiye Genelinde Kulüpler & Kurslar İçin</div>
+      <h2 id="cta-baslik" class="cta-title">
+        Spor Kursunuzu veya Kulübünüzü <br />
+        <span class="cta-highlight">Hemen Listeleyin</span>
+      </h2>
+      <p class="cta-desc">
+        Spornerede.net'e ekleyeceğiniz profilinizle, spor kursu veya kulüp arayan ailelere Türkiye genelinde ulaşın. Başvurunuz hızlıca değerlendirilir.
+      </p>
+
+      <!-- Faydalar -->
+      <ul class="cta-faydalar" role="list">
+        {faydalar.map((f) => (
+          <li class="cta-fayda" role="listitem">
+            <span class="cta-fayda-icon" aria-hidden="true">{f.emoji}</span>
+            <div>
+              <strong class="cta-fayda-baslik">{f.baslik}</strong>
+              <p class="cta-fayda-aciklama">{f.aciklama}</p>
+            </div>
+          </li>
+        ))}
+      </ul>
+
+      <!-- Butonlar -->
+      <div class="cta-buttons">
+        <a href="/basvuru" class="btn btn-white btn-lg" id="cta-basvuru-btn">
+          Spor Kursunuzu veya Kulübünüzü Ekle
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="5" y1="12" x2="19" y2="12"/>
+            <polyline points="12 5 19 12 12 19"/>
+          </svg>
+        </a>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="cta-visual" aria-hidden="true">
+    <div class="visual-showcase" data-showcase>
+      <div class="showcase-slide is-active">
+          <img src={footwearImage.src} alt="" loading="lazy" decoding="async" />
+      </div>
+      <div class="showcase-slide">
+          <img src={basketballImage.src} alt="" loading="lazy" decoding="async" />
+      </div>
+      <div class="showcase-slide">
+          <img src={voleyballImage.src} alt="" loading="lazy" decoding="async" />
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  const showcase = document.querySelector('[data-showcase]');
+  if (showcase) {
+    const slides = Array.from(showcase.querySelectorAll('.showcase-slide'));
+    let activeIndex = 0;
+
+    if (slides.length > 1) {
+      window.setInterval(() => {
+        slides[activeIndex]?.classList.remove('is-active');
+        activeIndex = (activeIndex + 1) % slides.length;
+        slides[activeIndex]?.classList.add('is-active');
+      }, 2400);
+    }
+  }
+</script>
+
+<style>
+  /* ===== CTA SECTION ===== */
+  .cta-section {
+    position: relative;
+    background: linear-gradient(135deg, #0D0D0D 0%, #1a0002 50%, #B5080F 100%);
+    color: #ffffff;
+    overflow: hidden;
+    border: 0;
+  }
+
+  /* ===== ARKA PLAN ===== */
+  .cta-bg {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .cta-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+  }
+
+  .cta-orb-1 {
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, rgba(227, 10, 23, 0.3) 0%, transparent 70%);
+    top: -150px;
+    right: -100px;
+  }
+
+  .cta-orb-2 {
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%);
+    bottom: -50px;
+    left: 10%;
+  }
+
+  .cta-pattern {
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(rgba(255,255,255,0.04) 1px, transparent 1px);
+    background-size: 30px 30px;
+  }
+
+  /* ===== İÇERİK ===== */
+  .cta-content {
+    position: relative;
+    z-index: 3;
+    display: flex;
+    justify-content: center;
+  }
+
+  @media (min-width: 1100px) {
+    .cta-content {
+      justify-content: flex-start;
+      padding-right: min(42vw, 640px);
+    }
+  }
+
+  /* ===== SOL YAZI ===== */
+  .cta-text {
+    max-width: 760px;
+    text-align: center;
+  }
+
+  @media (min-width: 1100px) {
+    .cta-text {
+      text-align: left;
+      max-width: 700px;
+    }
+  }
+
+  .cta-eyebrow {
+    display: inline-block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(255,255,255,0.5);
+    margin-bottom: 1rem;
+  }
+
+  .cta-title {
+    font-size: clamp(1.75rem, 4vw, 2.75rem);
+    font-weight: 900;
+    color: #ffffff;
+    line-height: 1.15;
+    letter-spacing: -0.03em;
+    margin-bottom: 1.25rem;
+  }
+
+  .cta-highlight {
+    color: #FF2D3A;
+    position: relative;
+  }
+
+  .cta-desc {
+    font-size: 1rem;
+    color: rgba(255,255,255,0.65);
+    line-height: 1.7;
+    margin-bottom: 2rem;
+    max-width: 680px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  @media (min-width: 1100px) {
+    .cta-desc {
+      margin-left: 0;
+      margin-right: 0;
+    }
+  }
+
+  /* ===== FAYDALAR ===== */
+  .cta-faydalar {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    max-width: 620px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .cta-fayda {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.875rem;
+    text-align: left;
+    padding: 0;
+  }
+
+  .cta-fayda-icon {
+    font-size: 1.35rem;
+    flex-shrink: 0;
+    margin-top: 0.22rem;
+  }
+
+  .cta-fayda-baslik {
+    display: block;
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #ffffff;
+    margin-bottom: 0.18rem;
+  }
+
+  .cta-fayda-aciklama {
+    font-size: 0.96rem;
+    color: rgba(255,255,255,0.72);
+    line-height: 1.5;
+    max-width: 38ch;
+  }
+
+  /* ===== BUTONLAR ===== */
+  .cta-buttons {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  @media (min-width: 1100px) {
+    .cta-buttons {
+      justify-content: flex-start;
+    }
+  }
+
+  .cta-visual {
+    display: none;
+    width: min(46vw, 760px);
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 1;
+    pointer-events: none;
+    overflow: hidden;
+  }
+
+  @media (min-width: 1100px) {
+    .cta-visual {
+      display: block;
+    }
+  }
+
+  .visual-showcase {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    filter: saturate(0.92) contrast(1.05);
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.82) 18%, #000 34%, #000 100%);
+    mask-image: linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.82) 18%, #000 34%, #000 100%);
+  }
+
+  .showcase-slide :global(img) {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center right;
+    display: block;
+  }
+
+  .showcase-slide {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transform: scale(1.03);
+    transition: opacity 0.55s ease, transform 0.55s ease;
+  }
+
+  .showcase-slide.is-active {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  .cta-visual::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    background:
+      linear-gradient(180deg, rgba(179, 8, 16, 0.38), rgba(92, 2, 8, 0.44)),
+      linear-gradient(90deg, rgba(8, 2, 4, 0) 0%, rgba(8, 2, 4, 0.42) 34%, rgba(8, 2, 4, 0.14) 72%, rgba(8, 2, 4, 0.2) 100%);
+  }
+
+  .cta-visual::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    background: radial-gradient(circle at 80% 40%, rgba(255, 70, 84, 0.24), transparent 52%);
+  }
+
+  /* Metin ve medya birleşim hattını yumuşatır */
+  .cta-section::after {
+    content: '';
+    position: absolute;
+    top: -12%;
+    bottom: -12%;
+    right: min(46vw, 760px);
+    width: clamp(90px, 10vw, 170px);
+    transform: translateX(45%);
+    pointer-events: none;
+    z-index: 2;
+    background:
+      radial-gradient(ellipse at center,
+        rgba(173, 8, 18, 0.42) 0%,
+        rgba(138, 6, 14, 0.28) 28%,
+        rgba(74, 4, 9, 0.14) 55%,
+        rgba(12, 2, 4, 0) 78%);
+    filter: blur(10px);
+  }
+
+  @media (max-width: 1099px) {
+    .cta-section::after {
+      display: none;
+    }
+  }
+
+  .cta-section::before,
+  .cta-section::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: transparent;
+    z-index: 5;
+    pointer-events: none;
+  }
+
+  .cta-section::before { top: 0; }
+  .cta-section::after { bottom: 0; }
+</style>

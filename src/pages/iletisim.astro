@@ -1,0 +1,101 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout
+  title="İletişim"
+  description="Spornerede.net ile iletişime geçin. İş birlikleri, kulüp başvuruları ve platform hakkında tüm sorularınız için bize yazın."
+  keywords="spornerede iletişim, spor kursu kulüp iletişim"
+>
+  <section class="contact-page section">
+    <div class="container contact-container">
+      <p class="contact-eyebrow">İletişim</p>
+      <h1 class="section-title">
+        Sorunuz mu var? <span class="title-underline">Bize ulaşın</span>
+      </h1>
+      <p class="section-subtitle">
+        Platform hakkında görüşlerinizi, iş birliği taleplerinizi ve kulüp başvuru sorularınızı memnuniyetle dinliyoruz.
+      </p>
+
+      <div class="contact-cards">
+        <article class="contact-card">
+          <h2>E-posta</h2>
+          <a href="mailto:info@spornerede.net">info@spornerede.net</a>
+          <p>Genel bilgi, destek ve iş birliği başvuruları için.</p>
+        </article>
+        <article class="contact-card">
+          <h2>Kulüp Başvurusu</h2>
+          <a href="/basvuru">Başvuru formuna git</a>
+          <p>Kulübünüzü veya kursunuzu platforma eklemek için başvuru sayfasını kullanın.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .contact-page {
+    background:
+      radial-gradient(circle at 82% 10%, rgba(227, 10, 23, 0.08), transparent 36%),
+      radial-gradient(circle at 8% 92%, rgba(227, 10, 23, 0.05), transparent 30%),
+      #fff9f9;
+  }
+
+  .contact-container {
+    max-width: 900px;
+  }
+
+  .contact-eyebrow {
+    display: inline-block;
+    margin-bottom: 0.9rem;
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #b5080f;
+  }
+
+  .contact-cards {
+    margin-top: 2rem;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.9rem;
+  }
+
+  @media (min-width: 760px) {
+    .contact-cards {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  .contact-card {
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid #f1dede;
+    border-radius: 0.95rem;
+    padding: 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+  }
+
+  .contact-card h2 {
+    font-size: 1rem;
+    color: #1f2937;
+  }
+
+  .contact-card a {
+    color: #a30711;
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  .contact-card a:hover {
+    text-decoration: underline;
+  }
+
+  .contact-card p {
+    font-size: 0.9rem;
+    color: #4b5563;
+    line-height: 1.6;
+  }
+</style>

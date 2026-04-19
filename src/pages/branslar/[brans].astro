@@ -1,0 +1,70 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getBranchBySlug, searchClubs } from '../../lib/repositories/catalog';
+
+const slug = Astro.params.brans ?? '';
+const branch = await getBranchBySlug(slug);
+if (!branch) {
+  return Astro.redirect('/branslar');
+}
+const kulupListesi = await searchClubs({ brans: branch.slug });
+---
+
+<BaseLayout
+  title={`Turkiye ${branch.isim} Kurslari ve Kulupleri`}
+  description={`Turkiye genelinde ${branch.isim.toLowerCase()} kurslarini ve spor kuluplerini listeleyin, fiyat ve ilceye gore inceleyin.`}
+  keywords={`turkiye ${branch.slug} kursu, ${branch.slug} spor kulubu`}
+>
+  <section class="section page">
+    <div class="container">
+      <div class="head">
+        <a href="/branslar" class="back">← Tum Branslar</a>
+        <h1>{branch.emoji} {branch.isim}</h1>
+        <p>{kulupListesi.length} kulup bulundu.</p>
+      </div>
+
+      {kulupListesi.length > 0 ? (
+        <div class="grid" role="list" aria-label={`${branch.isim} kulup listesi`}>
+          {kulupListesi.map((kulup) => (
+            <article class="card" role="listitem">
+              <div class="card-head">
+                <h2>{kulup.ad}</h2>
+                {kulup.oneCikan && <span class="badge">One Cikan</span>}
+              </div>
+              <p class="meta">{kulup.ilce} • {kulup.yasAraligi} yas • {kulup.fiyat}</p>
+              <p class="desc">{kulup.aciklama}</p>
+              <div class="actions">
+                <a class="btn btn-primary btn-sm" href={`tel:${kulup.telefon.replace(/\s/g, '')}`}>Iletisim</a>
+                <a class="btn btn-outline btn-sm" href={`/kulupler/${kulup.id}`}>Detay</a>
+              </div>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <div class="empty">
+          <p>Bu brans icin henuz kulup eklenmedi.</p>
+          <a href="/basvuru" class="btn btn-primary btn-sm">Kulubunu Ekle</a>
+        </div>
+      )}
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .page { background: #F8F9FA; min-height: 60vh; }
+  .head { margin-bottom: 1.5rem; }
+  .back { color: #6C757D; text-decoration: none; font-size: .85rem; font-weight: 600; }
+  .head h1 { margin-top: .5rem; font-size: clamp(1.6rem, 3.5vw, 2.2rem); font-weight: 900; color: #212529; }
+  .head p { margin-top: .35rem; color: #6C757D; }
+  .grid { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+  @media (min-width: 900px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+  .card { background: #fff; border: 1px solid #E9ECEF; border-radius: .9rem; padding: 1rem; }
+  .card-head { display: flex; align-items: center; gap: .6rem; justify-content: space-between; }
+  .card-head h2 { font-size: 1rem; font-weight: 800; color: #212529; }
+  .badge { background: #FFF1F2; color: #E30A17; font-size: .72rem; border-radius: 999px; padding: .2rem .55rem; font-weight: 700; }
+  .meta { margin-top: .4rem; color: #6C757D; font-size: .82rem; }
+  .desc { margin-top: .5rem; color: #495057; font-size: .88rem; line-height: 1.6; }
+  .actions { margin-top: .9rem; display: flex; gap: .5rem; }
+  .empty { border: 1px dashed #CED4DA; border-radius: .9rem; padding: 2rem; text-align: center; background: #fff; }
+</style>
+

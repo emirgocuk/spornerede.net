@@ -1,0 +1,33 @@
+[Unit]
+Description=SporNerede.net (Astro SSR standalone)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/spornerede/current
+
+# Uretim ortam degiskenleri (sunucuda bu dosyayi olusturun, repoya koymayin)
+EnvironmentFile=/opt/spornerede/.env
+#
+# Ornek .env (minimum):
+#   PORT=3000
+#   HOST=127.0.0.1
+#   SITE_URL=https://spornerede.net
+#   SMTP_HOST=...
+#   SMTP_PORT=587
+#   SMTP_USER=...
+#   SMTP_PASS=...
+#   MAIL_TO=...
+#   DATABASE_URL=...   (opsiyonel)
+
+# Astro @astrojs/node (mode: standalone) varsayilan giris noktasi
+ExecStart=/usr/bin/node /opt/spornerede/current/server/entry.mjs
+Restart=always
+RestartSec=3
+
+# Guvenlik: root yerine ayri kullanici onerilir
+User=root
+Group=root
+
+[Install]
+WantedBy=multi-user.target

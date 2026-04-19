@@ -1,0 +1,239 @@
+---
+/**
+ * BranslarGrid.astro
+ * "Branşları Keşfet" bölümü — ikonlu kart grid.
+ */
+
+const branslar = [
+  { slug: 'futbol',       isim: 'Futbol',       emoji: '⚽', renk: '#22C55E', aciklama: 'Takım ruhu, strateji, hız' },
+  { slug: 'basketbol',    isim: 'Basketbol',    emoji: '🏀', renk: '#F97316', aciklama: 'Sıçrama, çeviklik, koordinasyon' },
+  { slug: 'yuzme',        isim: 'Yüzme',        emoji: '🏊', renk: '#3B82F6', aciklama: '4 teknik, tam vücut antremanı' },
+  { slug: 'tenis',        isim: 'Tenis',        emoji: '🎾', renk: '#EAB308', aciklama: 'Refleksler, strateji, dayanıklılık' },
+  { slug: 'karate',       isim: 'Karate',       emoji: '🥋', renk: '#EF4444', aciklama: 'Disiplin, güç, öz savunma' },
+  { slug: 'jimnastik',    isim: 'Jimnastik',    emoji: '🤸', renk: '#EC4899', aciklama: 'Esneklik, güç, denge' },
+  { slug: 'voleybol',     isim: 'Voleybol',     emoji: '🏐', renk: '#8B5CF6', aciklama: 'Takım çalışması, refleks' },
+  { slug: 'taekwondo',    isim: 'Taekwondo',    emoji: '🦵', renk: '#E30A17', aciklama: 'Kore dövüş sanatı, esneklik' },
+  { slug: 'atletizm',     isim: 'Atletizm',     emoji: '🏃', renk: '#14B8A6', aciklama: 'Koşu, atlama, atma' },
+  { slug: 'judo',         isim: 'Judo',         emoji: '🥊', renk: '#6366F1', aciklama: 'Düşürme teknikleri, denge' },
+  { slug: 'badminton',    isim: 'Badminton',    emoji: '🏸', renk: '#10B981', aciklama: 'Hız, refleks, koordinasyon' },
+  { slug: 'masa-tenisi',  isim: 'Masa Tenisi',  emoji: '🏓', renk: '#F59E0B', aciklama: 'El-göz koordinasyonu, taktik' },
+];
+---
+
+<section class="branslar-section section" aria-labelledby="branslar-baslik">
+  <div class="container">
+
+    <!-- Başlık -->
+    <div class="branslar-header">
+      <div>
+        <div class="section-eyebrow">Tüm Branşlara Göz At</div>
+        <h2 id="branslar-baslik" class="section-title">
+          Branşları <span class="title-underline">Keşfet</span>
+        </h2>
+        <p class="section-subtitle">
+          Çocuğunuz için ya da kendiniz için doğru sporu bulun; Türkiye genelinde seçkin kulüp ve kursları keşfedin.
+        </p>
+      </div>
+    </div>
+
+    <!-- Branş grid -->
+    <div class="branslar-grid" role="list" aria-label="Spor Branşları">
+      {branslar.map((brans, index) => (
+        <a
+          href={`/branslar/${brans.slug}`}
+          class="brans-kart animate-fade-in-up"
+          style={`animation-delay: ${index * 0.05}s`}
+          role="listitem"
+          aria-label={`${brans.isim} kurslarını ara`}
+        >
+          <!-- Emoji ikonu -->
+          <div class="brans-icon" style={`--brans-renk: ${brans.renk}`}>
+            <span aria-hidden="true">{brans.emoji}</span>
+          </div>
+
+          <!-- İsim & Açıklama -->
+          <div class="brans-info">
+            <h3 class="brans-isim">{brans.isim}</h3>
+            <p class="brans-aciklama">{brans.aciklama}</p>
+          </div>
+
+          <!-- Ok ikonu -->
+          <div class="brans-arrow" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"/>
+              <polyline points="12 5 19 12 12 19"/>
+            </svg>
+          </div>
+        </a>
+      ))}
+    </div>
+
+    <!-- Tüm branşlar CTA -->
+    <div class="branslar-footer">
+      <a href="/branslar" class="btn btn-outline" aria-label="Tüm spor branşlarını görüntüle">
+        Tüm Branşları Gör
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="5" y1="12" x2="19" y2="12"/>
+          <polyline points="12 5 19 12 12 19"/>
+        </svg>
+      </a>
+    </div>
+
+  </div>
+</section>
+
+<style>
+  /* ===== SECTION ===== */
+  .branslar-section {
+    background-color: #ffffff;
+  }
+
+  /* ===== BAŞLIK ALANI ===== */
+  .branslar-header {
+    margin-bottom: 3rem;
+  }
+
+  .section-eyebrow {
+    display: inline-block;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #E30A17;
+    margin-bottom: 0.75rem;
+  }
+
+  /* ===== BRANŞ GRİD ===== */
+  .branslar-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.65rem;
+  }
+
+  @media (min-width: 480px) {
+    .branslar-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.75rem;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .branslar-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+
+  @media (min-width: 1024px) {
+    .branslar-grid { grid-template-columns: repeat(4, 1fr); }
+  }
+
+  /* ===== BRANŞ KART ===== */
+  .brans-kart {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.95rem 1rem;
+    background: #ffffff;
+    border: 2px solid #E9ECEF;
+    border-radius: 0.875rem;
+    text-decoration: none;
+    transition: all 0.22s ease;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    group: true;
+  }
+
+  .brans-kart::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, var(--brans-renk, #E30A17) 0%, transparent 100%);
+    opacity: 0;
+    transition: opacity 0.22s ease;
+    border-radius: inherit;
+  }
+
+  .brans-kart:hover {
+    border-color: var(--brans-renk, #E30A17);
+    transform: translateY(-3px) scale(1.01);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+  }
+
+  .brans-kart:hover::before {
+    opacity: 0.06;
+  }
+
+  .brans-kart:hover .brans-isim {
+    color: var(--brans-renk, #E30A17);
+  }
+
+  .brans-kart:hover .brans-arrow {
+    opacity: 1;
+    transform: translateX(4px);
+    color: var(--brans-renk, #E30A17);
+  }
+
+  /* ===== BRANŞ ICON ===== */
+  .brans-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    background-color: color-mix(in srgb, var(--brans-renk, #E30A17) 10%, transparent);
+    font-size: 1.4rem;
+    flex-shrink: 0;
+    transition: transform 0.22s ease;
+  }
+
+  .brans-kart:hover .brans-icon {
+    transform: scale(1.1) rotate(-5deg);
+  }
+
+  /* ===== BRANŞ BİLGİ ===== */
+  .brans-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .brans-isim {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #212529;
+    transition: color 0.2s ease;
+    line-height: 1.25;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .brans-aciklama {
+    font-size: 0.72rem;
+    color: #6C757D;
+    line-height: 1.35;
+    margin-top: 0.15rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* ===== OK ===== */
+  .brans-arrow {
+    color: #CED4DA;
+    opacity: 0;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+  }
+
+  /* ===== FOOTER ===== */
+  .branslar-footer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 2.5rem;
+    padding-top: 1.75rem;
+    border-top: 1px solid #E9ECEF;
+  }
+</style>

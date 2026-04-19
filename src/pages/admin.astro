@@ -1,0 +1,53 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getAdminClubSummary } from '../lib/repositories/catalog';
+
+const summary = await getAdminClubSummary();
+---
+
+<BaseLayout
+  title="Admin Paneli"
+  description="Kulup basvurulari ve uyelik durumlarini yonetin."
+  noIndex={true}
+>
+  <section class="section admin-page">
+    <div class="container">
+      <h1 class="admin-title">Admin Paneli</h1>
+      <p class="admin-desc">
+        Bu panelde ozet metrikleri gorursunuz. Basvuru listesi icin
+        <code>/api/admin/applications?token=ADMIN_TOKEN</code> endpointini kullanabilirsiniz.
+      </p>
+
+      <div class="admin-grid">
+        <article class="admin-card">
+          <h2>Toplam Kulup</h2>
+          <p>{summary.total}</p>
+        </article>
+        <article class="admin-card">
+          <h2>Onay Bekleyen</h2>
+          <p>{summary.pending}</p>
+        </article>
+        <article class="admin-card">
+          <h2>Onayli</h2>
+          <p>{summary.approved}</p>
+        </article>
+        <article class="admin-card">
+          <h2>Reddedilen</h2>
+          <p>{summary.rejected}</p>
+        </article>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .admin-page { background: #F8F9FA; min-height: 60vh; }
+  .admin-title { font-size: clamp(1.8rem, 3vw, 2.4rem); font-weight: 900; color: #212529; }
+  .admin-desc { margin-top: .5rem; color: #6C757D; max-width: 800px; line-height: 1.6; }
+  .admin-grid { margin-top: 1.25rem; display: grid; grid-template-columns: 1fr; gap: 1rem; }
+  @media (min-width: 900px) { .admin-grid { grid-template-columns: repeat(4, 1fr); } }
+  .admin-card { background: #fff; border: 1px solid #E9ECEF; border-radius: .9rem; padding: 1rem; }
+  .admin-card h2 { color: #6C757D; font-size: .85rem; font-weight: 700; text-transform: uppercase; }
+  .admin-card p { margin-top: .4rem; font-size: 1.6rem; font-weight: 900; color: #E30A17; }
+</style>
+

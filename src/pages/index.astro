@@ -1,0 +1,30 @@
+---
+/**
+ * index.astro
+ * SporNerede.net Landing Page — Ana Sayfa
+ * Tüm bileşenler burada birleştirilir.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Hero from '../components/Hero.astro';
+import NewsBar from '../components/NewsBar.astro';
+import FAQSection from '../components/FAQSection.astro';
+import ClubCTA from '../components/ClubCTA.astro';
+---
+
+<BaseLayout
+  title="Spornerede.net - Kulüp bul, karşılaştır. Başvur."
+  description="Spornerede.net ile spor kulüplerini ve kurslarını keşfet, karşılaştır ve hızlıca başvur. Türkiye genelinde branş, il ve ilçeye göre arama yap."
+  keywords="turkiye spor kulubu, turkiye spor kursu, cocuk spor kursu, futbol kursu, yuzme kursu, basketbol kursu, karate kursu, spor branslari"
+>
+  <!-- 1) HERO — "SPOR NEREDE?" + Arama Formu -->
+  <Hero />
+
+  <!-- 2) HABERLER & DUYURULAR -->
+  <NewsBar />
+
+  <!-- 3) SIKÇA SORULAN SORULAR -->
+  <FAQSection />
+
+  <!-- 4) KULÜP BAŞVURU CTA -->
+  <ClubCTA />
+</BaseLayout>

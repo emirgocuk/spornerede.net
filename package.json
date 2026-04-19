@@ -1,0 +1,41 @@
+{
+  "name": "spornerede",
+  "type": "module",
+  "version": "0.0.1",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "build:outbox": "npm run build && node scripts/sync-outbox.mjs",
+    "preview": "astro preview",
+    "astro": "astro",
+    "db:generate": "drizzle-kit generate --config=drizzle.config.mjs",
+    "db:migrate": "drizzle-kit migrate --config=drizzle.config.mjs",
+    "db:seed": "tsx scripts/db-seed.ts",
+    "deploy:remote": "bash deploy.sh",
+    "deploy:win": "powershell -NoProfile -ExecutionPolicy Bypass -File deploy.ps1",
+    "ssh:setup": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/setup-ssh-key.ps1",
+    "rollback:remote": "bash rollback.sh",
+    "deploy:prod": "bash deploy/all-in-one.sh",
+    "deploy:quick": "bash deploy.sh --update-nginx",
+    "deploy:app": "bash deploy.sh",
+    "rollback:prod": "bash rollback.sh"
+  },
+  "dependencies": {
+    "@astrojs/node": "^10.0.5",
+    "@astrojs/sitemap": "^3.7.2",
+    "@tailwindcss/vite": "^4.2.2",
+    "astro": "^6.1.6",
+    "drizzle-orm": "^0.45.2",
+    "nodemailer": "^8.0.5",
+    "pg": "^8.20.0",
+    "tailwindcss": "^4.2.2"
+  },
+  "devDependencies": {
+    "@types/nodemailer": "^8.0.0",
+    "drizzle-kit": "^0.31.10",
+    "tsx": "^4.21.0"
+  }
+}

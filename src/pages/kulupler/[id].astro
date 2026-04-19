@@ -1,0 +1,66 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getClubById } from '../../lib/repositories/catalog';
+
+const id = Number(Astro.params.id);
+const club = await getClubById(id);
+if (!club) {
+  return Astro.redirect('/ara');
+}
+---
+
+<BaseLayout
+  title={`${club.ad} | ${club.ilce}`}
+  description={`${club.ad} ${club.brans} bransinda egitim veren bir spor kulubudur. Iletisim ve temel bilgiler bu sayfada.`}
+  keywords={`${club.bransSlug} kulubu turkiye, ${(club.ilce ?? '').toLowerCase()} spor kulubu`}
+>
+  <section class="section detail-page">
+    <div class="container detail">
+      <a href={`/ara?brans=${club.bransSlug}`} class="back-link">← Arama Sonuclarina Don</a>
+
+      <header class="hero">
+        <div class="icon" style={`--branch-color: ${club.renk}`}>{club.emoji}</div>
+        <div>
+          <h1>{club.ad}</h1>
+          <p>{club.brans} • {club.ilce || club.il}</p>
+        </div>
+      </header>
+
+      <div class="grid">
+        <article class="card">
+          <h2>Kulup Hakkinda</h2>
+          <p>{club.aciklama}</p>
+        </article>
+        <article class="card">
+          <h2>Temel Bilgiler</h2>
+          <ul>
+            <li><strong>Yas araligi:</strong> {club.yasAraligi}</li>
+            <li><strong>Aylik ucret:</strong> {club.fiyat}</li>
+            <li><strong>Adres:</strong> {club.adres}</li>
+            <li><strong>Puan:</strong> {club.puan} ({club.yorumSayisi} yorum)</li>
+          </ul>
+          <a class="btn btn-primary btn-sm" href={`tel:${club.telefon.replace(/\s/g, '')}`}>Kulubu Ara</a>
+        </article>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .detail-page { background: #F8F9FA; min-height: 60vh; }
+  .back-link { color: #6C757D; text-decoration: none; font-weight: 600; font-size: .85rem; }
+  .hero { margin-top: 1rem; display: flex; align-items: center; gap: .9rem; }
+  .icon {
+    width: 52px; height: 52px; border-radius: .75rem; display: grid; place-items: center; font-size: 1.5rem;
+    background: color-mix(in srgb, var(--branch-color, #E30A17) 14%, transparent);
+  }
+  .hero h1 { font-size: clamp(1.4rem, 3.2vw, 2.1rem); font-weight: 900; color: #212529; }
+  .hero p { margin-top: .2rem; color: #6C757D; }
+  .grid { margin-top: 1.25rem; display: grid; grid-template-columns: 1fr; gap: 1rem; }
+  @media (min-width: 980px) { .grid { grid-template-columns: 1.4fr 1fr; } }
+  .card { background: #fff; border: 1px solid #E9ECEF; border-radius: .9rem; padding: 1rem; }
+  .card h2 { font-size: 1rem; font-weight: 800; color: #212529; margin-bottom: .5rem; }
+  .card p, .card li { color: #495057; line-height: 1.65; font-size: .9rem; }
+  .card ul { display: grid; gap: .35rem; margin-bottom: .8rem; padding-left: 1rem; }
+</style>
+

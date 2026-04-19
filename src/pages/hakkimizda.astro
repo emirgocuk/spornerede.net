@@ -1,0 +1,91 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+---
+
+<BaseLayout
+  title="Hakkımızda"
+  description="Spornerede.net; Türkiye genelinde spor kursu ve kulüp arayan ailelerle kulüpleri buluşturan modern keşif platformudur."
+  keywords="hakkımızda spornerede, spor kulüp rehberi, spor kursu platformu"
+>
+  <section class="about-page section">
+    <div class="container about-container">
+      <p class="about-eyebrow">Biz Kimiz?</p>
+      <h1 class="section-title">
+        Türkiye genelinde spor kursu ve kulüp arayan aileler için <span class="title-underline">tek durak</span>
+      </h1>
+      <p class="section-subtitle">
+        Spornerede.net, doğru spor ortamını bulmayı kolaylaştırmak için tasarlandı. Aileleri güvenilir kulüp ve kurslarla buluşturur, kulüplere ise dijital görünürlük kazandırır.
+      </p>
+
+      <div class="about-grid">
+        <article class="about-card">
+          <h2>Neden Spornerede?</h2>
+          <p>Dağınık sosyal medya aramaları yerine, tek ekranda karşılaştırılabilir kulüp ve kurs bilgileri sunar.</p>
+        </article>
+        <article class="about-card">
+          <h2>Vizyonumuz</h2>
+          <p>Türkiye'nin en güvenilir spor branş ve kulüp rehberini oluşturarak spora erişimi herkes için kolaylaştırmak.</p>
+        </article>
+        <article class="about-card">
+          <h2>Misyonumuz</h2>
+          <p>Ailelerin doğru kararı daha hızlı vermesine yardımcı olurken kulüplerin hedef kitlesine daha kolay ulaşmasını sağlamak.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .about-page {
+    background:
+      radial-gradient(circle at 10% 10%, rgba(227, 10, 23, 0.07), transparent 34%),
+      radial-gradient(circle at 90% 90%, rgba(227, 10, 23, 0.05), transparent 30%),
+      #fff9f9;
+  }
+
+  .about-container {
+    max-width: 980px;
+  }
+
+  .about-eyebrow {
+    display: inline-block;
+    margin-bottom: 0.9rem;
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #b5080f;
+  }
+
+  .about-grid {
+    margin-top: 2rem;
+    display: grid;
+    gap: 0.9rem;
+    grid-template-columns: 1fr;
+  }
+
+  @media (min-width: 900px) {
+    .about-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  .about-card {
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid #f0dede;
+    border-radius: 0.95rem;
+    padding: 1.1rem;
+  }
+
+  .about-card h2 {
+    font-size: 1rem;
+    color: #1f2937;
+    margin-bottom: 0.45rem;
+  }
+
+  .about-card p {
+    font-size: 0.92rem;
+    color: #4b5563;
+    line-height: 1.6;
+  }
+</style>

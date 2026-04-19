@@ -1,0 +1,173 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const haberler = [
+  {
+    kategori: 'Etkinlik',
+    tarih: '18 Nisan 2026',
+    baslik: 'Bahar Maratonu Başvuruları Açıldı',
+    ozet: '2026 Bahar Maratonu için başvurular başladı. 5K, 10K ve yarı maraton kategorileri mevcut.',
+  },
+  {
+    kategori: 'Duyuru',
+    tarih: '15 Nisan 2026',
+    baslik: 'Kulüp Lisans Yenileme Süreci Başladı',
+    ozet: '2026-27 sezonu için lisans yenileme başvuruları açıldı. Son başvuru tarihleri il bazında duyuruluyor.',
+  },
+  {
+    kategori: 'Başarı',
+    tarih: '12 Nisan 2026',
+    baslik: 'Genç Sporcu Milli Takım Kadrosuna Alındı',
+    ozet: 'U16 kategorisinde başarılı performans gösteren sporcular milli takım kampına davet edildi.',
+  },
+  {
+    kategori: 'Kurs',
+    tarih: '10 Nisan 2026',
+    baslik: 'Yaz Spor Okulları İçin Ön Kayıt Dönemi',
+    ozet: 'Birçok şehirde yaz dönemi kursları için ön kayıtlar başladı. Branş kontenjanları hızla doluyor.',
+  },
+  {
+    kategori: 'Bilgilendirme',
+    tarih: '8 Nisan 2026',
+    baslik: 'Aileler İçin Spor Kulübü Seçim Rehberi',
+    ozet: 'Kulüp seçerken dikkat edilmesi gereken temel başlıklar: antrenör kadrosu, güvenlik, iletişim ve planlama.',
+  },
+];
+---
+
+<BaseLayout
+  title="Haberler"
+  description="Spornerede.net haberler sayfası: spor dünyasından güncel duyurular, etkinlikler ve kulüp gelişmeleri."
+  keywords="spor haberleri, spor duyuruları, kulüp haberleri"
+>
+  <section class="news-page section">
+    <div class="container news-container">
+      <div class="news-head">
+        <p class="news-eyebrow">Güncel</p>
+        <h1 class="section-title">
+          Haberler & <span class="title-underline">Duyurular</span>
+        </h1>
+        <p class="section-subtitle">
+          Spor dünyasından en güncel gelişmeler, etkinlikler ve platform duyuruları.
+        </p>
+      </div>
+
+      <div class="news-grid" role="list">
+        {haberler.map((haber) => (
+          <article class="news-card" role="listitem">
+            <div class="news-meta">
+              <span class="news-badge">{haber.kategori}</span>
+              <span class="news-date">{haber.tarih}</span>
+            </div>
+            <h2>{haber.baslik}</h2>
+            <p>{haber.ozet}</p>
+            <a href="#" class="news-link">Detayı Gör →</a>
+          </article>
+        ))}
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .news-page {
+    background:
+      radial-gradient(circle at 14% 10%, rgba(227, 10, 23, 0.08), transparent 34%),
+      radial-gradient(circle at 88% 90%, rgba(227, 10, 23, 0.06), transparent 30%),
+      #fff8f8;
+  }
+
+  .news-container {
+    max-width: 1080px;
+  }
+
+  .news-eyebrow {
+    display: inline-block;
+    margin-bottom: 0.85rem;
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #b5080f;
+  }
+
+  .news-head {
+    max-width: 900px;
+    margin-left: auto;
+    margin-right: auto;
+    text-align: left;
+  }
+
+  .news-head .section-subtitle {
+    margin-left: 0;
+  }
+
+  .news-grid {
+    margin-top: 2rem;
+    display: grid;
+    gap: 0.9rem;
+    grid-template-columns: 1fr;
+    max-width: 900px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .news-card {
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid #f0dede;
+    border-radius: 0.95rem;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  .news-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  .news-badge {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #a30711;
+    background: #ffe9eb;
+    border: 1px solid #ffd5d8;
+    border-radius: 999px;
+    padding: 0.2rem 0.55rem;
+  }
+
+  .news-date {
+    font-size: 0.76rem;
+    color: #6b7280;
+    font-weight: 500;
+  }
+
+  .news-card h2 {
+    font-size: 1rem;
+    line-height: 1.4;
+    color: #1f2937;
+  }
+
+  .news-card p {
+    font-size: 0.9rem;
+    color: #4b5563;
+    line-height: 1.6;
+    flex: 1;
+  }
+
+  .news-link {
+    color: #a30711;
+    font-size: 0.86rem;
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  .news-link:hover {
+    text-decoration: underline;
+  }
+</style>

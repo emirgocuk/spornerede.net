@@ -1,0 +1,822 @@
+---
+/**
+ * Hero.astro
+ * Landing page hero bölümü.
+ * "SPOR NEREDE?" vurgusu + arama formu + popüler branşlar.
+ */
+import { getAllCities, getAllDistricts } from '../lib/repositories/catalog';
+
+const { searchParams } = Astro.url;
+const seciliIl = searchParams.get('il') || '';
+const seciliIlce = searchParams.get('ilce') || '';
+const seciliBrans = searchParams.get('brans') || '';
+
+const tumIller = await getAllCities();
+const tumIlceler = await getAllDistricts(seciliIl || undefined);
+const turkishCityMap: Record<string, string> = {
+  adana: 'Adana', adiyaman: 'Adıyaman', afyonkarahisar: 'Afyonkarahisar', agri: 'Ağrı', amasya: 'Amasya',
+  ankara: 'Ankara', antalya: 'Antalya', artvin: 'Artvin', aydin: 'Aydın', balikesir: 'Balıkesir',
+  bilecik: 'Bilecik', bingol: 'Bingöl', bitlis: 'Bitlis', bolu: 'Bolu', burdur: 'Burdur',
+  bursa: 'Bursa', canakkale: 'Çanakkale', cankiri: 'Çankırı', corum: 'Çorum', denizli: 'Denizli',
+  diyarbakir: 'Diyarbakır', edirne: 'Edirne', elazig: 'Elazığ', erzincan: 'Erzincan', erzurum: 'Erzurum',
+  eskisehir: 'Eskişehir', gaziantep: 'Gaziantep', giresun: 'Giresun', gumushane: 'Gümüşhane', hakkari: 'Hakkari',
+  hatay: 'Hatay', isparta: 'Isparta', mersin: 'Mersin', istanbul: 'İstanbul', izmir: 'İzmir',
+  kars: 'Kars', kastamonu: 'Kastamonu', kayseri: 'Kayseri', kirklareli: 'Kırklareli', kirsehir: 'Kırşehir',
+  kocaeli: 'Kocaeli', konya: 'Konya', kutahya: 'Kütahya', malatya: 'Malatya', manisa: 'Manisa',
+  kahramanmaras: 'Kahramanmaraş', mardin: 'Mardin', mugla: 'Muğla', mus: 'Muş', nevsehir: 'Nevşehir',
+  nigde: 'Niğde', ordu: 'Ordu', rize: 'Rize', sakarya: 'Sakarya', samsun: 'Samsun',
+  siirt: 'Siirt', sinop: 'Sinop', sivas: 'Sivas', tekirdag: 'Tekirdağ', tokat: 'Tokat',
+  trabzon: 'Trabzon', tunceli: 'Tunceli', sanliurfa: 'Şanlıurfa', usak: 'Uşak', van: 'Van',
+  yozgat: 'Yozgat', zonguldak: 'Zonguldak', aksaray: 'Aksaray', bayburt: 'Bayburt', karaman: 'Karaman',
+  kirikkale: 'Kırıkkale', batman: 'Batman', sirnak: 'Şırnak', bartin: 'Bartın', ardahan: 'Ardahan',
+  igdir: 'Iğdır', yalova: 'Yalova', karabuk: 'Karabük', kilis: 'Kilis', osmaniye: 'Osmaniye', duzce: 'Düzce',
+};
+
+const normalizeCityName = (name: string) => {
+  const ascii = name
+    .toLocaleLowerCase('tr-TR')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/ı/g, 'i')
+    .replace(/[^a-z]/g, '');
+  return turkishCityMap[ascii] ?? name;
+};
+
+const prioritizedCities = ['Ankara', 'İstanbul', 'İzmir', 'Adana'];
+const normalizedCities = Array.from(
+  new Set(tumIller.map((il) => normalizeCityName(il.ad)).filter(Boolean))
+).filter((city) => !prioritizedCities.includes(city));
+
+for (let i = normalizedCities.length - 1; i > 0; i -= 1) {
+  const j = Math.floor(Math.random() * (i + 1));
+  [normalizedCities[i], normalizedCities[j]] = [normalizedCities[j], normalizedCities[i]];
+}
+
+const cityNames = [...prioritizedCities, ...normalizedCities];
+
+const branslar = [
+  'Futbol', 'Basketbol', 'Voleybol', 'Tenis', 'Yüzme', 'Karate', 'Judo',
+  'Taekwondo', 'Jimnastik', 'Atletizm', 'Hentbol', 'Badminton', 'Masa Tenisi',
+  'Boks', 'Güreş', 'Satranç', 'Dans', 'Okçuluk', 'At Binicilik', 'Golf',
+];
+
+const seciliIlAdi = tumIller.find((il) => il.slug === seciliIl)?.ad ?? '';
+const seciliIlceAdi = tumIlceler.find((ilce) => ilce.slug === seciliIlce)?.ad ?? '';
+const bransOptions = branslar.map((ad) => ({ ad, slug: ad.toLowerCase().replace(/\s/g, '-') }));
+const seciliBransAdi = bransOptions.find((brans) => brans.slug === seciliBrans)?.ad ?? '';
+
+---
+
+<section class="hero-section" aria-label="Ana Arama Bölümü">
+
+  <!-- Arka plan dekorasyon (blur orbs) -->
+  <div class="hero-bg" aria-hidden="true">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+    <div class="hero-pattern"></div>
+  </div>
+
+  <div class="container hero-content">
+
+    <!-- Badge -->
+    <div class="hero-badge animate-fade-in-up">
+      <span class="city-chip">
+        <span class="city-rotator" data-city-rotator>
+          <span class="city-track" data-city-track>
+            {cityNames.concat(cityNames.slice(0, 2)).map((city) => (
+              <span class="city-item">{city}</span>
+            ))}
+          </span>
+        </span>
+      </span>
+      <span class="badge-text">için En Kapsamlı Spor Rehberi 🏆</span>
+    </div>
+
+    <!-- Ana başlık -->
+    <h1 class="hero-title animate-fade-in-up delay-100">
+      <span class="hero-title-sub">Çocuğunuz için</span>
+      <span class="hero-title-main">
+        <span class="hero-highlight">spor kursu</span>
+        <br />veya <span class="hero-highlight">kulüp</span> bul
+      </span>
+    </h1>
+
+    <!-- Alt slogan -->
+    <p class="hero-desc animate-fade-in-up delay-200">
+      Adresinize en yakın spor kursları ve kulüpler bir tık uzağınızda.
+    </p>
+
+    <!-- Arama Formu -->
+    <div class="hero-search-wrapper animate-fade-in-up delay-300">
+      <form
+        id="hero-search-form"
+        class="hero-search-form"
+        method="get"
+        action="/ara"
+        aria-label="Spor Arama Formu"
+      >
+        <!-- İl seçimi -->
+        <div class="search-field">
+          <label for="hero-il-input" class="search-label">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 2l7 4v6c0 5-3.5 9.74-7 10-3.5-.26-7-5-7-10V6l7-4z"/>
+            </svg>
+            İl
+          </label>
+          <input id="hero-il-input" class="search-input" type="text" placeholder="Tüm Türkiye" value={seciliIlAdi} autocomplete="off" aria-label="İl seçin" data-hero-il-input />
+          <input type="hidden" name="il" value={seciliIl} data-hero-il-hidden />
+          <div class="search-suggestions" data-suggest-il></div>
+        </div>
+
+        <div class="search-divider" aria-hidden="true"></div>
+
+        <!-- İlçe seçimi -->
+        <div class="search-field">
+          <label for="hero-ilce-input" class="search-label">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+              <circle cx="12" cy="10" r="3"/>
+            </svg>
+            İlçe
+          </label>
+          <input id="hero-ilce-input" class="search-input" type="text" placeholder={seciliIl ? 'Tüm ilçeler' : 'İlçe yazın'} value={seciliIlceAdi} autocomplete="off" aria-label="İlçe seçin" data-hero-ilce-input />
+          <input type="hidden" name="ilce" value={seciliIlce} data-hero-ilce-hidden />
+          <div class="search-suggestions" data-suggest-ilce></div>
+        </div>
+
+        <!-- Dikey ayraç -->
+        <div class="search-divider" aria-hidden="true"></div>
+
+        <!-- Branş seçimi -->
+        <div class="search-field">
+          <label for="hero-brans-input" class="search-label">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="10"/>
+              <polygon points="10 8 16 12 10 16 10 8"/>
+            </svg>
+            Branş
+          </label>
+          <input id="hero-brans-input" class="search-input" type="text" placeholder="Tüm Branşlar" value={seciliBransAdi} autocomplete="off" aria-label="Branş seçin" data-hero-brans-input />
+          <input type="hidden" name="brans" value={seciliBrans} data-hero-brans-hidden />
+          <div class="search-suggestions" data-suggest-brans></div>
+        </div>
+
+        <!-- Ara Butonu -->
+        <button id="hero-search-btn" type="submit" class="search-btn" aria-label="Ara">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="8"/>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <span class="search-btn-text">Ara</span>
+        </button>
+      </form>
+    </div>
+
+  </div>
+
+  <!-- Scroll aşağı oku -->
+  <div class="scroll-indicator animate-bounce-y" aria-hidden="true">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="6 9 12 15 18 9"/>
+    </svg>
+  </div>
+
+  <!-- "SPOR NEREDE?" büyük watermark -->
+  <div class="hero-watermark" aria-hidden="true">SPOR NEREDE?</div>
+
+</section>
+
+<script define:vars={{ cityOptions: tumIller.map((il) => ({ ad: il.ad, slug: il.slug })), allDistrictOptions: tumIlceler, branchOptions: bransOptions }}>
+  const heroForm = document.getElementById('hero-search-form');
+  const ilInput = document.querySelector('[data-hero-il-input]');
+  const ilHidden = document.querySelector('[data-hero-il-hidden]');
+  const ilceInput = document.querySelector('[data-hero-ilce-input]');
+  const ilceHidden = document.querySelector('[data-hero-ilce-hidden]');
+  const bransInput = document.querySelector('[data-hero-brans-input]');
+  const bransHidden = document.querySelector('[data-hero-brans-hidden]');
+  const ilSuggest = document.querySelector('[data-suggest-il]');
+  const ilceSuggest = document.querySelector('[data-suggest-ilce]');
+  const bransSuggest = document.querySelector('[data-suggest-brans]');
+  const cityRotator = document.querySelector('[data-city-rotator]');
+  let currentDistrictOptions = Array.isArray(allDistrictOptions) ? allDistrictOptions : [];
+
+  const norm = (value) => value?.toLocaleLowerCase('tr-TR').trim() ?? '';
+  const findMatch = (options, value) => options.find((item) => norm(item.ad) === norm(value));
+  const score = (input, candidate) => {
+    const i = norm(input);
+    const c = norm(candidate);
+    if (!i) return 0;
+    if (c.startsWith(i)) return 3;
+    if (c.includes(i)) return 2;
+    return 0;
+  };
+  const topThree = (options, input) =>
+    norm(input).length === 0
+      ? []
+      :
+    options
+      .map((o) => ({ ...o, _s: score(input, o.ad) }))
+      .filter((o) => o._s > 0)
+      .sort((a, b) => b._s - a._s || a.ad.localeCompare(b.ad, 'tr'))
+      .slice(0, 3);
+
+  function renderSuggestions(container, items, onSelect) {
+    if (!container) return;
+    [ilSuggest, ilceSuggest, bransSuggest].forEach((panel) => {
+      if (panel && panel !== container) panel.classList.remove('open');
+    });
+    container.innerHTML = '';
+    if (!items.length) {
+      container.classList.remove('open');
+      return;
+    }
+    for (const item of items) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'suggestion-item';
+      btn.textContent = item.ad;
+      btn.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        onSelect(item);
+      });
+      container.append(btn);
+    }
+    container.classList.add('open');
+  }
+
+  function closeSuggestions() {
+    ilSuggest?.classList.remove('open');
+    ilceSuggest?.classList.remove('open');
+    bransSuggest?.classList.remove('open');
+    heroForm?.classList.remove('is-expanded');
+  }
+
+  function renderDefaultDistrictState() {
+    if (!ilceInput || !ilceHidden) return;
+    ilceInput.value = '';
+    ilceInput.placeholder = 'İlçe yazın';
+    ilceHidden.value = '';
+    currentDistrictOptions = Array.isArray(allDistrictOptions) ? allDistrictOptions : [];
+  }
+
+  async function loadDistricts(ilSlug, preferredValue = '') {
+    if (!ilceInput || !ilceHidden) return;
+    if (!ilSlug) {
+      renderDefaultDistrictState();
+      return;
+    }
+
+    ilceInput.placeholder = 'Yükleniyor...';
+
+    try {
+      const response = await fetch(`/api/districts?il=${encodeURIComponent(ilSlug)}`);
+      if (!response.ok) {
+        throw new Error('Ilce listesi alinamadi');
+      }
+      const payload = await response.json();
+      const items = Array.isArray(payload?.items) ? payload.items : [];
+      currentDistrictOptions = items;
+      ilceInput.placeholder = 'Tüm ilçeler';
+
+      if (preferredValue) {
+        const selectedDistrict = items.find((item) => item.slug === preferredValue);
+        ilceInput.value = selectedDistrict?.ad ?? '';
+        ilceHidden.value = selectedDistrict?.slug ?? '';
+      } else {
+        ilceInput.value = '';
+        ilceHidden.value = '';
+      }
+    } catch (_error) {
+      currentDistrictOptions = [];
+      ilceInput.placeholder = 'İlçeler yüklenemedi';
+      ilceInput.value = '';
+      ilceHidden.value = '';
+    }
+  }
+
+  function syncCity() {
+    if (!ilInput || !ilHidden) return;
+    const selectedCity = findMatch(cityOptions, ilInput.value);
+    ilHidden.value = selectedCity?.slug ?? '';
+    if (selectedCity) {
+      loadDistricts(selectedCity.slug, '');
+    } else {
+      renderDefaultDistrictState();
+    }
+  }
+
+  function syncDistrict() {
+    if (!ilceInput || !ilceHidden) return;
+    const selectedDistrict = findMatch(currentDistrictOptions, ilceInput.value);
+    ilceHidden.value = selectedDistrict?.slug ?? '';
+  }
+
+  function syncBranch() {
+    if (!bransInput || !bransHidden) return;
+    const selectedBranch = findMatch(branchOptions, bransInput.value);
+    bransHidden.value = selectedBranch?.slug ?? '';
+  }
+
+  ilInput?.addEventListener('change', syncCity);
+  ilInput?.addEventListener('blur', syncCity);
+  ilceInput?.addEventListener('change', syncDistrict);
+  ilceInput?.addEventListener('blur', syncDistrict);
+  bransInput?.addEventListener('change', syncBranch);
+  bransInput?.addEventListener('blur', syncBranch);
+
+  ilInput?.addEventListener('focus', () => {
+    closeSuggestions();
+  });
+
+  ilInput?.addEventListener('input', () => {
+    heroForm?.classList.add('is-expanded');
+    renderSuggestions(ilSuggest, topThree(cityOptions, ilInput.value), (item) => {
+      ilInput.value = item.ad;
+      ilHidden.value = item.slug;
+      loadDistricts(item.slug, '');
+      closeSuggestions();
+    });
+  });
+
+  ilceInput?.addEventListener('focus', () => {
+    heroForm?.classList.add('is-expanded');
+    renderSuggestions(ilceSuggest, topThree(currentDistrictOptions, ilceInput.value), (item) => {
+      ilceInput.value = item.ad;
+      ilceHidden.value = item.slug;
+      closeSuggestions();
+    });
+  });
+
+  ilceInput?.addEventListener('input', () => {
+    heroForm?.classList.add('is-expanded');
+    renderSuggestions(ilceSuggest, topThree(currentDistrictOptions, ilceInput.value), (item) => {
+      ilceInput.value = item.ad;
+      ilceHidden.value = item.slug;
+      closeSuggestions();
+    });
+  });
+
+  bransInput?.addEventListener('focus', () => {
+    closeSuggestions();
+  });
+
+  bransInput?.addEventListener('input', () => {
+    heroForm?.classList.add('is-expanded');
+    renderSuggestions(bransSuggest, topThree(branchOptions, bransInput.value), (item) => {
+      bransInput.value = item.ad;
+      bransHidden.value = item.slug;
+      closeSuggestions();
+    });
+  });
+
+  heroForm?.addEventListener('submit', () => {
+    syncCity();
+    syncDistrict();
+    syncBranch();
+  });
+
+  if (ilHidden?.value) {
+    loadDistricts(ilHidden.value, ilceHidden?.value ?? '');
+  } else {
+    renderDefaultDistrictState();
+  }
+
+  document.addEventListener('click', (e) => {
+    if (!heroForm?.contains(e.target)) closeSuggestions();
+  });
+
+  if (cityRotator) {
+    const track = cityRotator.querySelector('[data-city-track]');
+    const items = track ? Array.from(track.querySelectorAll('.city-item')) : [];
+    let index = 0;
+    const itemHeight = items[0]?.getBoundingClientRect().height ?? 0;
+
+    if (track && itemHeight > 0 && items.length > 2) {
+      window.setInterval(() => {
+        index += 1;
+        track.style.transition = 'transform 420ms cubic-bezier(0.4, 0, 0.2, 1)';
+        track.style.transform = `translateY(-${index * itemHeight}px)`;
+
+        if (index >= items.length - 2) {
+          window.setTimeout(() => {
+            track.style.transition = 'none';
+            track.style.transform = 'translateY(0)';
+            index = 0;
+          }, 450);
+        }
+      }, 1800);
+    }
+  }
+</script>
+
+<style>
+  /* ===== HERO SECTION ===== */
+  .hero-section {
+    position: relative;
+    min-height: calc(100vh - 68px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(155deg, #0D0D0D 0%, #1a0002 40%, #2d0005 70%, #0D0D0D 100%);
+    color: #ffffff;
+    overflow: hidden;
+    margin-top: -68px;
+    padding: calc(5rem + 68px) 0 4rem;
+  }
+
+  /* ===== ARKA PLAN DEKORASYON ===== */
+  .hero-bg {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+  }
+
+  .orb-1 {
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(227, 10, 23, 0.25) 0%, transparent 70%);
+    top: -200px;
+    right: -100px;
+    animation: float1 12s ease-in-out infinite;
+  }
+
+  .orb-2 {
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(181, 8, 15, 0.2) 0%, transparent 70%);
+    bottom: -100px;
+    left: -50px;
+    animation: float2 15s ease-in-out infinite;
+  }
+
+  .orb-3 {
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(255, 45, 58, 0.12) 0%, transparent 70%);
+    top: 40%;
+    left: 30%;
+    animation: float3 10s ease-in-out infinite;
+  }
+
+  .hero-pattern {
+    position: absolute;
+    inset: 0;
+    background-image:
+      radial-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  @keyframes float1 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50%       { transform: translate(-30px, 30px) scale(1.05); }
+  }
+  @keyframes float2 {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50%       { transform: translate(20px, -20px) scale(1.08); }
+  }
+  @keyframes float3 {
+    0%, 100% { transform: translate(0, 0); }
+    33%       { transform: translate(-15px, 15px); }
+    66%       { transform: translate(15px, -10px); }
+  }
+
+  /* ===== İÇERİK ===== */
+  .hero-content {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 2rem;
+    width: 100%;
+    min-height: calc(100vh - 68px - 9rem);
+  }
+
+  /* ===== BADGE ===== */
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
+    color: rgba(255, 255, 255, 0.9);
+    padding: 0.56rem 1.1rem;
+    border-radius: 9999px;
+    font-size: 0.93rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    margin-top: -0.5rem;
+  }
+
+  .city-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.16rem 0.5rem;
+    border-radius: 999px;
+    background:
+      linear-gradient(180deg, rgba(255, 107, 117, 0.22), rgba(150, 16, 28, 0.2)),
+      radial-gradient(rgba(255, 196, 201, 0.22) 0.7px, transparent 0.7px);
+    background-size: auto, 8px 8px;
+    border: 1px solid rgba(255, 163, 172, 0.38);
+    box-shadow: inset 0 1px 0 rgba(255, 214, 219, 0.28);
+  }
+
+  .city-rotator {
+    position: relative;
+    display: inline-flex;
+    flex-direction: column;
+    width: 14ch;
+    height: 1.34em;
+    overflow: hidden;
+    vertical-align: bottom;
+    text-align: center;
+  }
+
+  .city-track {
+    display: flex;
+    flex-direction: column;
+    transform: translateY(0);
+  }
+
+  .city-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 1.34em;
+    line-height: 1.34em;
+    white-space: nowrap;
+    font-weight: 800;
+    color: #FFECEF;
+  }
+
+  .badge-text {
+    margin-left: 0.06rem;
+  }
+
+  /* ===== BAŞLIK ===== */
+  .hero-title {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+  }
+
+  .hero-title-sub {
+    font-size: clamp(1.1rem, 3vw, 1.5rem);
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.6);
+    letter-spacing: 0;
+  }
+
+  .hero-title-main {
+    font-size: clamp(2.4rem, 7vw, 5rem);
+    font-weight: 900;
+    color: #ffffff;
+  }
+
+  .hero-highlight {
+    position: relative;
+    color: #F7D8DB;
+    display: inline-block;
+  }
+
+  .hero-highlight::after {
+    content: '';
+    position: absolute;
+    bottom: 0px;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(90deg, #A30711, #C20C18, #A30711);
+    border-radius: 2px;
+    opacity: 0.7;
+    background-size: 200%;
+    animation: shimmer 3s linear infinite;
+  }
+
+  @keyframes shimmer {
+    0%   { background-position: -200% 0; }
+    100% { background-position:  200% 0; }
+  }
+
+  /* ===== AÇIKLAMA ===== */
+  .hero-desc {
+    font-size: clamp(1rem, 2vw, 1.15rem);
+    color: rgba(255, 255, 255, 0.65);
+    max-width: 520px;
+    font-weight: 400;
+    line-height: 1.7;
+  }
+
+  /* ===== ARAMA FORMU ===== */
+  .hero-search-wrapper {
+    width: 100%;
+    max-width: 660px;
+  }
+
+  .hero-search-form {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    background: rgba(255, 255, 255, 0.97);
+    border-radius: 1rem;
+    padding: 0.5rem;
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.1),
+      0 20px 60px rgba(0, 0, 0, 0.4),
+      0 4px 12px rgba(227, 10, 23, 0.2);
+  }
+
+  .hero-search-form.is-expanded {
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.16),
+      0 24px 70px rgba(0, 0, 0, 0.46),
+      0 6px 20px rgba(227, 10, 23, 0.24);
+  }
+
+  .search-field {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 0.375rem 0.75rem;
+    min-width: 0;
+    position: relative;
+  }
+
+  .search-label {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #6C757D;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.2rem;
+    white-space: nowrap;
+  }
+
+  .search-input {
+    border: none;
+    outline: none;
+    background: transparent;
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #212529;
+    padding: 0;
+    cursor: pointer;
+    width: 100%;
+  }
+
+  .search-input:focus {
+    color: #E30A17;
+  }
+
+  .search-suggestions {
+    position: absolute;
+    top: calc(100% + 0.4rem);
+    left: 0.5rem;
+    right: 0.5rem;
+    background: rgba(255, 255, 255, 0.98);
+    border: 1px solid #DADFE5;
+    border-radius: 0.7rem;
+    box-shadow: 0 12px 34px rgba(0,0,0,0.2);
+    padding: 0.25rem;
+    display: none;
+    z-index: 120;
+    max-height: 172px;
+    overflow-y: auto;
+  }
+
+  .search-suggestions.open {
+    display: block;
+  }
+
+  .search-suggestions :global(.suggestion-item) {
+    display: block;
+    width: 100%;
+    border: none;
+    background: #ffffff;
+    text-align: left;
+    padding: 0.5rem 0.6rem;
+    border-radius: 0.5rem;
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.92rem;
+    font-weight: 600;
+    line-height: 1.25;
+    color: #111827 !important;
+    -webkit-text-fill-color: #111827 !important;
+  }
+
+  .search-suggestions :global(.suggestion-item:focus),
+  .search-suggestions :global(.suggestion-item:active) {
+    color: #111827 !important;
+    -webkit-text-fill-color: #111827 !important;
+    background: #F9FAFB;
+    outline: 2px solid #D1D5DB;
+    outline-offset: -1px;
+  }
+
+  .search-suggestions :global(.suggestion-item:hover) {
+    background: #FFE9EB;
+    color: #A30711 !important;
+    -webkit-text-fill-color: #A30711 !important;
+  }
+
+  .search-divider {
+    width: 1px;
+    background: #E9ECEF;
+    margin: 0.5rem 0;
+    align-self: stretch;
+    flex-shrink: 0;
+  }
+
+  .search-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #E30A17;
+    color: #ffffff;
+    border: none;
+    border-radius: 0.625rem;
+    padding: 0.875rem 1.5rem;
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .search-btn:hover {
+    background: #B5080F;
+    transform: scale(1.02);
+    box-shadow: 0 4px 16px rgba(227, 10, 23, 0.4);
+  }
+
+  .search-btn:active {
+    transform: scale(0.98);
+  }
+
+  /* Mobilde buton metni kısaltılır */
+  @media (max-width: 480px) {
+    .hero-search-form {
+      flex-direction: column;
+    }
+    .search-divider {
+      width: auto;
+      height: 1px;
+      margin: 0;
+    }
+    .search-btn {
+      justify-content: center;
+      border-radius: 0.625rem;
+      padding: 0.875rem;
+    }
+  }
+
+  /* ===== SCROLL INDICATOR ===== */
+  .scroll-indicator {
+    position: absolute;
+    bottom: 1.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    color: rgba(255, 255, 255, 0.35);
+    transition: color 0.2s ease;
+  }
+
+  .scroll-indicator:hover {
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  /* ===== WATERMARK ===== */
+  .hero-watermark {
+    position: absolute;
+    bottom: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: clamp(4rem, 15vw, 12rem);
+    font-weight: 900;
+    color: rgba(255, 255, 255, 0.025);
+    white-space: nowrap;
+    letter-spacing: -0.04em;
+    user-select: none;
+    pointer-events: none;
+    z-index: 0;
+  }
+</style>

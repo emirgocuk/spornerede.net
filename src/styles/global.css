@@ -1,0 +1,426 @@
+@import "tailwindcss";
+
+/* ============================================================
+   SPORNEREDE.NET — Global Design Token Sistemi
+   Renk: Türk Bayrağı Kırmızısı (#E30A17) + Beyaz
+   Font: Outfit (Google Fonts)
+   ============================================================ */
+
+@theme {
+  /* === MARKA RENKLERİ === */
+  --color-brand-red:        #E30A17;
+  --color-brand-red-dark:   #B5080F;
+  --color-brand-red-light:  #FF2D3A;
+  --color-brand-red-50:     #FFF1F2;
+  --color-brand-red-100:    #FFE0E2;
+
+  --color-brand-white:      #ffffff;
+
+  /* === GRİ SKALASI === */
+  --color-brand-gray-50:    #F8F9FA;
+  --color-brand-gray-100:   #F1F3F5;
+  --color-brand-gray-200:   #E9ECEF;
+  --color-brand-gray-300:   #DEE2E6;
+  --color-brand-gray-400:   #CED4DA;
+  --color-brand-gray-500:   #ADB5BD;
+  --color-brand-gray-600:   #6C757D;
+  --color-brand-gray-700:   #495057;
+  --color-brand-gray-800:   #343A40;
+  --color-brand-gray-900:   #212529;
+
+  /* === YARDIMCI RENKLER === */
+  --color-brand-success:    #28A745;
+  --color-brand-warning:    #FFC107;
+  --color-brand-info:       #17A2B8;
+
+  /* === TİPOGRAFİ === */
+  --font-brand:             'Outfit', sans-serif;
+
+  /* === SPACING === */
+  --spacing-section:        5rem;
+
+  /* === BORDER RADIUS === */
+  --radius-card:            1rem;
+  --radius-btn:             0.5rem;
+  --radius-badge:           9999px;
+}
+
+/* ============================================================
+   GLOBAL RESET & BASE STYLES
+   ============================================================ */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: 'Outfit', sans-serif;
+  background-color: #ffffff;
+  color: #212529;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+img, video {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  cursor: pointer;
+  font-family: inherit;
+}
+
+/* ============================================================
+   UTILITY CLASSES
+   ============================================================ */
+
+/* --- Butonlar --- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  border-radius: 0.5rem;
+  border: 2px solid transparent;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.95rem;
+  letter-spacing: 0.01em;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background-color: #E30A17;
+  color: #ffffff;
+  border-color: #E30A17;
+}
+
+.btn-primary:hover {
+  background-color: #B5080F;
+  border-color: #B5080F;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(227, 10, 23, 0.35);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+.btn-outline {
+  background-color: transparent;
+  color: #E30A17;
+  border-color: #E30A17;
+}
+
+.btn-outline:hover {
+  background-color: #E30A17;
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.btn-white {
+  background-color: #ffffff;
+  color: #E30A17;
+  border-color: #ffffff;
+}
+
+.btn-white:hover {
+  background-color: #F1F3F5;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+.btn-lg {
+  padding: 1rem 2rem;
+  font-size: 1.05rem;
+}
+
+.btn-sm {
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+}
+
+/* --- Kartlar --- */
+.card {
+  background: #ffffff;
+  border-radius: 1rem;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid #E9ECEF;
+  overflow: hidden;
+  transition: all 0.25s ease;
+}
+
+.card:hover {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.14);
+  transform: translateY(-4px);
+}
+
+/* --- Badge'ler --- */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.badge-red {
+  background-color: #FFF1F2;
+  color: #E30A17;
+  border: 1px solid #FFE0E2;
+}
+
+.badge-white {
+  background-color: rgba(255,255,255,0.15);
+  color: #ffffff;
+  border: 1px solid rgba(255,255,255,0.3);
+  backdrop-filter: blur(8px);
+}
+
+.badge-gray {
+  background-color: #F1F3F5;
+  color: #495057;
+  border: 1px solid #DEE2E6;
+}
+
+.badge-success {
+  background-color: #D4EDDA;
+  color: #155724;
+  border: 1px solid #C3E6CB;
+}
+
+/* --- Container --- */
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}
+
+/* --- Section Spacing --- */
+.section {
+  padding-top: 5rem;
+  padding-bottom: 5rem;
+}
+
+.section-sm {
+  padding-top: 3rem;
+  padding-bottom: 3rem;
+}
+
+/* --- Section Başlık --- */
+.section-title {
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  font-weight: 900;
+  color: #212529;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.section-subtitle {
+  font-size: 1.05rem;
+  color: #6C757D;
+  margin-top: 0.75rem;
+  max-width: 560px;
+}
+
+/* --- Dekoratif çizgi --- */
+.title-underline {
+  position: relative;
+  display: inline-block;
+}
+
+.title-underline::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(90deg, #E30A17, #FF2D3A);
+  border-radius: 2px;
+}
+
+/* --- Divider --- */
+.divider {
+  height: 1px;
+  background: #E9ECEF;
+  border: none;
+  margin: 0;
+}
+
+/* ============================================================
+   ANİMASYONLAR
+   ============================================================ */
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes bounceY {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-8px); }
+}
+
+@keyframes pulseSoft {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.65; }
+}
+
+@keyframes spinSlow {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+/* Animasyon utility class'ları */
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s ease both;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.5s ease both;
+}
+
+.animate-bounce-y {
+  animation: bounceY 2s ease-in-out infinite;
+}
+
+.animate-pulse-soft {
+  animation: pulseSoft 2.5s ease-in-out infinite;
+}
+
+/* Staggered animasyon için delay utility'leri */
+.delay-100 { animation-delay: 0.1s; }
+.delay-200 { animation-delay: 0.2s; }
+.delay-300 { animation-delay: 0.3s; }
+.delay-400 { animation-delay: 0.4s; }
+.delay-500 { animation-delay: 0.5s; }
+.delay-600 { animation-delay: 0.6s; }
+
+/* ============================================================
+   FORM STİLLERİ
+   ============================================================ */
+
+.form-label {
+  display: block;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #343A40;
+  margin-bottom: 0.35rem;
+}
+
+.form-input,
+.form-select,
+.form-textarea {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 2px solid #DEE2E6;
+  border-radius: 0.5rem;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.95rem;
+  color: #212529;
+  background-color: #ffffff;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  outline: none;
+  appearance: none;
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  border-color: #E30A17;
+  box-shadow: 0 0 0 3px rgba(227, 10, 23, 0.12);
+}
+
+.form-input::placeholder,
+.form-textarea::placeholder {
+  color: #ADB5BD;
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 120px;
+}
+
+/* ============================================================
+   SCROLLBAR STILI (WebKit tabanlı tarayıcılar)
+   ============================================================ */
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F1F3F5;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #CED4DA;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #E30A17;
+}
+
+/* ============================================================
+   TEXT SEÇİM STİLİ
+   ============================================================ */
+
+::selection {
+  background-color: rgba(227, 10, 23, 0.2);
+  color: #E30A17;
+}

@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+
+Sitemap: https://spornerede.net/sitemap-index.xml
+Sitemap: https://spornerede.net/sitemaps/cities.xml
+Sitemap: https://spornerede.net/sitemaps/districts.xml

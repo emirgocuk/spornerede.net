@@ -1,0 +1,35 @@
+---
+import BaseLayout from '../../../../layouts/BaseLayout.astro';
+import { getDistrictBranchLanding } from '../../../../lib/repositories/catalog';
+
+const ilSlug = Astro.params.il ?? '';
+const ilceSlug = Astro.params.ilce ?? '';
+const bransSlug = Astro.params.brans ?? '';
+
+const landing = await getDistrictBranchLanding(ilSlug, ilceSlug, bransSlug);
+if (!landing.city || !landing.branch || !landing.district) {
+  return Astro.redirect('/ara');
+}
+---
+
+<BaseLayout
+  title={`${landing.district.ad} ${landing.branch.isim} Kurslari`}
+  description={`${landing.city.ad} ${landing.district.ad} bolgesinde ${landing.branch.isim.toLowerCase()} kurslari ve spor kulupleri.`}
+  keywords={`${landing.district.slug} ${landing.branch.slug} kursu, ${landing.city.slug} ${landing.branch.slug}`}
+  canonical={`https://spornerede.net/sehirler/${landing.city.slug}/${landing.district.slug}/${landing.branch.slug}`}
+>
+  <section class="section seo-page">
+    <div class="container">
+      <h1>{landing.district.ad} {landing.branch.isim} Kurslari</h1>
+      <p>{landing.clubs.length} kulup bulundu. Ayrintili filtreleme icin arama sayfasina gecin.</p>
+      <a class="btn btn-primary btn-sm" href={`/ara?il=${landing.city.slug}&ilce=${landing.district.slug}&brans=${landing.branch.slug}`}>Filtreli Sonuclari Ac</a>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .seo-page { min-height: 50vh; background: #F8F9FA; }
+  .seo-page h1 { font-size: clamp(1.6rem, 3vw, 2.2rem); font-weight: 900; color: #212529; }
+  .seo-page p { margin-top: .5rem; color: #6C757D; margin-bottom: 1rem; }
+</style>
+

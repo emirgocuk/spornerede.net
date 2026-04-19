@@ -1,0 +1,129 @@
+---
+/**
+ * FAQSection.astro
+ * Landing page Sıkça Sorulan Sorular bölümü.
+ */
+const faqItems = [
+  {
+    soru: 'Spornerede.net nedir, ne işe yarar?',
+    cevap:
+      'Spornerede.net; spor kursu ve kulüp arayan ailelerle kulüpleri buluşturan bir keşif platformudur. Branş, il ve ilçe filtreleriyle seçenekleri karşılaştırabilir, size uygun kulübe hızlıca ulaşabilirsiniz.',
+  },
+  {
+    soru: 'Kulüp veya spor kursu olarak nasıl kayıt olabilirim?',
+    cevap:
+      'Ana menüdeki başvuru bağlantısından formu doldurarak profilinizi oluşturabilirsiniz. Başvuru sonrası ekip incelemesi tamamlandığında profiliniz yayına alınır ve aileler tarafından görünür olur.',
+  },
+  {
+    soru: 'Aileler kulüp seçerken hangi bilgileri karşılaştırabilir?',
+    cevap:
+      'Branş, konum, yaş aralığı, iletişim ve kulüp açıklamaları gibi temel bilgileri bir arada görebilirsiniz. Böylece karar vermeden önce farklı kulüp ve kursları daha sağlıklı karşılaştırabilirsiniz.',
+  },
+  {
+    soru: 'Platform Türkiye genelinde mi hizmet veriyor?',
+    cevap:
+      'Evet. Spornerede.net Türkiye genelinde spor kulüp ve kurslarını görünür kılmayı hedefler. Şehir bazlı arama yaparak bulunduğunuz bölgedeki seçenekleri kolayca listeleyebilirsiniz.',
+  },
+  {
+    soru: 'Kulüp profilimi öne çıkarmak mümkün mü?',
+    cevap:
+      'Evet, profilinizi daha görünür hale getirmek için öne çıkarma ve editör onaylı seçenekler sunulur. Bu sayede hedef kitlenize daha hızlı ulaşabilir, başvuru dönüşlerinizi artırabilirsiniz.',
+  },
+];
+---
+
+<section class="faq-section section" aria-labelledby="faq-baslik">
+  <div class="container faq-container">
+    <div class="faq-header">
+      <h2 id="faq-baslik" class="section-title">
+        Sıkça Sorulan <span class="title-underline">Sorular</span>
+      </h2>
+      <p class="section-subtitle">
+        Platformu kullanmadan önce merak edilen temel sorulara hızlı yanıtlar.
+      </p>
+    </div>
+
+    <div class="faq-list" role="list">
+      {faqItems.map((item) => (
+        <details class="faq-item" role="listitem">
+          <summary class="faq-question">{item.soru}</summary>
+          <p class="faq-answer">{item.cevap}</p>
+        </details>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .faq-section {
+    background:
+      radial-gradient(circle at 12% 18%, rgba(227, 10, 23, 0.07), transparent 35%),
+      radial-gradient(circle at 88% 84%, rgba(227, 10, 23, 0.05), transparent 36%),
+      #FFF9F9;
+  }
+
+  .faq-container {
+    max-width: 980px;
+  }
+
+  .faq-header {
+    margin-bottom: 2rem;
+  }
+
+  .faq-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .faq-item {
+    border: 1px solid #F1DFE0;
+    border-radius: 0.9rem;
+    background: rgba(255, 255, 255, 0.95);
+    padding: 0.2rem 0.95rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .faq-item[open] {
+    border-color: #FFD1D5;
+    box-shadow: 0 6px 24px rgba(227, 10, 23, 0.08);
+    background: #fffdfd;
+  }
+
+  .faq-question {
+    cursor: pointer;
+    list-style: none;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #212529;
+    padding: 0.85rem 0;
+    position: relative;
+    padding-right: 1.5rem;
+  }
+
+  .faq-question::-webkit-details-marker {
+    display: none;
+  }
+
+  .faq-question::after {
+    content: '+';
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #E30A17;
+    font-size: 1.2rem;
+    font-weight: 700;
+  }
+
+  .faq-item[open] .faq-question::after {
+    content: '−';
+  }
+
+  .faq-answer {
+    font-size: 0.93rem;
+    line-height: 1.65;
+    color: #495057;
+    padding: 0 0 0.95rem;
+  }
+</style>
