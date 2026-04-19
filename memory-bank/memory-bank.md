@@ -66,6 +66,7 @@ Create additional files/folders within memory-bank/ when they help organize:
 
 Current additional docs in this project:
 - `db-schema-plan.md` (mock -> PostgreSQL gecis plani)
+- `club-auth-admin-plan.md` (kulup paneli, admin, basvuru belgeleri, faz plani)
 - `deploy-runbook.md` (deploy + rollback adimlari)
 - `mvp-metrics.md` (minimum basari metrikleri)
 - `security-privacy.md` (mini guvenlik/KVKK checklist)

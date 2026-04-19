@@ -1,10 +1,10 @@
 # SporNerede.net — Aktif Bağlam (Active Context)
 
 ## Şimdiki Çalışma Odağı
-**Faz 1 UI/UX Revizyonları (Landing + Marka Dili)**
+**Faz 2–3: Veritabanı işlevselliği + kulüp paneli / yönetim planı**
 
-Mevcut durum: Landing page, arama sayfası ve başvuru formu (mock veri ve API ile) hazır.
-Aktif hedef: Landing deneyimini sadeleştirme, Türkiye geneli dil dönüşümü, hero arama UX iyileştirmeleri.
+Mevcut durum: Landing, `/ara`, `/basvuru`, temel DB migration/seed ve `/admin` + `/api/admin/applications` iskeleti var.
+Aktif hedef: Mock’tan kalıcı veriye geçiş; başvurulara belge/dekont, onay sonrası kulüp profili; kulüp temsilcisi `/panel/*` ve yönetimde sağ liste + detay akışı. Ürün/teknik çerçeve: **`club-auth-admin-plan.md`**.
 
 ## Güncel Görevler (Öncelik Sırasıyla)
 
@@ -25,6 +25,7 @@ Aktif hedef: Landing deneyimini sadeleştirme, Türkiye geneli dil dönüşümü
 - [ ] CTA sağ medya geçişini son dokunuşlarla finalize etmek
 - [ ] **Faz 11: Deploy** — Build testi ve server transferi
 - [ ] **Faz 2** — Veriyi veritabani katmanina tasima (mock -> PostgreSQL)
+- [ ] **Faz 3** — `club-auth-admin-plan.md`: kullanıcılar/oturum, başvuru dosyaları, admin liste+detay+onay, `/panel` giriş ve header oturum UI
 
 ### 🆕 Son Tamamlanan (UI Revizyon Paketi)
 - [x] Header navigasyon sadeleştirildi (`Haberler`, `Hakkımızda`, `İletişim`)
@@ -43,6 +44,12 @@ Aktif hedef: Landing deneyimini sadeleştirme, Türkiye geneli dil dönüşümü
 - [x] `db:seed` komutu eklendi (`scripts/db-seed.ts`)
 - [x] DB client ortam degiskeni erisimi Astro + Node script uyumlu hale getirildi
 
+### 🆕 Planlama + küçük UI (kulüp girişi yolu)
+- [x] `memory-bank/club-auth-admin-plan.md` — kulüp paneli, admin shell, başvuru+belge, faz sırası
+- [x] `db-schema-plan.md` — users, sessions, memberships, application_documents ve genişletilmiş başvuru
+- [x] Header: CTA’nın solunda **Üye girişi** (`/panel/giris`); mobil menüde ayrı satır
+- [x] Placeholder sayfa: `/panel/giris`
+
 ### 📋 Sıradaki
 1. Veritabanı şeması tasarımı (PostgreSQL + Drizzle)
 2. Arama filtrelerinin URL + veri sorgu katmanına taşınması
@@ -52,6 +59,7 @@ Aktif hedef: Landing deneyimini sadeleştirme, Türkiye geneli dil dönüşümü
 ## Basit Plan Güncellemesi (Bilgilendirme)
 MVP'yi sade tutmak için aşağıdaki kısa dokumanlar eklendi:
 - `memory-bank/db-schema-plan.md`
+- `memory-bank/club-auth-admin-plan.md` (panel + admin + başvuru dosyaları)
 - `memory-bank/deploy-runbook.md`
 - `memory-bank/mvp-metrics.md`
 - `memory-bank/security-privacy.md`
@@ -73,6 +81,8 @@ Bu dokumanlar "detaydan çok uygulama netligi" hedefiyle kısa tutuldu.
 | Landing (tanıtım) + Arama AYRI sayfalar | ✅ | Landing keşfettirici/tanıtım, `/ara` sayfası arama odaklı |
 | Arama sayfası düzeni | ✅ | **Üstte:** branş filtresi (sticky), **Solda:** il/ilce, **Sağda:** sonuçlar |
 | E-posta servisi | ✅ | **Self-hosted** — Nodemailer + kendi SMTP sunucusu |
+| Kulüp temsilcisi girişi | ✅ | Route kökü `/panel/*`; ilk adım `/panel/giris` |
+| Yönetim paneli kökü | ✅ | `/admin` (liste+detay UI sıradaki sprint) |
 | Header menü sadeleştirme | ✅ | Marka anlatımı için `Haberler/Hakkımızda/İletişim` |
 | Kırmızı-Beyaz palet | ✅ | Türk kimliği, güçlü marka |
 | Astro.js SSG/SSR | ✅ | SEO + hız |

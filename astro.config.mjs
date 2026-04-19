@@ -19,5 +19,8 @@ export default defineConfig({
   // Vite ayarları
   vite: {
     plugins: [tailwindcss()],
+    ssr: {
+      noExternal: true,
+    },
   },
 });

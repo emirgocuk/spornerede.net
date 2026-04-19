@@ -1,7 +1,7 @@
 # SporNerede.net — İlerleme Durumu (Progress)
 
 ## Özet Durum
-**Faz: Landing Revizyonları + Arama UX İyileştirme (Devam ediyor)**
+**Faz: Veri + kulüp paneli / yönetim (planlama ve ilk UI yolları başladı)**
 **Versiyon:** 0.3.0
 
 ---
@@ -23,7 +23,9 @@
 - `index.astro`: Dinamik landing page (Hero, News, FAQ, CTA, Footer)
 - `/ara`: Arama sonuçları sayfası (Filtreleme, Mock veri, Responsive kartlar)
 - `/basvuru`: Kulüp kayıt formu (Validation, Success state, API entegrasyonu)
-- Header: Sticky, sade menü (Haberler/Hakkımızda/İletişim), mobil hamburger desteği
+- Header: Sticky, sade menü (Haberler/Hakkımızda/İletişim), mobil hamburger desteği; **Üye girişi** → `/panel/giris` (CTA’nın solunda)
+- Placeholder: `/panel/giris` (kulüp paneli girişi için zemin)
+- Plan: `memory-bank/club-auth-admin-plan.md` (admin shell, onay, belgeler, referans veri CRUD)
 - Tasarım: Kırmızı-Beyaz marka kimliği, Outfit font, Modern animasyonlar
 - Hero: Şehir rotator badge + yazı tabanlı autocomplete öneri paneli (ilk 3 tahmin)
 - Club CTA: Sağ medya vitrin alanı, arka planla geçişli harmanlama
@@ -37,6 +39,10 @@
 - [ ] Drizzle ORM şeması (Kulüp, Branş, İlçe tabloları)
 - [ ] API endpoint'lerinin gerçek veriye bağlanması
 - [ ] Mock verinin tamamen kaldırılması
+- [ ] Kullanıcı oturumu: `users`, `sessions`, `club_memberships` (bkz. `club-auth-admin-plan.md`, `db-schema-plan.md`)
+- [ ] Başvuru ekleri: `application_documents`, multipart yükleme, güvenli depolama
+- [ ] Admin arayüzü: başvuru sağ liste + detay + onay/red + onayda kulüp oluşturma (`/admin` genişletmesi)
+- [ ] Kulüp paneli: oturum sonrası header avatar + dropdown; mobilde hamburger içi accordion
 
 ### Ürün Özellikleri
 - [ ] Gelişmiş filtreleme mantığı (program, seviye, gün)
@@ -89,6 +95,8 @@
 - [x] Seed altyapisi eklendi (`npm run db:seed`)
 - [ ] API endpoint'lerinin gerçek veriye bağlanması
 - [ ] Kulüp ekleme/düzenleme admin arayüzü (basit)
+- [ ] Basvuru + dekont/belge + onay akisi (`club-auth-admin-plan.md` faz 3A–3C)
+- [ ] Kulup paneli sayfalari (profil, kurs/program) ve yetki kapsami
 
 ### Faz 4 — Gelişmiş Özellikler
 - [ ] Akıllı eşleştirme quiz'i

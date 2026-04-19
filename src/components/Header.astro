@@ -46,6 +46,7 @@ const isHomePage = currentPath === '/';
 
     <!-- ===== HEADER SAĞ KISIM ===== -->
     <div class="header-actions">
+      <a href="/panel/giris" class="btn btn-outline btn-sm header-login">Üye girişi</a>
       <!-- Masaüstünde CTA -->
       <a href="/basvuru" class="btn btn-primary header-cta" id="header-cta-btn">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -107,6 +108,9 @@ const isHomePage = currentPath === '/';
           </a>
         </div>
       ))}
+      <div class="mobile-nav-group mobile-nav-group--account">
+        <a href="/panel/giris" class="mobile-nav-link mobile-nav-link--secondary">Üye girişi</a>
+      </div>
     </nav>
 
     <!-- Mobil CTA -->
@@ -391,8 +395,64 @@ const isHomePage = currentPath === '/';
   .header-actions {
     display: flex;
     align-items: center;
+    justify-content: flex-end;
     gap: 0.75rem;
     flex-shrink: 0;
+  }
+
+  /* Üye girişi: mobilde kompakt metin, md+ outline buton */
+  .header-login {
+    font-size: 0.82rem;
+    padding: 0.4rem 0.65rem;
+    border-width: 2px;
+  }
+
+  @media (max-width: 767px) {
+    .header-login {
+      background: transparent;
+      border-color: transparent;
+      color: #e30a17;
+      padding: 0.35rem 0.45rem;
+      font-weight: 700;
+      box-shadow: none;
+      transform: none;
+    }
+
+    .header-login:hover {
+      background: rgba(227, 10, 23, 0.08);
+      border-color: transparent;
+      color: #b5080f;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .site-header--home:not(.scrolled) .header-login {
+      color: rgba(255, 255, 255, 0.95);
+    }
+
+    .site-header--home:not(.scrolled) .header-login:hover {
+      background: rgba(255, 255, 255, 0.12);
+      color: #ffffff;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .header-login {
+      font-size: 0.8rem;
+      padding: 0.5rem 0.85rem;
+    }
+  }
+
+  .site-header--home:not(.scrolled) .header-login {
+    color: rgba(255, 255, 255, 0.95);
+    border-color: rgba(255, 255, 255, 0.55);
+  }
+
+  .site-header--home:not(.scrolled) .header-login:hover {
+    background: rgba(255, 255, 255, 0.14);
+    color: #ffffff;
+    border-color: #ffffff;
+    transform: translateY(-1px);
   }
 
   .header-cta.btn {
@@ -597,6 +657,22 @@ const isHomePage = currentPath === '/';
   .mobile-nav-link:hover {
     background-color: #FFF1F2;
     color: #E30A17;
+  }
+
+  .mobile-nav-group--account {
+    margin-top: 0.35rem;
+    padding-top: 0.35rem;
+    border-top: 1px dashed #dee2e6;
+  }
+
+  .mobile-nav-link--secondary {
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: #e30a17;
+  }
+
+  .mobile-nav-link--secondary:hover {
+    color: #b5080f;
   }
 
   .mobile-sub-links {

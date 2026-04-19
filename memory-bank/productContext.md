@@ -38,8 +38,14 @@ Yorumları oku → "Bilgi Al" / "Kayıt Ol" butonuna bas
 ### Kulüp / İşletme Akışı
 ```
 Header'daki "Kulübünü Ekle" butonuna bas →
-Başvuru formunu doldur → E-posta bildirimi alınır → Onay süreci
+Başvuru formunu doldur (ileride ek bilgi + belge/dekont yükleme) →
+Yönetim panelinde inceleme → Onay sonrası kulüp profili + temsilci hesabı →
+"Üye girişi" /panel ile kulüp paneli (profil, kurs/program; aşamalı)
 ```
+
+**Yönetim akışı:** `/admin` üzerinden başvuru kuyruğu (hedef düzen: sağda liste, detay/aksiyon alanı), onay veya red, referans veriler (il/ilçe/branş) ile kulüp metinlerinin düzenlenmesi. Ayrıntılı fazlar: `club-auth-admin-plan.md`.
+
+**Oturum açık temsilci (hedef):** Header’da avatar/simge + dropdown (masaüstü); mobilde hamburger içinde iç içe menü.
 
 ## Platform Özellikleri (Öncelik Sırası)
 

@@ -1,0 +1,58 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+---
+
+<BaseLayout
+  title="Kulüp paneli — Üye girişi"
+  description="Kayıtlı kulüp ve kurs temsilcileri için giriş sayfası. Oturum açma yakında etkinleştirilecek."
+  noIndex={true}
+>
+  <section class="section panel-login">
+    <div class="container container--narrow">
+      <h1 class="page-title">Üye girişi</h1>
+      <p class="page-lead">
+        Onaylı kulüp ve kurs temsilcileri için kullanım paneli burada olacak. Giriş formu ve oturum yönetimi bir sonraki
+        geliştirme adımında eklenecek.
+      </p>
+      <p class="page-note">
+        Henüz hesabınız yoksa kulüp kaydı için <a href="/basvuru">başvuru formunu</a> kullanabilirsiniz.
+      </p>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .panel-login {
+    background: #f8f9fa;
+    min-height: 55vh;
+    padding-block: 2.5rem;
+  }
+  .container--narrow {
+    max-width: 36rem;
+  }
+  .page-title {
+    font-size: clamp(1.65rem, 3vw, 2rem);
+    font-weight: 900;
+    color: #212529;
+    margin: 0;
+  }
+  .page-lead {
+    margin-top: 0.75rem;
+    color: #495057;
+    line-height: 1.65;
+  }
+  .page-note {
+    margin-top: 1.25rem;
+    font-size: 0.95rem;
+    color: #6c757d;
+  }
+  .page-note a {
+    color: #e30a17;
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .page-note a:hover {
+    color: #b5080f;
+  }
+</style>

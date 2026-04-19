@@ -32,12 +32,17 @@ Kullanıcıların (özellikle ebeveynler ve yetişkinler) spor branşlarını, k
 ## Kapsam — İlk Aşama (Landing Page + Arama)
 
 ### Sayfa Yapısı
-1. **Header (Üst Menü):** Logo + akıllı navigasyon + kulüp başvuru CTA
+1. **Header (Üst Menü):** Logo + akıllı navigasyon + **Üye girişi** (`/panel/giris`, CTA’nın solunda) + kulüp başvuru CTA
 2. **Hero / Arama Alanı:** Tam ekran etkileyici bölüm, arama çubuğu, sloganlar
 3. **Haberler ve Duyurular Bölümü:** Sol menü/sütun, kayan bant (maraton, etkinlik, müdürlük vb.)
 4. **Sıkça Sorulan Sorular Bölümü:** Kullanıcıya hızlı bilgi veren açılır SSS
 5. **Kulüp Başvuru Formu Yönlendirmesi:** Kulüplerin/kursların başvurabileceği alan
 6. **Footer:** İletişim, linkler, telif (sadeleştirilmiş sütun yapısı)
+
+## Kulüp ve yönetim (operasyon)
+- **Başvuru (`/basvuru`):** Form; ileride ek bilgi, **dekont ve belge yükleme**; yönetim onayından sonra yayınlanan kulüp profili ve temsilci paneli hesabı. Ayrıntı: `club-auth-admin-plan.md`.
+- **Kulüp paneli (`/panel/*`):** Giriş ve sonrasında profil, kurs/program yönetimi (aşamalı); oturum açıkken header’da simge + dropdown, mobilde hamburger içi iç içe menü.
+- **Yönetim (`/admin`):** Başvuru inceleme ve onay/red; referans veriler (il, ilçe, branş); kulüp sayfalarını görüntüleme ve metin düzenleme. Hedef düzen: sağda kuyruk listesi, detay/aksiyon alanı.
 
 ## Son UI Kararları (Nisan 2026)
 - Landing ve metin dili **Ankara odaklı** ifadelerden **Türkiye geneline** taşındı.
