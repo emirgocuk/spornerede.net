@@ -19,45 +19,45 @@ flowchart TD
     AC --> P[progress.md]
 ```
 
+
+
 ### Core Files (Required)
+
 1. `projectbrief.md`
-   - Foundation document that shapes all other files
-   - Created at project start if it doesn't exist
-   - Defines core requirements and goals
-   - Source of truth for project scope
-
+  - Foundation document that shapes all other files
+  - Created at project start if it doesn't exist
+  - Defines core requirements and goals
+  - Source of truth for project scope
 2. `productContext.md`
-   - Why this project exists
-   - Problems it solves
-   - How it should work
-   - User experience goals
-
+  - Why this project exists
+  - Problems it solves
+  - How it should work
+  - User experience goals
 3. `activeContext.md`
-   - Current work focus
-   - Recent changes
-   - Next steps
-   - Active decisions and considerations
-
+  - Current work focus
+  - Recent changes
+  - Next steps
+  - Active decisions and considerations
 4. `systemPatterns.md`
-   - System architecture
-   - Key technical decisions
-   - Design patterns in use
-   - Component relationships
-
+  - System architecture
+  - Key technical decisions
+  - Design patterns in use
+  - Component relationships
 5. `techContext.md`
-   - Technologies used
-   - Development setup
-   - Technical constraints
-   - Dependencies
-
+  - Technologies used
+  - Development setup
+  - Technical constraints
+  - Dependencies
 6. `progress.md`
-   - What works
-   - What's left to build
-   - Current status
-   - Known issues
+  - What works
+  - What's left to build
+  - Current status
+  - Known issues
 
 ### Additional Context
+
 Create additional files/folders within memory-bank/ when they help organize:
+
 - Complex feature documentation
 - Integration specifications
 - API documentation
@@ -65,6 +65,7 @@ Create additional files/folders within memory-bank/ when they help organize:
 - Deployment procedures
 
 Current additional docs in this project:
+
 - `db-schema-plan.md` (mock -> PostgreSQL gecis plani)
 - `club-auth-admin-plan.md` (kulup paneli, admin, basvuru belgeleri, faz plani)
 - `deploy-runbook.md` (deploy + rollback adimlari)
@@ -74,6 +75,7 @@ Current additional docs in this project:
 ## Core Workflows
 
 ### Plan Mode
+
 ```mermaid
 flowchart TD
     Start[Start] --> ReadFiles[Read Memory Bank]
@@ -87,7 +89,10 @@ flowchart TD
     Strategy --> Present[Present Approach]
 ```
 
+
+
 ### Act Mode
+
 ```mermaid
 flowchart TD
     Start[Start] --> Context[Check Memory Bank]
@@ -97,9 +102,12 @@ flowchart TD
     Execute --> Document[Document Changes]
 ```
 
+
+
 ## Documentation Updates
 
 Memory Bank updates occur when:
+
 1. Discovering new project patterns
 2. After implementing significant changes
 3. When user requests with **update memory bank** (MUST review ALL files)
@@ -120,6 +128,8 @@ flowchart TD
     
     Start --> Process
 ```
+
+
 
 Note: When triggered by **update memory bank**, I MUST review every memory bank file, even if some don't require updates. Focus particularly on activeContext.md and progress.md as they track current state.
 
@@ -147,7 +157,10 @@ flowchart TD
     Learn --> Apply
 ```
 
+
+
 ### What to Capture
+
 - Critical implementation paths
 - User preferences and workflow
 - Project-specific patterns

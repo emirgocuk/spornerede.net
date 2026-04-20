@@ -46,7 +46,7 @@ const isHomePage = currentPath === '/';
 
     <!-- ===== HEADER SAĞ KISIM ===== -->
     <div class="header-actions">
-      <a href="/panel/giris" class="btn btn-outline btn-sm header-login">Üye girişi</a>
+      <a href="/panel/giris" class="btn btn-outline btn-sm header-login" data-auth-link>Üye girişi</a>
       <!-- Masaüstünde CTA -->
       <a href="/basvuru" class="btn btn-primary header-cta" id="header-cta-btn">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -109,7 +109,7 @@ const isHomePage = currentPath === '/';
         </div>
       ))}
       <div class="mobile-nav-group mobile-nav-group--account">
-        <a href="/panel/giris" class="mobile-nav-link mobile-nav-link--secondary">Üye girişi</a>
+        <a href="/panel/giris" class="mobile-nav-link mobile-nav-link--secondary" data-auth-link-mobile>Üye girişi</a>
       </div>
     </nav>
 
@@ -775,4 +775,30 @@ const isHomePage = currentPath === '/';
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') closeMenu();
   });
+
+  // Oturum varsa header login linklerini panel linkine cevir
+  async function hydrateAuthLinks() {
+    try {
+      const response = await fetch('/api/panel/session', { credentials: 'same-origin' });
+      if (!response.ok) return;
+      const payload = await response.json();
+      if (!payload?.authenticated) return;
+
+      const desktop = document.querySelector('[data-auth-link]');
+      if (desktop) {
+        desktop.setAttribute('href', '/panel');
+        desktop.textContent = 'Panelim';
+      }
+
+      const mobile = document.querySelector('[data-auth-link-mobile]');
+      if (mobile) {
+        mobile.setAttribute('href', '/panel');
+        mobile.textContent = 'Panelim';
+      }
+    } catch {
+      // Sessiz gec: auth endpoint ulasilamazsa varsayilan link kalsin.
+    }
+  }
+
+  hydrateAuthLinks();
 </script>

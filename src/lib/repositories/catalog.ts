@@ -1,7 +1,6 @@
-import { and, asc, desc, eq, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
 import { getDb, hasDatabaseUrl } from '../../db/client';
-import { branslar, ilceler, iller, kulupBranslar, kulupler } from '../../db/schema';
-import { BRANCHES, CITIES, CLUBS, DISTRICTS, slugify, sortFeaturedFirst } from '../../data/mockData';
+import { branslar, ilceler, iller, kulupBranslar, kulupProgramlari, kulupler } from '../../db/schema';
 
 export type SearchFilters = {
   il?: string;
@@ -9,18 +8,30 @@ export type SearchFilters = {
   brans?: string;
 };
 
-export async function getAllCities() {
+export type ClubProgramSummary = {
+  id: number;
+  ad: string;
+  aciklama: string;
+  gunSaat: string;
+  seviye: string;
+  ucretBilgisi: string;
+  aktif: boolean;
+};
+
+function requireDatabase() {
   if (!hasDatabaseUrl()) {
-    return CITIES.map((city) => ({ ad: city, slug: slugify(city) }));
+    throw new Error('DATABASE_URL is not configured.');
   }
+}
+
+export async function getAllCities() {
+  requireDatabase();
   const db = getDb();
   return db.select({ ad: iller.ad, slug: iller.slug }).from(iller).orderBy(asc(iller.ad));
 }
 
 export async function getAllDistricts(ilSlug?: string) {
-  if (!hasDatabaseUrl()) {
-    return DISTRICTS.map((d) => ({ ad: d, slug: slugify(d) }));
-  }
+  requireDatabase();
   const db = getDb();
   if (!ilSlug) {
     return db
@@ -38,9 +49,7 @@ export async function getAllDistricts(ilSlug?: string) {
 }
 
 export async function getAllBranches() {
-  if (!hasDatabaseUrl()) {
-    return BRANCHES;
-  }
+  requireDatabase();
   const db = getDb();
   return db
     .select({
@@ -55,19 +64,7 @@ export async function getAllBranches() {
 }
 
 export async function searchClubs(filters: SearchFilters) {
-  if (!hasDatabaseUrl()) {
-    let items = CLUBS;
-    if (filters.il) {
-      items = items.filter((club) => club.ilSlug === filters.il || slugify(club.il) === filters.il);
-    }
-    if (filters.ilce) {
-      items = items.filter((club) => slugify(club.ilce) === filters.ilce);
-    }
-    if (filters.brans) {
-      items = items.filter((club) => club.bransSlug === filters.brans);
-    }
-    return sortFeaturedFirst(items);
-  }
+  requireDatabase();
 
   const db = getDb();
   const clauses = [];
@@ -110,10 +107,41 @@ export async function searchClubs(filters: SearchFilters) {
     .where(and(eq(kulupler.durum, 'approved'), ...(clauses.length ? clauses : [])))
     .orderBy(desc(kulupler.oneCikan), desc(kulupler.puan), asc(kulupler.ad));
 
-  return rows.map((row) => ({
+  const clubIds = rows.map((row) => row.id);
+  const programRows = clubIds.length
+    ? await db
+        .select({
+          kulupId: kulupProgramlari.kulupId,
+          ad: kulupProgramlari.ad,
+          gunSaat: kulupProgramlari.gunSaat,
+          aktif: kulupProgramlari.aktif,
+        })
+        .from(kulupProgramlari)
+        .where(and(eq(kulupProgramlari.aktif, true), inArray(kulupProgramlari.kulupId, clubIds)))
+        .orderBy(asc(kulupProgramlari.kulupId), asc(kulupProgramlari.ad))
+    : [];
+
+  const programsByClub = new Map<number, Array<{ ad: string; gunSaat: string; aktif: boolean }>>();
+  for (const row of programRows) {
+    const current = programsByClub.get(row.kulupId) ?? [];
+    current.push({ ad: row.ad, gunSaat: row.gunSaat, aktif: row.aktif });
+    programsByClub.set(row.kulupId, current);
+  }
+
+  return rows.map((row) => {
+    const programs = programsByClub.get(row.id) ?? [];
+    const firstProgram = programs[0];
+    const programOzet = firstProgram
+      ? `${programs.length} program • ${firstProgram.ad}${firstProgram.gunSaat ? ` (${firstProgram.gunSaat})` : ''}`
+      : '';
+
+    return {
     ...row,
     puan: Number(row.puan ?? 0),
-  }));
+      programSayisi: programs.length,
+      programOzet,
+    };
+  });
 }
 
 export async function getBranchBySlug(slug: string) {
@@ -124,6 +152,24 @@ export async function getBranchBySlug(slug: string) {
 export async function getClubById(id: number) {
   const clubs = await searchClubs({});
   return clubs.find((item) => item.id === id) ?? null;
+}
+
+export async function getClubProgramsByClubId(clubId: number) {
+  requireDatabase();
+  const db = getDb();
+  return db
+    .select({
+      id: kulupProgramlari.id,
+      ad: kulupProgramlari.ad,
+      aciklama: kulupProgramlari.aciklama,
+      gunSaat: kulupProgramlari.gunSaat,
+      seviye: kulupProgramlari.seviye,
+      ucretBilgisi: kulupProgramlari.ucretBilgisi,
+      aktif: kulupProgramlari.aktif,
+    })
+    .from(kulupProgramlari)
+    .where(and(eq(kulupProgramlari.kulupId, clubId), eq(kulupProgramlari.aktif, true)))
+    .orderBy(asc(kulupProgramlari.ad));
 }
 
 export async function getCityBranchLanding(citySlug: string, branchSlug: string) {
@@ -145,14 +191,7 @@ export async function getDistrictBranchLanding(citySlug: string, districtSlug: s
 }
 
 export async function getAdminClubSummary() {
-  if (!hasDatabaseUrl()) {
-    return {
-      total: CLUBS.length,
-      pending: 0,
-      approved: CLUBS.length,
-      rejected: 0,
-    };
-  }
+  requireDatabase();
   const db = getDb();
   const all = await db.select({ value: sql<number>`count(*)` }).from(kulupler);
   const pending = await db.select({ value: sql<number>`count(*)` }).from(kulupler).where(eq(kulupler.durum, 'pending'));

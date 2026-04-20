@@ -1,0 +1,103 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getCurrentSessionUser } from '../../lib/auth/session';
+import { getUserPrimaryClub } from '../../lib/repositories/auth';
+
+const session = await getCurrentSessionUser(Astro.request);
+if (!session) {
+  return Astro.redirect('/panel/giris?error=auth');
+}
+if (session.mustChangePassword) {
+  return Astro.redirect('/panel/sifre-degistir?required=1');
+}
+const membership = await getUserPrimaryClub(session.userId);
+if (!membership || membership.clubStatus !== 'approved') {
+  return Astro.redirect('/panel/giris?error=forbidden');
+}
+---
+
+<BaseLayout
+  title="Kulüp paneli"
+  description="Kulüp paneli özeti ve oturum bilgileri."
+  noIndex={true}
+>
+  <section class="section panel-home">
+    <div class="container container--narrow">
+      <h1 class="page-title">Kulüp paneli</h1>
+      <p class="page-lead">
+        Oturum açık. Bu alan bir sonraki adımda profil, kurslar ve başvuru/belge yönetimi modülleriyle genişletilecek.
+      </p>
+
+      <div class="session-box">
+        <p><strong>E-posta:</strong> {session.email}</p>
+        <p><strong>Rol:</strong> {session.role}</p>
+      </div>
+
+      <div class="panel-links">
+        <a href="/panel/profil">Profili duzenle</a>
+        <a href="/panel/kurslar">Kurs/program yonetimi</a>
+      </div>
+
+      <form method="post" action="/api/panel/logout">
+        <button class="logout-btn" type="submit">Çıkış yap</button>
+      </form>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .panel-home {
+    background: #f8f9fa;
+    min-height: 55vh;
+    padding-block: 2.5rem;
+  }
+  .container--narrow {
+    max-width: 36rem;
+  }
+  .page-title {
+    font-size: clamp(1.65rem, 3vw, 2rem);
+    font-weight: 900;
+    color: #212529;
+    margin: 0;
+  }
+  .page-lead {
+    margin-top: 0.75rem;
+    color: #495057;
+    line-height: 1.65;
+  }
+  .session-box {
+    margin-top: 1rem;
+    border: 1px solid #e9ecef;
+    border-radius: 0.75rem;
+    background: #fff;
+    padding: 0.9rem 1rem;
+    color: #343a40;
+  }
+  .logout-btn {
+    margin-top: 1rem;
+    border: 0;
+    border-radius: 0.7rem;
+    background: #e30a17;
+    color: #fff;
+    font-weight: 700;
+    padding: 0.6rem 1rem;
+    cursor: pointer;
+  }
+  .logout-btn:hover {
+    background: #b5080f;
+  }
+  .panel-links {
+    margin-top: .9rem;
+  }
+  .panel-links a {
+    color: #e30a17;
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    display: inline-block;
+    margin-right: .85rem;
+  }
+  .panel-links a:hover {
+    color: #b5080f;
+  }
+</style>

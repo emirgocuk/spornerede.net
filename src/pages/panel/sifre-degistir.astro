@@ -1,0 +1,94 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getCurrentSessionUser } from '../../lib/auth/session';
+
+const session = await getCurrentSessionUser(Astro.request);
+if (!session) {
+  return Astro.redirect('/panel/giris?error=auth');
+}
+
+const saved = Astro.url.searchParams.get('saved');
+const required = Astro.url.searchParams.get('required') === '1' || session.mustChangePassword;
+---
+
+<BaseLayout title="Panel — Şifre Değiştir" description="Panel şifrenizi güncelleyin." noIndex={true}>
+  <section class="section panel-password">
+    <div class="container container--narrow">
+      <h1 class="page-title">Şifre değiştir</h1>
+      <p class="page-lead">
+        {required
+          ? 'Geçici şifreyle giriş yaptınız. Güvenlik için devam etmeden önce yeni bir şifre belirleyin.'
+          : 'Hesap güvenliğiniz için düzenli olarak şifrenizi güncelleyin.'}
+      </p>
+
+      {saved === '1' && (
+        <p class="ok-msg">
+          Şifre başarıyla güncellendi. <a href="/panel">Panele devam et</a>.
+        </p>
+      )}
+      {saved === '0' && (
+        <p class="err-msg">
+          Şifre değiştirilemedi. Alanları kontrol edin (minimum 8 karakter, şifreler eşleşmeli).
+        </p>
+      )}
+
+      <form class="password-form" method="post" action="/api/panel/change-password">
+        <label>
+          Mevcut şifre
+          <input name="currentPassword" type="password" autocomplete="current-password" required />
+        </label>
+        <label>
+          Yeni şifre
+          <input name="newPassword" type="password" autocomplete="new-password" minlength="8" required />
+        </label>
+        <label>
+          Yeni şifre (tekrar)
+          <input name="newPasswordAgain" type="password" autocomplete="new-password" minlength="8" required />
+        </label>
+        <div class="form-actions">
+          <button type="submit">Şifreyi güncelle</button>
+          {!required && <a href="/panel">Panele dön</a>}
+        </div>
+      </form>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .panel-password { background: #f8f9fa; min-height: 55vh; }
+  .container--narrow { max-width: 36rem; }
+  .page-title { margin: 0; font-size: clamp(1.65rem, 3vw, 2rem); font-weight: 900; color: #212529; }
+  .page-lead { margin-top: .7rem; color: #495057; line-height: 1.6; }
+  .ok-msg, .err-msg { margin-top: .9rem; border-radius: .65rem; padding: .65rem .8rem; font-size: .92rem; }
+  .ok-msg { background: #ebfbee; color: #2b8a3e; border: 1px solid #b2f2bb; }
+  .ok-msg a { color: inherit; font-weight: 700; text-decoration: underline; }
+  .err-msg { background: #fff5f5; color: #c92a2a; border: 1px solid #ffc9c9; }
+  .password-form {
+    margin-top: 1rem;
+    display: grid;
+    gap: .8rem;
+    background: #fff;
+    border: 1px solid #e9ecef;
+    border-radius: .85rem;
+    padding: 1rem;
+  }
+  .password-form label { display: grid; gap: .35rem; color: #343a40; font-weight: 600; font-size: .9rem; }
+  .password-form input {
+    border: 1px solid #dee2e6;
+    border-radius: .6rem;
+    padding: .58rem .68rem;
+    font-size: .94rem;
+  }
+  .form-actions { display: flex; align-items: center; gap: .7rem; flex-wrap: wrap; }
+  .form-actions button {
+    border: 0;
+    border-radius: .65rem;
+    background: #e30a17;
+    color: #fff;
+    font-weight: 700;
+    padding: .6rem .95rem;
+    cursor: pointer;
+  }
+  .form-actions button:hover { background: #b5080f; }
+  .form-actions a { color: #495057; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+</style>

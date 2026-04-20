@@ -9,12 +9,14 @@ export const GET: APIRoute = async () => {
     getAllCities(),
     getAllBranches(),
   ]);
+  const clubsWithPrograms = clubs.filter((club) => (club.programSayisi ?? 0) > 0).length;
 
   return new Response(
     JSON.stringify({
       generatedAt: new Date().toISOString(),
       metrics: {
         activeClubCount: clubs.length,
+        clubsWithPrograms,
         cityCoverageCount: cities.length,
         branchCount: branches.length,
       },

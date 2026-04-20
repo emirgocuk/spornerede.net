@@ -1,0 +1,76 @@
+name: Deploy Production
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DEPLOY_SSH: ${{ secrets.DEPLOY_SSH }}
+      REMOTE_BASE: ${{ vars.REMOTE_BASE || '/opt/spornerede' }}
+      SYSTEMD_UNIT: ${{ vars.SYSTEMD_UNIT || 'spornerede' }}
+      UPDATE_NGINX: ${{ vars.UPDATE_NGINX || '0' }}
+      SITE_URL: ${{ vars.SITE_URL || '' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Prepare SSH key
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf "%s\n" "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H "${{ secrets.DEPLOY_SSH_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Ensure deploy scripts are executable
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x deploy.sh rollback.sh deploy/*.sh scripts/*.mjs
+
+      - name: Release gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run release:gate
+
+      - name: Deploy
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${DEPLOY_SSH}" ]]; then
+            echo "DEPLOY_SSH secret is empty." >&2
+            exit 1
+          fi
+
+          args=(--ssh "${DEPLOY_SSH}")
+          if [[ "${UPDATE_NGINX}" == "1" ]]; then
+            args+=(--update-nginx)
+          fi
+
+          bash deploy.sh "${args[@]}"
+
+      - name: Smoke check after deploy
+        if: ${{ env.SITE_URL != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run smoke:check

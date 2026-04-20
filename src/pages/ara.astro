@@ -202,6 +202,18 @@ const seciliIlceLabel = ilceler.find((item) => item.slug === seciliIlce)?.ad ?? 
               <!-- Açıklama -->
               <p class="kulup-aciklama">{kulup.aciklama}</p>
 
+              {kulup.programOzet && (
+                <p class="kulup-program-ozet" aria-label="Program özeti">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M8 2v4" />
+                    <path d="M16 2v4" />
+                    <rect width="18" height="18" x="3" y="4" rx="2" />
+                    <path d="M3 10h18" />
+                  </svg>
+                  {kulup.programOzet}
+                </p>
+              )}
+
               <!-- Adres -->
               <p class="kulup-adres">
                 <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -839,6 +851,19 @@ const seciliIlceLabel = ilceler.find((item) => item.slug === seciliIlce)?.ad ?? 
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+  }
+
+  .kulup-program-ozet {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    width: fit-content;
+    font-size: 0.76rem;
+    color: #495057;
+    background: #f1f3f5;
+    border: 1px solid #e9ecef;
+    border-radius: 999px;
+    padding: 0.15rem 0.55rem;
   }
 
   /* ===== ADRES ===== */

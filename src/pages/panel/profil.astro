@@ -1,0 +1,112 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getCurrentSessionUser } from '../../lib/auth/session';
+import { getUserPrimaryClub } from '../../lib/repositories/auth';
+import { getPanelProfile } from '../../lib/repositories/panelProfile';
+
+const session = await getCurrentSessionUser(Astro.request);
+if (!session) {
+  return Astro.redirect('/panel/giris?error=auth');
+}
+if (session.mustChangePassword) {
+  return Astro.redirect('/panel/sifre-degistir?required=1');
+}
+const membership = await getUserPrimaryClub(session.userId);
+if (!membership || membership.clubStatus !== 'approved') {
+  return Astro.redirect('/panel/giris?error=forbidden');
+}
+
+const profile = await getPanelProfile(session.userId);
+if (!profile) {
+  return Astro.redirect('/panel?saved=0');
+}
+
+const saveStatus = Astro.url.searchParams.get('saved');
+---
+
+<BaseLayout title="Kulüp paneli — Profil" description="Kulüp profil bilgilerini düzenleyin." noIndex={true}>
+  <section class="section panel-profile">
+    <div class="container container--narrow">
+      <h1 class="page-title">Kulüp profili</h1>
+      <p class="page-lead">Bilgilerinizi güncelleyin, test kullanıcıları doğru veriyi görsün.</p>
+
+      {saveStatus === '1' && <p class="ok-msg">Profil bilgileri kaydedildi.</p>}
+      {saveStatus === '0' && <p class="err-msg">Profil kaydedilemedi. Zorunlu alanları kontrol edin.</p>}
+
+      <form class="profile-form" method="post" action="/api/panel/profile">
+        <label>
+          Kulüp adı
+          <input value={profile.ad} disabled />
+        </label>
+        <label>
+          Telefon *
+          <input name="telefon" value={profile.telefon} required />
+        </label>
+        <label>
+          E-posta *
+          <input name="email" type="email" value={profile.email} required />
+        </label>
+        <label>
+          Yaş aralığı
+          <input name="yasAraligi" value={profile.yasAraligi} />
+        </label>
+        <label>
+          Fiyat bilgisi
+          <input name="fiyatBilgisi" value={profile.fiyatBilgisi} />
+        </label>
+        <label>
+          Adres
+          <textarea name="adres" rows="3">{profile.adres}</textarea>
+        </label>
+        <label>
+          Açıklama
+          <textarea name="aciklama" rows="5">{profile.aciklama}</textarea>
+        </label>
+        <div class="form-actions">
+          <button type="submit">Kaydet</button>
+          <a href="/panel">Panele dön</a>
+        </div>
+      </form>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .panel-profile { background: #f8f9fa; min-height: 60vh; }
+  .container--narrow { max-width: 42rem; }
+  .page-title { margin: 0; font-size: clamp(1.7rem, 3vw, 2.1rem); font-weight: 900; color: #212529; }
+  .page-lead { margin-top: .65rem; color: #495057; }
+  .ok-msg, .err-msg { margin-top: .9rem; border-radius: .65rem; padding: .65rem .8rem; font-size: .92rem; }
+  .ok-msg { background: #ebfbee; color: #2b8a3e; border: 1px solid #b2f2bb; }
+  .err-msg { background: #fff5f5; color: #c92a2a; border: 1px solid #ffc9c9; }
+  .profile-form {
+    margin-top: 1rem;
+    display: grid;
+    gap: .8rem;
+    background: #fff;
+    border: 1px solid #e9ecef;
+    border-radius: .85rem;
+    padding: 1rem;
+  }
+  .profile-form label { display: grid; gap: .35rem; color: #343a40; font-weight: 600; font-size: .9rem; }
+  .profile-form input, .profile-form textarea {
+    border: 1px solid #dee2e6;
+    border-radius: .6rem;
+    padding: .58rem .68rem;
+    font-size: .94rem;
+    resize: vertical;
+  }
+  .profile-form input:disabled { background: #f1f3f5; color: #6c757d; }
+  .form-actions { display: flex; gap: .75rem; align-items: center; margin-top: .35rem; }
+  .form-actions button {
+    border: 0;
+    border-radius: .65rem;
+    background: #e30a17;
+    color: #fff;
+    font-weight: 700;
+    padding: .6rem .95rem;
+    cursor: pointer;
+  }
+  .form-actions button:hover { background: #b5080f; }
+  .form-actions a { color: #495057; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+</style>

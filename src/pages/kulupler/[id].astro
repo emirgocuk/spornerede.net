@@ -1,12 +1,13 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import { getClubById } from '../../lib/repositories/catalog';
+import { getClubById, getClubProgramsByClubId } from '../../lib/repositories/catalog';
 
 const id = Number(Astro.params.id);
 const club = await getClubById(id);
 if (!club) {
   return Astro.redirect('/ara');
 }
+const programs = await getClubProgramsByClubId(club.id);
 ---
 
 <BaseLayout
@@ -42,6 +43,27 @@ if (!club) {
           <a class="btn btn-primary btn-sm" href={`tel:${club.telefon.replace(/\s/g, '')}`}>Kulubu Ara</a>
         </article>
       </div>
+
+      <article class="card program-card">
+        <h2>Programlar</h2>
+        {programs.length > 0 ? (
+          <ul class="program-list">
+            {programs.map((program) => (
+              <li class="program-item">
+                <div class="program-top">
+                  <strong>{program.ad}</strong>
+                  {program.seviye && <span class="program-level">{program.seviye}</span>}
+                </div>
+                {program.gunSaat && <p><strong>Gün/Saat:</strong> {program.gunSaat}</p>}
+                {program.ucretBilgisi && <p><strong>Ücret:</strong> {program.ucretBilgisi}</p>}
+                {program.aciklama && <p>{program.aciklama}</p>}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p class="program-empty">Bu kulüp için henüz aktif program bilgisi girilmedi.</p>
+        )}
+      </article>
     </div>
   </section>
 </BaseLayout>
@@ -62,5 +84,30 @@ if (!club) {
   .card h2 { font-size: 1rem; font-weight: 800; color: #212529; margin-bottom: .5rem; }
   .card p, .card li { color: #495057; line-height: 1.65; font-size: .9rem; }
   .card ul { display: grid; gap: .35rem; margin-bottom: .8rem; padding-left: 1rem; }
+  .program-card { margin-top: 1rem; }
+  .program-list { list-style: none; padding: 0; margin: 0; display: grid; gap: .65rem; }
+  .program-item {
+    border: 1px solid #e9ecef;
+    border-radius: .7rem;
+    padding: .65rem .75rem;
+    background: #fff;
+  }
+  .program-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+    margin-bottom: .35rem;
+  }
+  .program-level {
+    font-size: .72rem;
+    background: #fff1f2;
+    color: #a30711;
+    border: 1px solid #ffe0e2;
+    border-radius: 999px;
+    padding: .1rem .45rem;
+    font-weight: 700;
+  }
+  .program-empty { color: #6c757d; }
 </style>
 

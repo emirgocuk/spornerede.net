@@ -1,5 +1,19 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+
+const errorCode = Astro.url.searchParams.get('error') ?? '';
+const errorMessage =
+  errorCode === 'invalid'
+    ? 'E-posta veya şifre hatalı.'
+    : errorCode === 'missing'
+      ? 'Lütfen e-posta ve şifre alanlarını doldurun.'
+      : errorCode === 'auth'
+        ? 'Bu sayfayı görmek için önce giriş yapmalısınız.'
+        : errorCode === 'forbidden'
+          ? 'Panel erişimi için onaylı kulüp üyeliği gerekli.'
+        : errorCode === 'password_changed'
+          ? 'Şifreniz güncellendi, yeni şifrenizle giriş yapabilirsiniz.'
+        : '';
 ---
 
 <BaseLayout
@@ -11,9 +25,23 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     <div class="container container--narrow">
       <h1 class="page-title">Üye girişi</h1>
       <p class="page-lead">
-        Onaylı kulüp ve kurs temsilcileri için kullanım paneli burada olacak. Giriş formu ve oturum yönetimi bir sonraki
-        geliştirme adımında eklenecek.
+        Onaylı kulüp ve kurs temsilcileri için panel girişi buradan yapılır.
       </p>
+      {errorMessage && <p class="error-box">{errorMessage}</p>}
+
+      <form class="login-form" method="post" action="/api/panel/login">
+        <input type="hidden" name="redirectTo" value="/panel" />
+        <label>
+          E-posta
+          <input name="email" type="email" autocomplete="email" required />
+        </label>
+        <label>
+          Şifre
+          <input name="password" type="password" autocomplete="current-password" required />
+        </label>
+        <button type="submit">Giriş yap</button>
+      </form>
+
       <p class="page-note">
         Henüz hesabınız yoksa kulüp kaydı için <a href="/basvuru">başvuru formunu</a> kullanabilirsiniz.
       </p>
@@ -45,6 +73,50 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     margin-top: 1.25rem;
     font-size: 0.95rem;
     color: #6c757d;
+  }
+  .error-box {
+    margin-top: 1rem;
+    border: 1px solid #ffc9c9;
+    background: #fff5f5;
+    color: #c92a2a;
+    border-radius: 0.65rem;
+    padding: 0.7rem 0.85rem;
+    font-size: 0.92rem;
+  }
+  .login-form {
+    margin-top: 1rem;
+    display: grid;
+    gap: 0.85rem;
+    background: #fff;
+    border: 1px solid #e9ecef;
+    border-radius: 0.85rem;
+    padding: 1rem;
+  }
+  .login-form label {
+    display: grid;
+    gap: 0.45rem;
+    color: #343a40;
+    font-weight: 600;
+    font-size: 0.92rem;
+  }
+  .login-form input {
+    border: 1px solid #dee2e6;
+    border-radius: 0.6rem;
+    padding: 0.62rem 0.7rem;
+    font-size: 0.95rem;
+  }
+  .login-form button {
+    margin-top: 0.15rem;
+    border: 0;
+    border-radius: 0.65rem;
+    background: #e30a17;
+    color: #fff;
+    font-weight: 700;
+    padding: 0.62rem 0.9rem;
+    cursor: pointer;
+  }
+  .login-form button:hover {
+    background: #b5080f;
   }
   .page-note a {
     color: #e30a17;

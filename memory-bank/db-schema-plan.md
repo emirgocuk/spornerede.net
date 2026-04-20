@@ -1,24 +1,28 @@
 # SporNerede.net — DB Schema Plan (Basit Sürüm)
 
 ## Amaç
+
 Mock veriden PostgreSQL + Drizzle yapısına geçiş için minimum netlik sağlamak.
 
 ## Kapsam (MVP)
+
 - Kulüplerin listelenmesi ve filtrelenmesi
 - Branş-kulüp ilişkisi
 - İl/ilçe bazlı arama
 - Başvuru kayıtlarının saklanması (opsiyonel ama önerilir)
 
-Kulüp paneli, yönetim onayı ve dosya ekleri için ayrıntılı akış: **`club-auth-admin-plan.md`**. Bu dosyadaki tablo isimleri uygulama koduyla (`kulupler`, mevcut başvuru repo’su) hizalanarak migration’larda evrilecek.
+Kulüp paneli, yönetim onayı ve dosya ekleri için ayrıntılı akış: `**club-auth-admin-plan.md**`. Bu dosyadaki tablo isimleri uygulama koduyla (`kulupler`, mevcut başvuru repo’su) hizalanarak migration’larda evrilecek.
 
 ## Tablolar
 
 ### `cities`
+
 - `id` (pk)
 - `name` (unique) — örn. Ankara
 - `slug` (unique) — örn. ankara
 
 ### `districts`
+
 - `id` (pk)
 - `city_id` (fk -> cities.id)
 - `name`
@@ -26,12 +30,14 @@ Kulüp paneli, yönetim onayı ve dosya ekleri için ayrıntılı akış: **`clu
 - Unique: (`city_id`, `slug`)
 
 ### `branches`
+
 - `id` (pk)
 - `name` (unique) — örn. Futbol
 - `slug` (unique) — örn. futbol
 - `category` (nullable) — takım, bireysel vb.
 
 ### `clubs`
+
 - `id` (pk, uuid önerilir)
 - `name`
 - `slug` (unique)
@@ -48,11 +54,13 @@ Kulüp paneli, yönetim onayı ve dosya ekleri için ayrıntılı akış: **`clu
 - `created_at`, `updated_at`
 
 ### `club_branches` (N:N)
+
 - `club_id` (fk -> clubs.id)
 - `branch_id` (fk -> branches.id)
 - Composite PK: (`club_id`, `branch_id`)
 
 ### `applications` (önerilen — genişletilmiş)
+
 - `id` (pk)
 - `club_name`
 - `branch_text` veya `branch_id` (fk, geçişte ikisi birlikte olabilir)
@@ -65,6 +73,7 @@ Kulüp paneli, yönetim onayı ve dosya ekleri için ayrıntılı akış: **`clu
 - Onay sonrası: `result_club_id` (nullable, fk -> kulüpler/clubs)
 
 ### `application_documents` (yeni — dekont ve belgeler)
+
 - `id` (pk)
 - `application_id` (fk)
 - `kind`: `dekont` | `kimlik` | `sozlesme` | `diger`
@@ -73,6 +82,7 @@ Kulüp paneli, yönetim onayı ve dosya ekleri için ayrıntılı akış: **`clu
 - `created_at`
 
 ### `users` (kulüp paneli + yönetim)
+
 - `id` (pk, uuid)
 - `email` (unique)
 - `password_hash`
@@ -80,13 +90,16 @@ Kulüp paneli, yönetim onayı ve dosya ekleri için ayrıntılı akış: **`clu
 - `created_at`, `updated_at`
 
 ### `sessions` (veya seçilen auth kütüphanesinin tablosu)
+
 - `id`, `user_id` (fk), `expires_at`, token hash alanları
 
 ### `club_memberships`
+
 - `user_id` (fk), `club_id` (fk), `role` (`owner` | `staff`)
 - Composite unique: (`user_id`, `club_id`)
 
 ## İndeksler (MVP)
+
 - `clubs(city_id, district_id)`
 - `clubs(is_active)`
 - `clubs(price_min, price_max)` (filtre ihtiyacı artarsa)
@@ -94,11 +107,13 @@ Kulüp paneli, yönetim onayı ve dosya ekleri için ayrıntılı akış: **`clu
 - `branches(slug)`, `districts(slug)`, `cities(slug)`
 
 ## URL ve Slug Standardı
+
 - Küçük harf + tire: `cankaya`, `masa-tenisi`
 - Türkçe karakter dönüşümü uygulanır (`ç -> c`, `ş -> s`, vb.)
 - Aynı isimde çakışma olursa sonuna kısa ek: `-2`
 
 ## Geçiş Sırası (Faz 2)
+
 1. Drizzle şema dosyalarını oluştur
 2. Migration üret ve PostgreSQL'e uygula
 3. Mock veriyi seed script ile taşı
@@ -106,6 +121,7 @@ Kulüp paneli, yönetim onayı ve dosya ekleri için ayrıntılı akış: **`clu
 5. Mock kaynaklarını kaldır
 
 ## Geçiş Sırası (Faz 3 — panel ve yönetim)
+
 1. `users`, `sessions`, `club_memberships` + başvuru genişlemesi ve `application_documents`
 2. Başvuru formu: multipart yükleme + güvenli depolama
 3. `/admin` arayüzü: sağ kuyruk listesi + detay + onay/red + onayda kulüp kaydı

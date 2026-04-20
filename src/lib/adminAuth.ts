@@ -1,4 +1,11 @@
-export function isAdminAuthorized(request: Request) {
+import { getCurrentSessionUser } from './auth/session';
+
+export async function isAdminAuthorized(request: Request) {
+  const session = await getCurrentSessionUser(request).catch(() => null);
+  if (session?.role === 'admin') {
+    return true;
+  }
+
   const expected = import.meta.env.ADMIN_TOKEN;
   if (!expected) {
     return false;

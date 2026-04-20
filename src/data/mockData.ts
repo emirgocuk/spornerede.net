@@ -16,6 +16,8 @@ export type Club = {
   yorumSayisi: number;
   emoji: string;
   renk: string;
+  programSayisi?: number;
+  programOzet?: string;
 };
 
 export type MembershipPlan = {

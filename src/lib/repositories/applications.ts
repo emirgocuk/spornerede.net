@@ -1,7 +1,16 @@
 import { and, desc, eq } from 'drizzle-orm';
 import { getDb, hasDatabaseUrl } from '../../db/client';
-import { branslar, ilceler, iller, kulupBranslar, kulupUyelikleri, kulupler, uyelikPaketleri } from '../../db/schema';
-import { CLUBS, MEMBERSHIP_PLANS, slugify } from '../../data/mockData';
+import {
+  adminBasvuruLoglari,
+  branslar,
+  ilceler,
+  iller,
+  kulupBranslar,
+  kulupUyelikleri,
+  kulupler,
+  uyelikPaketleri,
+} from '../../db/schema';
+import { MEMBERSHIP_PLANS, slugify } from '../../data/mockData';
 
 export type ClubApplicationInput = {
   kulupad: string;
@@ -18,10 +27,14 @@ export type ClubApplicationInput = {
   paket: string;
 };
 
-export async function createClubApplication(input: ClubApplicationInput) {
+function requireDatabase() {
   if (!hasDatabaseUrl()) {
-    return { id: Date.now(), mode: 'mock' as const };
+    throw new Error('DATABASE_URL is not configured.');
   }
+}
+
+export async function createClubApplication(input: ClubApplicationInput) {
+  requireDatabase();
 
   const db = getDb();
 
@@ -67,21 +80,19 @@ export async function createClubApplication(input: ClubApplicationInput) {
     });
   }
 
+  await db.insert(adminBasvuruLoglari).values({
+    basvuruId: club.id,
+    aksiyon: 'application_created',
+    yeniDurum: 'pending',
+    islemYapanEmail: input.email,
+    notMetni: 'Kulup basvurusu olusturuldu.',
+  });
+
   return { id: club.id, mode: 'db' as const };
 }
 
 export async function listAdminApplications() {
-  if (!hasDatabaseUrl()) {
-    return CLUBS.map((club) => ({
-      id: club.id,
-      ad: club.ad,
-      il: club.il,
-      ilce: club.ilce,
-      durum: 'approved',
-      createdAt: new Date().toISOString(),
-      telefon: club.telefon,
-    }));
-  }
+  requireDatabase();
   const db = getDb();
   return db
     .select({
@@ -92,6 +103,7 @@ export async function listAdminApplications() {
       durum: kulupler.durum,
       createdAt: kulupler.createdAt,
       telefon: kulupler.telefon,
+      sorumluAdminEmail: kulupler.sorumluAdminEmail,
     })
     .from(kulupler)
     .innerJoin(iller, eq(kulupler.ilId, iller.id))
@@ -100,17 +112,107 @@ export async function listAdminApplications() {
     .limit(100);
 }
 
-export async function updateApplicationStatus(id: number, status: 'pending' | 'approved' | 'rejected') {
-  if (!hasDatabaseUrl()) {
-    return { id, status, mode: 'mock' as const };
-  }
+export async function getAdminApplicationById(id: number) {
+  requireDatabase();
+
   const db = getDb();
   const [row] = await db
-    .update(kulupler)
-    .set({ durum: status, updatedAt: new Date() })
+    .select({
+      id: kulupler.id,
+      ad: kulupler.ad,
+      il: iller.ad,
+      ilce: ilceler.ad,
+      durum: kulupler.durum,
+      createdAt: kulupler.createdAt,
+      updatedAt: kulupler.updatedAt,
+      telefon: kulupler.telefon,
+      email: kulupler.email,
+      adres: kulupler.adres,
+      aciklama: kulupler.aciklama,
+      adminNotu: kulupler.adminNotu,
+      sorumluAdminEmail: kulupler.sorumluAdminEmail,
+    })
+    .from(kulupler)
+    .innerJoin(iller, eq(kulupler.ilId, iller.id))
+    .leftJoin(ilceler, eq(kulupler.ilceId, ilceler.id))
     .where(eq(kulupler.id, id))
-    .returning({ id: kulupler.id, status: kulupler.durum });
+    .limit(1);
+
+  return row ?? null;
+}
+
+export async function updateApplicationStatus(
+  id: number,
+  status: 'pending' | 'approved' | 'rejected',
+  options?: {
+    adminNote?: string;
+    assignedAdminEmail?: string;
+    actorEmail?: string;
+  }
+) {
+  requireDatabase();
+  const db = getDb();
+
+  const [before] = await db
+    .select({ durum: kulupler.durum, adminNotu: kulupler.adminNotu, assigned: kulupler.sorumluAdminEmail })
+    .from(kulupler)
+    .where(eq(kulupler.id, id))
+    .limit(1);
+  if (!before) {
+    return null;
+  }
+
+  const nextAdminNote = options?.adminNote ?? '';
+  const nextAssigned = options?.assignedAdminEmail?.trim() ?? before.assigned ?? '';
+
+  const [row] = await db
+    .update(kulupler)
+    .set({
+      durum: status,
+      adminNotu: nextAdminNote,
+      sorumluAdminEmail: nextAssigned,
+      updatedAt: new Date(),
+    })
+    .where(eq(kulupler.id, id))
+    .returning({
+      id: kulupler.id,
+      status: kulupler.durum,
+      adminNote: kulupler.adminNotu,
+      assignedAdminEmail: kulupler.sorumluAdminEmail,
+    });
+
+  await db.insert(adminBasvuruLoglari).values({
+    basvuruId: id,
+    aksiyon: 'status_update',
+    oncekiDurum: before.durum,
+    yeniDurum: status,
+    notMetni: nextAdminNote,
+    atananAdminEmail: nextAssigned,
+    islemYapanEmail: options?.actorEmail ?? '',
+  });
+
   return row;
+}
+
+export async function listAdminApplicationLogs(applicationId: number) {
+  requireDatabase();
+  const db = getDb();
+  return db
+    .select({
+      id: adminBasvuruLoglari.id,
+      applicationId: adminBasvuruLoglari.basvuruId,
+      action: adminBasvuruLoglari.aksiyon,
+      previousStatus: adminBasvuruLoglari.oncekiDurum,
+      nextStatus: adminBasvuruLoglari.yeniDurum,
+      note: adminBasvuruLoglari.notMetni,
+      assignedAdminEmail: adminBasvuruLoglari.atananAdminEmail,
+      actorEmail: adminBasvuruLoglari.islemYapanEmail,
+      createdAt: adminBasvuruLoglari.createdAt,
+    })
+    .from(adminBasvuruLoglari)
+    .where(eq(adminBasvuruLoglari.basvuruId, applicationId))
+    .orderBy(desc(adminBasvuruLoglari.createdAt))
+    .limit(200);
 }
 
 export function getMembershipPlans() {

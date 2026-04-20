@@ -1,0 +1,277 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getCurrentSessionUser } from '../../lib/auth/session';
+import { getUserPrimaryClub } from '../../lib/repositories/auth';
+
+const session = await getCurrentSessionUser(Astro.request);
+if (!session) {
+  return Astro.redirect('/panel/giris?error=auth');
+}
+if (session.mustChangePassword) {
+  return Astro.redirect('/panel/sifre-degistir?required=1');
+}
+const membership = await getUserPrimaryClub(session.userId);
+if (!membership || membership.clubStatus !== 'approved') {
+  return Astro.redirect('/panel/giris?error=forbidden');
+}
+---
+
+<BaseLayout title="Kulüp paneli — Kurslar" description="Kulüp kurs ve programlarını yönetin." noIndex={true}>
+  <section class="section panel-programs">
+    <div class="container container--wide">
+      <h1 class="page-title">Kurs / Program yönetimi</h1>
+      <p class="page-lead">Yeni program ekleyin, mevcutları düzenleyin veya pasife çekin.</p>
+
+      <div class="program-layout">
+        <form id="program-form" class="program-form">
+          <input id="program-id" type="hidden" />
+          <label>
+            Program adı *
+            <input id="program-ad" required />
+          </label>
+          <label>
+            Gün/Saat
+            <input id="program-gunsaat" placeholder="Pzt-Crş-Cuma 18:00-19:00" />
+          </label>
+          <label>
+            Seviye
+            <input id="program-seviye" placeholder="Başlangıç / Orta / İleri" />
+          </label>
+          <label>
+            Ücret bilgisi
+            <input id="program-ucret" placeholder="Aylık 2500 TL" />
+          </label>
+          <label>
+            Açıklama
+            <textarea id="program-aciklama" rows="4"></textarea>
+          </label>
+          <label class="checkbox-row">
+            <input id="program-aktif" type="checkbox" checked />
+            Aktif program
+          </label>
+          <div class="form-actions">
+            <button type="submit">Kaydet</button>
+            <button id="form-reset" type="button" class="btn-muted">Yeni kayıt</button>
+            <a href="/panel">Panele dön</a>
+          </div>
+        </form>
+
+        <div class="program-list-box">
+          <h2>Programlar</h2>
+          <ul id="program-list" class="program-list">
+            <li class="hint">Yükleniyor...</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script is:inline>
+    const form = document.getElementById('program-form');
+    const list = document.getElementById('program-list');
+    const resetBtn = document.getElementById('form-reset');
+    const idEl = document.getElementById('program-id');
+    const adEl = document.getElementById('program-ad');
+    const gunSaatEl = document.getElementById('program-gunsaat');
+    const seviyeEl = document.getElementById('program-seviye');
+    const ucretEl = document.getElementById('program-ucret');
+    const aciklamaEl = document.getElementById('program-aciklama');
+    const aktifEl = document.getElementById('program-aktif');
+
+    let programs = [];
+
+    function clearForm() {
+      idEl.value = '';
+      adEl.value = '';
+      gunSaatEl.value = '';
+      seviyeEl.value = '';
+      ucretEl.value = '';
+      aciklamaEl.value = '';
+      aktifEl.checked = true;
+    }
+
+    function fillForm(program) {
+      idEl.value = String(program.id);
+      adEl.value = program.ad || '';
+      gunSaatEl.value = program.gunSaat || '';
+      seviyeEl.value = program.seviye || '';
+      ucretEl.value = program.ucretBilgisi || '';
+      aciklamaEl.value = program.aciklama || '';
+      aktifEl.checked = Boolean(program.aktif);
+      adEl.focus();
+    }
+
+    function renderList() {
+      if (!programs.length) {
+        list.innerHTML = '<li class="hint">Henüz program eklenmedi.</li>';
+        return;
+      }
+      list.innerHTML = programs
+        .map(
+          (p) => `
+            <li class="program-item">
+              <div>
+                <strong>${p.ad}</strong>
+                <small>${p.gunSaat || '-'} | ${p.seviye || '-'}</small>
+                <small>${p.ucretBilgisi || '-'}</small>
+                <small class="${p.aktif ? 'ok' : 'warn'}">${p.aktif ? 'Aktif' : 'Pasif'}</small>
+              </div>
+              <div class="item-actions">
+                <button data-action="edit" data-id="${p.id}" type="button">Duzenle</button>
+                <button data-action="delete" data-id="${p.id}" type="button" class="danger">Sil</button>
+              </div>
+            </li>
+          `
+        )
+        .join('');
+    }
+
+    async function loadPrograms() {
+      const response = await fetch('/api/panel/programs');
+      if (!response.ok) {
+        list.innerHTML = '<li class="hint warn">Programlar yüklenemedi.</li>';
+        return;
+      }
+      const payload = await response.json();
+      programs = payload.data || [];
+      renderList();
+    }
+
+    async function saveProgram(event) {
+      event.preventDefault();
+      const payload = {
+        id: Number(idEl.value || '0'),
+        ad: adEl.value.trim(),
+        gunSaat: gunSaatEl.value.trim(),
+        seviye: seviyeEl.value.trim(),
+        ucretBilgisi: ucretEl.value.trim(),
+        aciklama: aciklamaEl.value.trim(),
+        aktif: aktifEl.checked,
+      };
+      if (!payload.ad) {
+        return;
+      }
+
+      const isEdit = payload.id > 0;
+      const response = await fetch('/api/panel/programs', {
+        method: isEdit ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!response.ok) {
+        alert('Kayit islemi basarisiz oldu.');
+        return;
+      }
+      clearForm();
+      await loadPrograms();
+    }
+
+    async function removeProgram(id) {
+      const ok = confirm('Bu programi silmek istiyor musunuz?');
+      if (!ok) return;
+      const response = await fetch('/api/panel/programs', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+      if (!response.ok) {
+        alert('Silme islemi basarisiz oldu.');
+        return;
+      }
+      if (Number(idEl.value || '0') === id) {
+        clearForm();
+      }
+      await loadPrograms();
+    }
+
+    list.addEventListener('click', async (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      const button = target.closest('button[data-action]');
+      if (!button) return;
+      const action = button.getAttribute('data-action');
+      const id = Number(button.getAttribute('data-id'));
+      if (!id) return;
+      const row = programs.find((item) => item.id === id);
+      if (!row) return;
+      if (action === 'edit') {
+        fillForm(row);
+      } else if (action === 'delete') {
+        await removeProgram(id);
+      }
+    });
+
+    form.addEventListener('submit', saveProgram);
+    resetBtn.addEventListener('click', clearForm);
+    loadPrograms();
+  </script>
+</BaseLayout>
+
+<style>
+  .panel-programs { background: #f8f9fa; min-height: 60vh; }
+  .container--wide { max-width: 72rem; }
+  .page-title { margin: 0; font-size: clamp(1.7rem, 3vw, 2.1rem); font-weight: 900; color: #212529; }
+  .page-lead { margin-top: .65rem; color: #495057; }
+  .program-layout {
+    margin-top: 1rem;
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: 1fr;
+  }
+  @media (min-width: 980px) {
+    .program-layout { grid-template-columns: minmax(320px, 400px) 1fr; align-items: start; }
+  }
+  .program-form, .program-list-box {
+    background: #fff;
+    border: 1px solid #e9ecef;
+    border-radius: .85rem;
+    padding: .95rem;
+  }
+  .program-form { display: grid; gap: .7rem; }
+  .program-form label { display: grid; gap: .3rem; color: #343a40; font-weight: 600; font-size: .9rem; }
+  .program-form input, .program-form textarea {
+    border: 1px solid #dee2e6;
+    border-radius: .55rem;
+    padding: .54rem .63rem;
+    font-size: .93rem;
+  }
+  .checkbox-row { display: flex !important; align-items: center; gap: .45rem; font-weight: 600; }
+  .form-actions { display: flex; align-items: center; gap: .65rem; flex-wrap: wrap; }
+  .form-actions button {
+    border: 0;
+    border-radius: .58rem;
+    background: #e30a17;
+    color: #fff;
+    padding: .56rem .85rem;
+    cursor: pointer;
+    font-weight: 700;
+  }
+  .form-actions .btn-muted { background: #495057; }
+  .form-actions a { color: #495057; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+  .program-list-box h2 { margin: 0 0 .65rem; font-size: 1.05rem; color: #212529; }
+  .program-list { margin: 0; padding: 0; list-style: none; display: grid; gap: .6rem; }
+  .program-item {
+    border: 1px solid #dee2e6;
+    border-radius: .7rem;
+    padding: .65rem .7rem;
+    display: flex;
+    justify-content: space-between;
+    gap: .75rem;
+  }
+  .program-item strong { color: #212529; display: block; }
+  .program-item small { display: block; color: #6c757d; margin-top: .12rem; }
+  .item-actions { display: grid; gap: .45rem; }
+  .item-actions button {
+    border: 0;
+    border-radius: .5rem;
+    padding: .38rem .62rem;
+    background: #212529;
+    color: #fff;
+    cursor: pointer;
+    font-size: .82rem;
+  }
+  .item-actions button.danger { background: #c92a2a; }
+  .ok { color: #2b8a3e !important; font-weight: 700; }
+  .warn { color: #c92a2a !important; font-weight: 700; }
+  .hint { color: #6c757d; }
+</style>

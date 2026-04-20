@@ -32,6 +32,7 @@
 ## Bileşen Mimarisi
 
 ### Layout Katmanı
+
 ```
 BaseLayout.astro
   ├── <head> (meta, font, SEO)
@@ -41,6 +42,7 @@ BaseLayout.astro
 ```
 
 ### Sayfa Hiyerarşisi
+
 ```
 index.astro              → Landing (tanıtım: hero + haberler + branşlar + CTA) [UYGULANDI]
 ara.astro                → Arama sayfası (arama çubuğu üstte + filtreler + sonuçlar altta) [UYGULANDI]
@@ -58,11 +60,13 @@ api/
 ## Header Navigasyon Yapısı
 
 ### Masaüstü Menü (Sade)
+
 ```
 [Logo: spor nerede?]   [Haberler]   [Hakkımızda]   [İletişim]   [Spor Kursunu/Kulübünü Ekle →]
 ```
 
 ### Mobil Menü
+
 - Hamburger ikonla açılan tam ekran veya side-drawer menü
 - Arama çubuğu mobilde de erişilebilir
 
@@ -105,6 +109,7 @@ Landing Page arama formu submit olduğunda `/ara` sayfasına URL parametresiyle 
 ## Haber/Duyuru + FAQ Bölümü
 
 ### Masaüstü Düzeni (İki Sütunlu)
+
 ```
 [Haberler / Duyurular]
 ├── Maraton Duyuruları
@@ -119,16 +124,19 @@ Landing Page arama formu submit olduğunda `/ara` sayfasına URL parametresiyle 
 ```
 
 ### Mobilde
+
 - Haberler üstte, FAQ altında yığılır
 
 ## Veri Akışı Desenleri
 
 ### Arama Formu Akışı (Aşama 1 — Statik)
+
 ```
 Kullanıcı input → URL parametresi → /ara?ilce=cankaya&brans=futbol
 ```
 
 ### Arama Formu Akışı (Aşama 2 — Dinamik)
+
 ```
 Kullanıcı input → API endpoint → PostgreSQL sorgu → JSON yanıt → Astro render
 ```
@@ -153,6 +161,7 @@ Kullanıcı input → API endpoint → PostgreSQL sorgu → JSON yanıt → Astr
 ## SEO Deseni
 
 Her sayfa şu meta tagları içerecek:
+
 ```astro
 <title>{pageTitle} | SporNerede.net</title>
 <meta name="description" content="{description}" />
@@ -163,6 +172,7 @@ Her sayfa şu meta tagları içerecek:
 ```
 
 Dinamik sayfa örnekleri:
+
 - `/branşlar/futbol` → "Ankara Futbol Kursları ve Kulüpleri | SporNerede.net"
 - `/kulupler/ankara/cankaya` → "Çankaya Spor Kulüpleri | SporNerede.net"
 
@@ -178,8 +188,10 @@ Kulüp "Kulübünü Ekle" butonuna basar
 ```
 
 **E-posta Altyapısı: Self-Hosted Nodemailer**
+
 - Kendi SMTP sunucusu (aynı Ubuntu 22.04 üzerinde Postfix veya harici SMTP portu)
 - Nodemailer paketi Astro server endpoint içinde kullanılır
 - `.env` dosyasında: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_TO`
 
 ## Veri Akışı Desenleri
+
