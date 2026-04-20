@@ -4,9 +4,11 @@ Bu dosya, akşam toplu testlerde hızlı ilerlemek için hazırlanmıştır.
 
 ## 1) Deploy ve Genel Sağlık
 
-- GitHub Actions deploy run başarılı mı?
-- `release:gate` adımı geçti mi?
-- `smoke:check` adımı geçti mi?
+- Sunucuda `spornerede-autoupdate.timer` aktif mi?
+- `spornerede-autoupdate.service` son çalışması hatasız mı? (`journalctl`)
+- GitHub'a yeni commit sonrası sunucu `git pull + build + release + restart` döngüsü tamamlandı mı?
+- Deploy sonrası `release:gate` adımı (manuel) geçti mi?
+- Deploy sonrası `smoke:check` adımı (manuel) geçti mi?
 - Demo test ortamı için `npm run demo:seed` çalıştırıldı mı?
 - `https://spornerede.net/api/health` yanıtı `status: ok` mu?
 - `https://spornerede.net/api/health?deep=1` yanıtı beklenen durumda mı (`ok` veya nedeni net `degraded`)?

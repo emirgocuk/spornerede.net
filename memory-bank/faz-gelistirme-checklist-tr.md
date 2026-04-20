@@ -52,7 +52,7 @@ Bu dosya, proje ilerlemesini tek yerden takip etmek için faz bazlı ana checkli
 
 ## Faz 11 — Deploy & Operasyon
 
-- CI deploy workflow eklendi (`.github/workflows/deploy.yml`)
+- Sunucu pull + systemd timer tabanli otomatik deploy modeli eklendi
 - `release:gate` ve `smoke:check` akışı eklendi
 - Deep health endpoint (`/api/health?deep=1`) eklendi
 - Rollback script akışı hazır

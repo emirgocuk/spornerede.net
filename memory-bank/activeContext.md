@@ -51,8 +51,12 @@ Aktif hedef: Mock’tan kalıcı veriye geçiş; başvurulara belge/dekont, onay
 
 ### 🆕 Son Tamamlanan (Deploy otomasyonu)
 
-- GitHub Actions workflow eklendi: `main` push -> production deploy (`.github/workflows/deploy.yml`)
-- Deploy runbook guncellendi: Secrets/Variables ve CI/CD kurulum adimlari dokumante edildi
+- GitHub Actions deploy workflow kapatildi (billing kisitlari nedeniyle)
+- Sunucu tarafi pull modeli eklendi:
+  - `deploy/server-auto-update.sh`
+  - `deploy/spornerede-autoupdate.service.example`
+  - `deploy/spornerede-autoupdate.timer.example`
+- Deploy runbook self-host timer modeliyle guncellendi
 
 ### 🆕 Son Tamamlanan (Faz 3A — backend temel)
 
