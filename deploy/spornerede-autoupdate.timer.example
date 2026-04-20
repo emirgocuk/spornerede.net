@@ -1,0 +1,12 @@
+[Unit]
+Description=Run SporNerede auto update every minute
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=1min
+Unit=spornerede-autoupdate.service
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+

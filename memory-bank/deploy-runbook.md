@@ -24,35 +24,66 @@ Deploy sürecini tekrarlanabilir ve düşük riskli hale getirmek.
   - `/ara` filtreleniyor mu
   - `/basvuru` form gönderimi çalışıyor mu
 
-## GitHub Push ile Otomatik Deploy (CI/CD)
+## Deploy Modeli (GitHub Actions kapali)
 
-Repo'ya `.github/workflows/deploy.yml` eklendi. `main` branch'ine her push sonrası deploy otomatik tetiklenir.
+Bu projede GitHub Actions deploy workflow'u bilerek kapatildi.
 
-### GitHub tarafında bir kez ayarlanacaklar
+Neden:
 
-GitHub -> **Settings -> Secrets and variables -> Actions**
+- Ek GitHub Actions maliyetinden kacinmak
+- Deploy kontrolunu tamamen self-host sunucu akisiyla surdurmek
 
-**Secrets (zorunlu):**
+Sonuc:
 
-- `DEPLOY_SSH` -> `root@SUNUCU_IP` (veya deploy kullanıcısı)
-- `DEPLOY_SSH_KEY` -> private SSH key (PEM/OpenSSH format)
-- `DEPLOY_SSH_HOST` -> sadece host/IP (örn: `1.2.3.4`)
+- `main` push -> GitHub Actions tetiklenmez (deploy karari sunucu timer'i tarafinda verilir)
+- Deploy sadece gelistirici makinesinden SSH uzerinden calisir (`deploy.sh`)
 
-**Variables (opsiyonel):**
+## Sunucudan Otomatik Guncelleme (GitHub pull modeli)
 
-- `REMOTE_BASE` -> varsayılan: `/opt/spornerede`
-- `SYSTEMD_UNIT` -> varsayılan: `spornerede`
-- `UPDATE_NGINX` -> `1` ise deploy sırasında nginx config de güncellenir
+GitHub Actions maliyeti olmadan otomatik deploy icin sunucu tarafinda systemd timer kullanilir.
+Timer periyodik olarak repo'yu kontrol eder, yeni commit varsa `pull + build + release + restart` yapar.
 
-### Çalışma şekli
+### 1) Sunucuda repo klonla
 
-1. GitHub Actions kodu checkout eder
-2. Node 22 ortamı kurulur
-3. SSH key ile sunucuya güvenli bağlantı hazırlanır
-4. `npm run release:gate` ile temel ön koşullar doğrulanır
-5. `bash deploy.sh --ssh ...` çalışır (build + rsync release + systemd restart)
-6. `SITE_URL` değişkeni tanımlıysa `npm run smoke:check` ile post-deploy rota testleri yapılır
-7. Başarısızlık olursa GitHub Actions logunda adım bazlı hata görülür
+```bash
+sudo mkdir -p /opt/spornerede
+cd /opt/spornerede
+sudo git clone git@github.com:emirgocuk/spornerede.net.git repo
+```
+
+Not:
+
+- Sunucuda GitHub'a erisen bir SSH key olmali.
+- Repo temiz degilse otomatik guncelleme bilerek atlanir.
+
+### 2) Auto-update service ve timer kur
+
+Repo icindeki ornek dosyalari systemd altina kopyalayin:
+
+```bash
+sudo cp /opt/spornerede/repo/deploy/spornerede-autoupdate.service.example /etc/systemd/system/spornerede-autoupdate.service
+sudo cp /opt/spornerede/repo/deploy/spornerede-autoupdate.timer.example /etc/systemd/system/spornerede-autoupdate.timer
+sudo systemctl daemon-reload
+sudo systemctl enable --now spornerede-autoupdate.timer
+```
+
+### 3) Calismayi dogrula
+
+```bash
+sudo systemctl status spornerede-autoupdate.timer --no-pager
+sudo systemctl list-timers --all | grep spornerede-autoupdate
+sudo journalctl -u spornerede-autoupdate.service -n 100 --no-pager
+```
+
+### 4) Elle test et (ilk kurulumda onerilir)
+
+```bash
+sudo systemctl start spornerede-autoupdate.service
+sudo journalctl -u spornerede-autoupdate.service -n 100 --no-pager
+```
+
+Timer calisma araligi varsayilan olarak 1 dakikadir (`OnUnitActiveSec=1min`).
+Isterseniz `deploy/spornerede-autoupdate.timer.example` icinde araligi buyutebilirsiniz.
 
 ### Yeni komutlar (lokal/CI)
 
@@ -63,10 +94,10 @@ GitHub -> **Settings -> Secrets and variables -> Actions**
   - `SITE_URL` hedefinde `/`, `/ara`, `/basvuru`, `/api/health?deep=1` 2xx/3xx dönüyor mu?
   - Hata durumunda exit code 1 ile deploy pipeline'ı fail eder
 
-### İlk aktivasyon notu
+### Ilk aktivasyon notu
 
-- İlk kurulumda (sunucuya bir kez) `deploy/remote-doctor.sh` ile sistemd/nginx tabanının hazır olduğundan emin olun.
-- İlk otomatik deploy'dan sonra GitHub Actions run ekranından sağlık kontrolü için manuel doğrulama yapın (`/`, `/ara`, `/basvuru`).
+- Ilk kurulumda (sunucuya bir kez) `deploy/remote-doctor.sh` ile systemd/nginx tabaninin hazir oldugundan emin olun.
+- Deploy sonrasi saglik kontrolunu lokalden manuel calistirin (`/`, `/ara`, `/basvuru`, `/api/health?deep=1`).
 
 ## Repo Icindeki Deploy Scriptleri (Onerilen)
 

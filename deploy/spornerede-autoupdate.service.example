@@ -1,0 +1,16 @@
+[Unit]
+Description=SporNerede auto update (Git pull + build + release)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+Environment=APP_REPO_DIR=/opt/spornerede/repo
+Environment=APP_BASE=/opt/spornerede
+Environment=APP_BRANCH=main
+Environment=APP_REMOTE=origin
+Environment=SYSTEMD_UNIT=spornerede
+ExecStart=/usr/bin/bash /opt/spornerede/repo/deploy/server-auto-update.sh
+
