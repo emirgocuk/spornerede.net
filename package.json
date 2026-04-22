@@ -13,10 +13,13 @@
     "build:outbox": "npm run build && node scripts/sync-outbox.mjs",
     "preview": "astro preview",
     "astro": "astro",
-    "db:generate": "drizzle-kit generate --config=drizzle.config.mjs",
-    "db:migrate": "drizzle-kit migrate --config=drizzle.config.mjs",
     "db:seed": "tsx scripts/db-seed.ts",
     "demo:seed": "tsx scripts/demo-seed.ts",
+    "pb:up": "docker compose -f docker-compose.pocketbase.yml up -d",
+    "pb:down": "docker compose -f docker-compose.pocketbase.yml down",
+    "pb:start": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"./pocketbase/pocketbase.exe serve --http=127.0.0.1:8090\"",
+    "pb:stop": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$pbPid=(Get-NetTCPConnection -LocalAddress 127.0.0.1 -LocalPort 8090 -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty OwningProcess); if ($pbPid) { Stop-Process -Id $pbPid -Force; Write-Host ('Stopped PID ' + $pbPid) } else { Write-Host 'PocketBase not running on 8090' }\"",
+    "pb:setup": "tsx scripts/pb-setup.ts",
     "user:create": "tsx scripts/create-user.ts",
     "user:assign-club": "tsx scripts/assign-user-club.ts",
     "deploy:remote": "bash deploy.sh",
@@ -33,14 +36,12 @@
     "@astrojs/sitemap": "^3.7.2",
     "@tailwindcss/vite": "^4.2.2",
     "astro": "^6.1.6",
-    "drizzle-orm": "^0.45.2",
     "nodemailer": "^8.0.5",
-    "pg": "^8.20.0",
+    "pocketbase": "^0.26.2",
     "tailwindcss": "^4.2.2"
   },
   "devDependencies": {
     "@types/nodemailer": "^8.0.0",
-    "drizzle-kit": "^0.31.10",
     "tsx": "^4.21.0"
   }
 }

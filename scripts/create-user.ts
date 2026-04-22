@@ -13,7 +13,7 @@ async function main() {
   }
 
   if (!hasDatabaseUrl()) {
-    console.error('DATABASE_URL tanimli degil.');
+    console.error('POCKETBASE_URL tanimli degil.');
     process.exit(1);
   }
 

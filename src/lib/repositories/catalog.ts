@@ -1,11 +1,11 @@
-import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm';
 import { getDb, hasDatabaseUrl } from '../../db/client';
-import { branslar, ilceler, iller, kulupBranslar, kulupProgramlari, kulupler } from '../../db/schema';
 
 export type SearchFilters = {
   il?: string;
   ilce?: string;
   brans?: string;
+  userLat?: number;
+  userLng?: number;
 };
 
 export type ClubProgramSummary = {
@@ -20,112 +20,128 @@ export type ClubProgramSummary = {
 
 function requireDatabase() {
   if (!hasDatabaseUrl()) {
-    throw new Error('DATABASE_URL is not configured.');
+    throw new Error('POCKETBASE_URL is not configured.');
   }
 }
 
 export async function getAllCities() {
   requireDatabase();
-  const db = getDb();
-  return db.select({ ad: iller.ad, slug: iller.slug }).from(iller).orderBy(asc(iller.ad));
+  const db = await getDb();
+  const rows = await db.collection('iller').getFullList({ sort: 'ad' });
+  return rows.map((row) => ({ ad: row.ad as string, slug: row.slug as string }));
 }
 
 export async function getAllDistricts(ilSlug?: string) {
   requireDatabase();
-  const db = getDb();
+  const db = await getDb();
   if (!ilSlug) {
-    return db
-      .select({ ad: ilceler.ad, slug: ilceler.slug })
-      .from(ilceler)
-      .orderBy(asc(ilceler.ad))
-      .limit(500);
+    const rows = await db.collection('ilceler').getList(1, 500, { sort: 'ad' });
+    return rows.items.map((row) => ({ ad: row.ad as string, slug: row.slug as string }));
   }
-  return db
-    .select({ ad: ilceler.ad, slug: ilceler.slug })
-    .from(ilceler)
-    .innerJoin(iller, eq(ilceler.ilId, iller.id))
-    .where(eq(iller.slug, ilSlug))
-    .orderBy(asc(ilceler.ad));
+  const city = await db.collection('iller').getFirstListItem(`slug = "${ilSlug}"`).catch(() => null);
+  if (!city) return [];
+  const rows = await db.collection('ilceler').getFullList({
+    filter: `ilLegacyId = ${Number(city.legacyId)}`,
+    sort: 'ad',
+  });
+  return rows.map((row) => ({ ad: row.ad as string, slug: row.slug as string }));
 }
 
 export async function getAllBranches() {
   requireDatabase();
-  const db = getDb();
-  return db
-    .select({
-      slug: branslar.slug,
-      isim: branslar.ad,
-      emoji: branslar.emoji,
-      renk: branslar.renk,
-      aciklama: branslar.aciklama,
-    })
-    .from(branslar)
-    .orderBy(asc(branslar.ad));
+  const db = await getDb();
+  const rows = await db.collection('branslar').getFullList({ sort: 'ad' });
+  return rows.map((row) => ({
+    slug: row.slug as string,
+    isim: row.ad as string,
+    emoji: row.emoji as string,
+    renk: row.renk as string,
+    aciklama: row.aciklama as string,
+  }));
 }
 
 export async function searchClubs(filters: SearchFilters) {
   requireDatabase();
 
-  const db = getDb();
-  const clauses = [];
+  const db = await getDb();
+  const [cities, districts, clubs, clubBranches, branches, programs] = await Promise.all([
+    db.collection('iller').getFullList(),
+    db.collection('ilceler').getFullList(),
+    db.collection('kulupler').getFullList({ filter: 'durum = "approved"' }),
+    db.collection('kulup_branslar').getFullList(),
+    db.collection('branslar').getFullList(),
+    db.collection('kulup_programlari').getFullList({ filter: 'aktif = true' }),
+  ]);
 
-  if (filters.il) {
-    clauses.push(eq(iller.slug, filters.il));
-  }
-  if (filters.ilce) {
-    clauses.push(eq(ilceler.slug, filters.ilce));
-  }
-  if (filters.brans) {
-    clauses.push(eq(branslar.slug, filters.brans));
+  const cityById = new Map(cities.map((row) => [Number(row.legacyId), row]));
+  const districtById = new Map(districts.map((row) => [Number(row.legacyId), row]));
+  const branchById = new Map(branches.map((row) => [Number(row.legacyId), row]));
+  const branchLinkByClub = new Map<number, number>();
+  for (const link of clubBranches) {
+    if (!branchLinkByClub.has(Number(link.kulupLegacyId))) {
+      branchLinkByClub.set(Number(link.kulupLegacyId), Number(link.bransLegacyId));
+    }
   }
 
-  const rows = await db
-    .select({
-      id: kulupler.id,
-      ad: kulupler.ad,
-      il: iller.ad,
-      ilSlug: iller.slug,
-      brans: branslar.ad,
-      bransSlug: branslar.slug,
-      ilce: ilceler.ad,
-      adres: kulupler.adres,
-      yasAraligi: kulupler.yasAraligi,
-      fiyat: kulupler.fiyatBilgisi,
-      telefon: kulupler.telefon,
-      aciklama: kulupler.aciklama,
-      oneCikan: kulupler.oneCikan,
-      puan: kulupler.puan,
-      yorumSayisi: kulupler.yorumSayisi,
-      emoji: branslar.emoji,
-      renk: branslar.renk,
+  const hasUserLocation = Number.isFinite(filters.userLat) && Number.isFinite(filters.userLng);
+
+  const rows = clubs
+    .map((club) => {
+      const city = cityById.get(Number(club.ilLegacyId));
+      const district = districtById.get(Number(club.ilceLegacyId));
+      const linkedBranch = branchById.get(branchLinkByClub.get(Number(club.legacyId)) ?? -1);
+      return {
+        id: Number(club.legacyId),
+        ad: club.ad as string,
+        il: (city?.ad as string | undefined) ?? '',
+        ilSlug: (city?.slug as string | undefined) ?? '',
+        brans: (linkedBranch?.ad as string | undefined) ?? '',
+        bransSlug: (linkedBranch?.slug as string | undefined) ?? '',
+        ilce: (district?.ad as string | undefined) ?? '',
+        adres: (club.adres as string) ?? '',
+        yasAraligi: (club.yasAraligi as string) ?? '',
+        fiyat: (club.fiyatBilgisi as string) ?? '',
+        telefon: (club.telefon as string) ?? '',
+        aciklama: (club.aciklama as string) ?? '',
+        oneCikan: Boolean(club.oneCikan),
+        puan: Number(club.puan ?? 0),
+        yorumSayisi: Number(club.yorumSayisi ?? 0),
+        emoji: (linkedBranch?.emoji as string | undefined) ?? '',
+        renk: (linkedBranch?.renk as string | undefined) ?? '',
+        enlem: Number(club.enlem ?? 0),
+        boylam: Number(club.boylam ?? 0),
+      };
     })
-    .from(kulupler)
-    .innerJoin(iller, eq(kulupler.ilId, iller.id))
-    .leftJoin(ilceler, eq(kulupler.ilceId, ilceler.id))
-    .leftJoin(kulupBranslar, eq(kulupBranslar.kulupId, kulupler.id))
-    .leftJoin(branslar, eq(kulupBranslar.bransId, branslar.id))
-    .where(and(eq(kulupler.durum, 'approved'), ...(clauses.length ? clauses : [])))
-    .orderBy(desc(kulupler.oneCikan), desc(kulupler.puan), asc(kulupler.ad));
-
-  const clubIds = rows.map((row) => row.id);
-  const programRows = clubIds.length
-    ? await db
-        .select({
-          kulupId: kulupProgramlari.kulupId,
-          ad: kulupProgramlari.ad,
-          gunSaat: kulupProgramlari.gunSaat,
-          aktif: kulupProgramlari.aktif,
-        })
-        .from(kulupProgramlari)
-        .where(and(eq(kulupProgramlari.aktif, true), inArray(kulupProgramlari.kulupId, clubIds)))
-        .orderBy(asc(kulupProgramlari.kulupId), asc(kulupProgramlari.ad))
-    : [];
+    .filter((club) => (!filters.il ? true : club.ilSlug === filters.il))
+    .filter((club) => (!filters.ilce ? true : slugify(club.ilce) === filters.ilce))
+    .filter((club) => (!filters.brans ? true : club.bransSlug === filters.brans))
+    .sort((a, b) => {
+      if (hasUserLocation) {
+        const aHasDistance = Number.isFinite(a.enlem) && Number.isFinite(a.boylam);
+        const bHasDistance = Number.isFinite(b.enlem) && Number.isFinite(b.boylam);
+        if (aHasDistance && bHasDistance) {
+          const aDistance = haversineKm(filters.userLat!, filters.userLng!, a.enlem, a.boylam);
+          const bDistance = haversineKm(filters.userLat!, filters.userLng!, b.enlem, b.boylam);
+          if (aDistance !== bDistance) return aDistance - bDistance;
+        } else if (aHasDistance !== bHasDistance) {
+          return aHasDistance ? -1 : 1;
+        }
+      }
+      if (a.oneCikan !== b.oneCikan) return a.oneCikan ? -1 : 1;
+      if (a.puan !== b.puan) return b.puan - a.puan;
+      return a.ad.localeCompare(b.ad, 'tr');
+    });
 
   const programsByClub = new Map<number, Array<{ ad: string; gunSaat: string; aktif: boolean }>>();
-  for (const row of programRows) {
-    const current = programsByClub.get(row.kulupId) ?? [];
-    current.push({ ad: row.ad, gunSaat: row.gunSaat, aktif: row.aktif });
-    programsByClub.set(row.kulupId, current);
+  for (const row of programs) {
+    const clubId = Number(row.kulupLegacyId);
+    const current = programsByClub.get(clubId) ?? [];
+    current.push({
+      ad: (row.ad as string) ?? '',
+      gunSaat: (row.gunSaat as string) ?? '',
+      aktif: Boolean(row.aktif),
+    });
+    programsByClub.set(clubId, current);
   }
 
   return rows.map((row) => {
@@ -136,12 +152,37 @@ export async function searchClubs(filters: SearchFilters) {
       : '';
 
     return {
-    ...row,
-    puan: Number(row.puan ?? 0),
+      ...row,
+      puan: Number(row.puan ?? 0),
+      distanceKm:
+        hasUserLocation && row.enlem && row.boylam
+          ? haversineKm(filters.userLat, filters.userLng, row.enlem, row.boylam)
+          : null,
       programSayisi: programs.length,
       programOzet,
     };
   });
+}
+
+function slugify(value: string) {
+  return value
+    .toLocaleLowerCase('tr-TR')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const toRad = (value: number) => (value * Math.PI) / 180;
+  const earthRadiusKm = 6371;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return Math.round(earthRadiusKm * c * 10) / 10;
 }
 
 export async function getBranchBySlug(slug: string) {
@@ -156,20 +197,20 @@ export async function getClubById(id: number) {
 
 export async function getClubProgramsByClubId(clubId: number) {
   requireDatabase();
-  const db = getDb();
-  return db
-    .select({
-      id: kulupProgramlari.id,
-      ad: kulupProgramlari.ad,
-      aciklama: kulupProgramlari.aciklama,
-      gunSaat: kulupProgramlari.gunSaat,
-      seviye: kulupProgramlari.seviye,
-      ucretBilgisi: kulupProgramlari.ucretBilgisi,
-      aktif: kulupProgramlari.aktif,
-    })
-    .from(kulupProgramlari)
-    .where(and(eq(kulupProgramlari.kulupId, clubId), eq(kulupProgramlari.aktif, true)))
-    .orderBy(asc(kulupProgramlari.ad));
+  const db = await getDb();
+  const rows = await db.collection('kulup_programlari').getFullList({
+    filter: `kulupLegacyId = ${clubId} && aktif = true`,
+    sort: 'ad',
+  });
+  return rows.map((row) => ({
+    id: Number(row.legacyId),
+    ad: row.ad as string,
+    aciklama: row.aciklama as string,
+    gunSaat: row.gunSaat as string,
+    seviye: row.seviye as string,
+    ucretBilgisi: row.ucretBilgisi as string,
+    aktif: Boolean(row.aktif),
+  }));
 }
 
 export async function getCityBranchLanding(citySlug: string, branchSlug: string) {
@@ -192,16 +233,17 @@ export async function getDistrictBranchLanding(citySlug: string, districtSlug: s
 
 export async function getAdminClubSummary() {
   requireDatabase();
-  const db = getDb();
-  const all = await db.select({ value: sql<number>`count(*)` }).from(kulupler);
-  const pending = await db.select({ value: sql<number>`count(*)` }).from(kulupler).where(eq(kulupler.durum, 'pending'));
-  const approved = await db.select({ value: sql<number>`count(*)` }).from(kulupler).where(eq(kulupler.durum, 'approved'));
-  const rejected = await db.select({ value: sql<number>`count(*)` }).from(kulupler).where(eq(kulupler.durum, 'rejected'));
+  const db = await getDb();
+  const clubs = await db.collection('kulupler').getFullList();
+  const all = clubs.length;
+  const pending = clubs.filter((item) => item.durum === 'pending').length;
+  const approved = clubs.filter((item) => item.durum === 'approved').length;
+  const rejected = clubs.filter((item) => item.durum === 'rejected').length;
   return {
-    total: Number(all[0]?.value ?? 0),
-    pending: Number(pending[0]?.value ?? 0),
-    approved: Number(approved[0]?.value ?? 0),
-    rejected: Number(rejected[0]?.value ?? 0),
+    total: all,
+    pending,
+    approved,
+    rejected,
   };
 }
 

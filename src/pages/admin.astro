@@ -7,19 +7,26 @@ const summary = await getAdminClubSummary();
 
 <BaseLayout
   title="Admin Paneli"
-  description="Kulup basvurulari ve uyelik durumlarini yonetin."
+  description="Kulüp başvurularını ve üyelik durumlarını yönetin."
   noIndex={true}
 >
   <section class="section admin-page">
     <div class="container">
-      <h1 class="admin-title">Admin Paneli</h1>
-      <p class="admin-desc">
-        Bu ekranda basvuru listesini, detayini, durum guncellemesini ve belge kayitlarini yonetebilirsiniz.
-      </p>
+      <div class="admin-head">
+        <div>
+          <h1 class="admin-title">Admin Paneli</h1>
+          <p class="admin-desc">
+            Bu ekranda basvuru listesini, detayini, durum guncellemesini ve belge kayitlarini yonetebilirsiniz.
+          </p>
+        </div>
+        <form method="post" action="/api/panel/logout" class="admin-logout-form">
+          <button type="submit" class="admin-logout-btn">Çıkış Yap</button>
+        </form>
+      </div>
 
       <div class="admin-grid">
         <article class="admin-card">
-          <h2>Toplam Kulup</h2>
+          <h2>Toplam Kulüp</h2>
           <p>{summary.total}</p>
         </article>
         <article class="admin-card">
@@ -27,7 +34,7 @@ const summary = await getAdminClubSummary();
           <p>{summary.pending}</p>
         </article>
         <article class="admin-card">
-          <h2>Onayli</h2>
+          <h2>Onaylı</h2>
           <p>{summary.approved}</p>
         </article>
         <article class="admin-card">
@@ -39,33 +46,31 @@ const summary = await getAdminClubSummary();
       <section class="admin-shell">
         <div class="admin-toolbar">
           <label>
-            Admin Token
-            <input id="admin-token" type="password" placeholder="ADMIN_TOKEN" />
-          </label>
-          <label>
             Ara
-            <input id="app-search" type="text" placeholder="Kulup adi, il, ilce..." />
+            <input id="app-search" type="text" placeholder="Kulüp adı, il, ilçe..." />
           </label>
           <label>
             Durum
             <select id="status-filter">
-              <option value="all">Tum durumlar</option>
+              <option value="all">Tüm durumlar</option>
               <option value="pending">Bekliyor</option>
-              <option value="approved">Onayli</option>
+              <option value="approved">Onaylı</option>
               <option value="rejected">Reddedildi</option>
             </select>
           </label>
-          <button id="load-apps" type="button">Basvurulari Yukle</button>
+          <button id="load-apps" type="button">Başvuruları Yükle</button>
         </div>
 
         <div class="admin-columns">
           <aside class="admin-list">
-            <h2>Basvuru Listesi</h2>
+            <h2>Başvuru Listesi</h2>
+            <p class="section-help">Solda tum basvurulari gorursunuz. Bir kayda tikladiginizda sag tarafta ayrintilar acilir.</p>
             <ul id="applications-list"></ul>
           </aside>
 
           <article class="admin-detail">
-            <h2>Basvuru Detayi</h2>
+            <h2>Başvuru Detayı</h2>
+            <p class="section-help">Secilen basvurunun tum bilgileri, belgeleri ve yonetim islemleri bu alanda yer alir.</p>
             <div id="application-detail" class="detail-empty">
               Sag listeden bir basvuru secin.
             </div>
@@ -76,7 +81,6 @@ const summary = await getAdminClubSummary();
   </section>
 
   <script is:inline>
-    const tokenInput = document.getElementById('admin-token');
     const searchInput = document.getElementById('app-search');
     const statusFilter = document.getElementById('status-filter');
     const loadButton = document.getElementById('load-apps');
@@ -86,23 +90,12 @@ const summary = await getAdminClubSummary();
     let cachedApps = [];
     let selectedAppId = 0;
 
-    function getToken() {
-      return tokenInput?.value?.trim() ?? '';
-    }
-
     function adminDownloadUrl(documentId) {
-      const token = getToken();
-      if (!token) return '#';
-      return `/api/admin/application-document-download?documentId=${encodeURIComponent(documentId)}&token=${encodeURIComponent(token)}`;
+      return `/api/admin/application-document-download?documentId=${encodeURIComponent(documentId)}`;
     }
 
     async function apiGet(path) {
-      const token = getToken();
-      if (!token) {
-        throw new Error('Admin token gerekli.');
-      }
-      const separator = path.includes('?') ? '&' : '?';
-      const response = await fetch(`${path}${separator}token=${encodeURIComponent(token)}`);
+      const response = await fetch(path);
       if (!response.ok) {
         const payload = await response.json().catch(() => ({}));
         throw new Error(payload.error || `Request failed (${response.status})`);
@@ -112,11 +105,7 @@ const summary = await getAdminClubSummary();
     }
 
     async function apiPost(path, body) {
-      const token = getToken();
-      if (!token) {
-        throw new Error('Admin token gerekli.');
-      }
-      const response = await fetch(`${path}?token=${encodeURIComponent(token)}`, {
+      const response = await fetch(path, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -142,17 +131,41 @@ const summary = await getAdminClubSummary();
     function statusBadge(status) {
       const map = {
         pending: 'Bekliyor',
-        approved: 'Onayli',
+        approved: 'Onaylı',
         rejected: 'Reddedildi',
       };
       return `<span class="status status-${status}">${map[status] || status}</span>`;
+    }
+
+    function statusActionLabel(currentStatus, targetStatus) {
+      if (targetStatus === 'approved') return currentStatus === 'approved' ? 'Onaylı' : 'Onayla';
+      if (targetStatus === 'pending') return 'Onayi Geri Cek';
+      return 'Reddet';
+    }
+
+    function generateTemporaryPassword(length = 8) {
+      const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+      const digits = '23456789';
+      const allChars = letters + digits;
+
+      let password = letters[Math.floor(Math.random() * letters.length)];
+      password += digits[Math.floor(Math.random() * digits.length)];
+
+      for (let i = 2; i < length; i += 1) {
+        password += allChars[Math.floor(Math.random() * allChars.length)];
+      }
+
+      return password
+        .split('')
+        .sort(() => Math.random() - 0.5)
+        .join('');
     }
 
     function renderList() {
       if (!listEl) return;
       const filteredApps = getFilteredApps();
       if (!filteredApps.length) {
-        listEl.innerHTML = '<li class="empty">Kayit bulunamadi.</li>';
+        listEl.innerHTML = '<li class="empty">Kayıt bulunamadı.</li>';
         return;
       }
       listEl.innerHTML = filteredApps
@@ -160,9 +173,9 @@ const summary = await getAdminClubSummary();
           const activeClass = item.id === selectedAppId ? 'is-active' : '';
           return `<li>
             <button class="app-item ${activeClass}" data-id="${item.id}">
-              <strong>${item.ad}</strong>
-              <small>${item.il || '-'} / ${item.ilce || '-'}</small>
-              <small>${statusBadge(item.durum)}</small>
+              <span class="app-item-title">${item.ad}</span>
+              <span class="app-item-meta">${item.il || '-'} / ${item.ilce || '-'}</span>
+              <span class="app-item-status">${statusBadge(item.durum)}</span>
             </button>
           </li>`;
         })
@@ -183,7 +196,7 @@ const summary = await getAdminClubSummary();
 
     function renderDetailLoading() {
       if (!detailEl) return;
-      detailEl.innerHTML = '<p>Detay yukleniyor...</p>';
+      detailEl.innerHTML = '<p>Detay yükleniyor...</p>';
     }
 
     function renderDetailError(message) {
@@ -219,83 +232,102 @@ const summary = await getAdminClubSummary();
         const docsHtml = await loadDocuments(appId);
         if (!detailEl) return;
         detailEl.innerHTML = `
-          <div class="detail-header">
-            <h3>${app.ad}</h3>
+          <div class="detail-hero">
+            <div>
+              <p class="detail-kicker">Başvuru dosyası</p>
+              <h3>${app.ad}</h3>
+            </div>
             ${statusBadge(app.durum)}
           </div>
-          <p><strong>Il / Ilce:</strong> ${app.il || '-'} / ${app.ilce || '-'}</p>
-          <p><strong>Telefon:</strong> ${app.telefon || '-'}</p>
-          <p><strong>E-posta:</strong> ${app.email || '-'}</p>
-          <p><strong>Adres:</strong> ${app.adres || '-'}</p>
-          <p><strong>Olusturma:</strong> ${formatDate(app.createdAt)}</p>
-          <p><strong>Guncelleme:</strong> ${formatDate(app.updatedAt)}</p>
-          <p><strong>Aciklama:</strong> ${app.aciklama || '-'}</p>
-          <label class="admin-note">
-            <strong>Sorumlu Admin E-posta:</strong>
-            <input id="assigned-admin-email" placeholder="admin@spornerede.net" value="${app.sorumluAdminEmail || ''}" />
-          </label>
-          <label class="admin-note">
-            <strong>Admin Notu:</strong>
-            <textarea id="admin-note" rows="4" placeholder="Takip notu, kontrol adimi, red gerekcesi vb.">${app.adminNotu || ''}</textarea>
-          </label>
-          <button id="save-note-btn" type="button">Notu Kaydet</button>
 
-          <div class="actions">
-            <button data-status="approved">Onayla</button>
-            <button data-status="rejected">Reddet</button>
-            <button data-status="pending">Beklemeye Al</button>
-          </div>
+          <section class="qa-section qa-section-red">
+            <h4>Kulüp / Kurs Bilgileri</h4>
+            <p class="section-help">Başvuru yapan kurumun temel kimlik bilgileri burada yer alır. Adres ve açıklama ile kaydın doğruluğunu kontrol edebilirsiniz.</p>
+            <div class="qa-list">
+              <article class="qa-item"><p class="qa-question">Kulüp / Kurs Adı</p><p class="qa-answer">${app.ad || '-'}</p></article>
+              <article class="qa-item"><p class="qa-question">İl / İlçe</p><p class="qa-answer">${app.il || '-'} / ${app.ilce || '-'}</p></article>
+              <article class="qa-item"><p class="qa-question">Tam Adres</p><p class="qa-answer">${app.adres || '-'}</p></article>
+              <article class="qa-item"><p class="qa-question">Kulüp Açıklaması</p><p class="qa-answer">${app.aciklama || '-'}</p></article>
+            </div>
+          </section>
 
-          <h4>Belgeler</h4>
-          ${docsHtml}
+          <section class="qa-section qa-section-blue">
+            <h4>İletişim Bilgileri</h4>
+            <p class="section-help">Kulüp yetkilisine ulaşmak için kullanılan resmi iletişim kanalları burada bulunur.</p>
+            <div class="qa-list qa-list-two">
+              <article class="qa-item"><p class="qa-question">Telefon</p><p class="qa-answer">${app.telefon || '-'}</p></article>
+              <article class="qa-item"><p class="qa-question">E-posta</p><p class="qa-answer">${app.email || '-'}</p></article>
+            </div>
+          </section>
 
-          <div class="doc-add">
-            <h4>Belge Metaverisi Ekle</h4>
-            <label>Tur
-              <select id="doc-kind">
-                <option value="dekont">dekont</option>
-                <option value="kimlik">kimlik</option>
-                <option value="sozlesme">sozlesme</option>
-                <option value="diger">diger</option>
-              </select>
+          <section class="qa-section qa-section-amber">
+            <h4>Durum ve İnceleme Notları</h4>
+            <p class="section-help">Başvurunun ne zaman açıldığı, son durumu ve inceleme sürecinde bırakılan yönetsel notlar bu bölümde tutulur.</p>
+            <div class="qa-list qa-list-three">
+              <article class="qa-item"><p class="qa-question">Oluşturma</p><p class="qa-answer">${formatDate(app.createdAt)}</p></article>
+              <article class="qa-item"><p class="qa-question">Güncelleme</p><p class="qa-answer">${formatDate(app.updatedAt)}</p></article>
+              <article class="qa-item"><p class="qa-question">Mevcut Durum</p><p class="qa-answer">${statusBadge(app.durum)}</p></article>
+            </div>
+            <label class="admin-note">
+              <strong>Sorumlu Admin E-posta</strong>
+              <p class="field-help">Bu başvuruyu takip eden admin hesabının e-posta adresi. Ekip içi sorumluluk takibi için kullanılır.</p>
+              <input id="assigned-admin-email" placeholder="admin@spornerede.net" value="${app.sorumluAdminEmail || ''}" />
             </label>
-            <label>Storage Key
-              <input id="doc-storage-key" placeholder="applications/${appId}/ornek.pdf" />
+            <label class="admin-note">
+              <strong>Admin Notu</strong>
+              <p class="field-help">İnceleme adımları, eksik evrak bilgisi veya red/onay gerekçesini kısa ve net biçimde buraya yazın.</p>
+              <textarea id="admin-note" rows="4" placeholder="Takip notu, kontrol adimi, red gerekcesi vb.">${app.adminNotu || ''}</textarea>
             </label>
-            <label>Original Filename
-              <input id="doc-original-filename" placeholder="ornek.pdf" />
-            </label>
-            <label>Mime Type
-              <input id="doc-mime-type" value="application/pdf" />
-            </label>
-            <label>Byte Size
-              <input id="doc-byte-size" type="number" value="0" />
-            </label>
-            <button id="add-doc-btn" type="button">Belge Kaydi Ekle</button>
-          </div>
+            <button id="save-note-btn" type="button">Notu Kaydet</button>
+          </section>
 
-          <div class="account-provision">
-            <h4>Kulup Kullanici Hesabi (Onboarding)</h4>
-            <label>E-posta
-              <input id="provision-email" type="email" placeholder="kulup@example.com" value="${app.email || ''}" />
-            </label>
-            <label>Gecici Sifre
-              <input id="provision-password" type="text" placeholder="En az 8 karakter" />
-            </label>
-            <label>Uyelik Rolu
-              <select id="provision-role">
-                <option value="owner">owner</option>
-                <option value="staff">staff</option>
-              </select>
-            </label>
-            <button id="provision-user-btn" type="button">Kullanici Olustur/Guncelle</button>
-            <p class="hint">Bu islem mevcut kullanici varsa sifresini gunceller ve kulube baglar.</p>
-          </div>
+          <section class="qa-section qa-section-slate">
+            <h4>Belgeler</h4>
+            <p class="section-help">Sisteme kayıtlı tüm belge bilgileri ve indirme bağlantıları bu alanda listelenir.</p>
+            ${docsHtml}
+          </section>
 
-          <div class="log-timeline-wrap">
+          <section class="qa-section qa-section-slate">
+            <h4>Belge Yükle (PDF Dekont)</h4>
+            <p class="section-help">PDF dekont dosyasını seçin, sistem dosyayı otomatik kaydedip belge kaydını kendisi oluşturur.</p>
+            <div class="form-grid">
+              <label>Dekont Dosyası (PDF)
+                <input id="doc-file" type="file" accept=".pdf,application/pdf" />
+              </label>
+            </div>
+            <button id="upload-doc-btn" type="button">PDF Dekontu Yükle</button>
+          </section>
+
+          <section class="qa-section qa-section-green">
+            <h4>Sorumlu Kişi Hesabı</h4>
+            <p class="section-help">Kulüp adına panele giriş yapacak tek sorumlu kişi hesabı bu alandan oluşturulur veya güncellenir.</p>
+            <div class="form-grid">
+              <label>E-posta
+                <input id="provision-email" type="email" placeholder="kulup@example.com" value="${app.email || ''}" />
+              </label>
+              <label>Geçici Şifre
+                <input id="provision-password" type="text" value="${generateTemporaryPassword()}" placeholder="En az 8 karakter" />
+              </label>
+            </div>
+            <button id="provision-user-btn" type="button">Sorumlu Kişiyi Oluştur/Güncelle</button>
+            <p class="hint">Bu işlem mevcut kullanıcı varsa şifresini günceller ve kulübe bağlar.</p>
+          </section>
+
+          <section class="qa-section qa-section-slate">
             <h4>İşlem Geçmişi</h4>
-            <div id="admin-log-timeline"><p class="hint">Yukleniyor...</p></div>
-          </div>
+            <p class="section-help">Bu başvuru üzerinde yapılan tüm işlemler, kim tarafından ve ne zaman yapıldığıyla birlikte kayıt altındadır.</p>
+            <div id="admin-log-timeline"><p class="hint">Yükleniyor...</p></div>
+          </section>
+
+          <section class="qa-section qa-section-action">
+            <h4>Karar</h4>
+            <p class="section-help">Başvuruyu onaylama, beklemeye alma veya reddetme işlemini buradan yapabilirsiniz.</p>
+            <div class="actions">
+              <button class="action-approve" data-status="approved">${statusActionLabel(app.durum, 'approved')}</button>
+              <button class="action-pending" data-status="pending">${statusActionLabel(app.durum, 'pending')}</button>
+              <button class="action-reject" data-status="rejected">${statusActionLabel(app.durum, 'rejected')}</button>
+            </div>
+          </section>
         `;
 
         const renderLogTimeline = async () => {
@@ -363,28 +395,34 @@ const summary = await getAdminClubSummary();
           }
         });
 
-        const addDocBtn = document.getElementById('add-doc-btn');
-        addDocBtn?.addEventListener('click', async () => {
-          const kind = document.getElementById('doc-kind')?.value || 'diger';
-          const storageKey = document.getElementById('doc-storage-key')?.value?.trim() || '';
-          const originalFilename = document.getElementById('doc-original-filename')?.value?.trim() || '';
-          const mimeType = document.getElementById('doc-mime-type')?.value?.trim() || 'application/octet-stream';
-          const byteSize = Number(document.getElementById('doc-byte-size')?.value || '0');
-
-          if (!storageKey || !originalFilename) {
-            alert('Storage key ve original filename zorunlu.');
+        const uploadDocBtn = document.getElementById('upload-doc-btn');
+        uploadDocBtn?.addEventListener('click', async () => {
+          const fileInput = document.getElementById('doc-file');
+          if (!(fileInput instanceof HTMLInputElement) || !fileInput.files?.length) {
+            alert('Lütfen bir PDF dosyası seçin.');
+            return;
+          }
+          const file = fileInput.files[0];
+          const looksLikePdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+          if (!looksLikePdf) {
+            alert('Yalnızca PDF dekont yükleyebilirsiniz.');
             return;
           }
 
           try {
-            await apiPost('/api/admin/application-documents', {
-              applicationId: appId,
-              kind,
-              storageKey,
-              originalFilename,
-              mimeType,
-              byteSize,
+            const formData = new FormData();
+            formData.append('applicationId', String(appId));
+            formData.append('document', file);
+
+            const response = await fetch('/api/admin/application-documents-upload', {
+              method: 'POST',
+              body: formData,
             });
+            if (!response.ok) {
+              const payload = await response.json().catch(() => ({}));
+              throw new Error(payload.error || `Request failed (${response.status})`);
+            }
+
             await renderDetail(appId);
           } catch (error) {
             renderDetailError(error.message);
@@ -395,9 +433,9 @@ const summary = await getAdminClubSummary();
         provisionBtn?.addEventListener('click', async () => {
           const email = document.getElementById('provision-email')?.value?.trim() || '';
           const password = document.getElementById('provision-password')?.value || '';
-          const membershipRole = document.getElementById('provision-role')?.value || 'owner';
+          const membershipRole = 'owner';
           if (!email || !password) {
-            alert('E-posta ve gecici sifre zorunlu.');
+            alert('E-posta ve geçici şifre zorunlu.');
             return;
           }
           try {
@@ -419,7 +457,7 @@ const summary = await getAdminClubSummary();
 
     async function loadApplications() {
       if (!listEl) return;
-      listEl.innerHTML = '<li class="empty">Yukleniyor...</li>';
+      listEl.innerHTML = '<li class="empty">Yükleniyor...</li>';
       try {
         const rows = await apiGet('/api/admin/applications');
         cachedApps = rows || [];
@@ -433,7 +471,7 @@ const summary = await getAdminClubSummary();
       } catch (error) {
         listEl.innerHTML = `<li class="empty error">${error.message}</li>`;
         if (detailEl) {
-          detailEl.innerHTML = '<p class="error">Basvuru listesi yuklenemedi.</p>';
+          detailEl.innerHTML = '<p class="error">Başvuru listesi yüklenemedi.</p>';
         }
       }
     }
@@ -459,243 +497,204 @@ const summary = await getAdminClubSummary();
     statusFilter?.addEventListener('change', () => {
       renderList();
     });
+
+    loadApplications().catch((error) => {
+      if (listEl) {
+        listEl.innerHTML = `<li class="empty error">${error?.message || 'Başvurular yüklenemedi.'}</li>`;
+      }
+    });
   </script>
 </BaseLayout>
 
-<style>
-  .admin-page { background: #F8F9FA; min-height: 60vh; }
-  .admin-title { font-size: clamp(1.8rem, 3vw, 2.4rem); font-weight: 900; color: #212529; }
-  .admin-desc { margin-top: .5rem; color: #6C757D; max-width: 800px; line-height: 1.6; }
-  .admin-grid { margin-top: 1.25rem; display: grid; grid-template-columns: 1fr; gap: 1rem; }
+<style is:global>
+  .admin-page { background: #f3f5f8; min-height: 60vh; }
+  .admin-title { font-size: clamp(1.85rem, 3vw, 2.45rem); font-weight: 900; color: #1f2933; }
+  .admin-desc { margin-top: .45rem; color: #607081; max-width: 840px; line-height: 1.65; }
+  .admin-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+  .admin-logout-form { margin-left: auto; }
+  .admin-logout-btn {
+    border: 1px solid #d5dde8; border-radius: .7rem; background: #fff; color: #4b5a6a;
+    font-weight: 700; padding: .56rem .9rem; cursor: pointer;
+  }
+  .admin-logout-btn:hover { border-color: #e30a17; color: #e30a17; background: #fff5f5; }
+
+  .admin-grid { margin-top: 1.2rem; display: grid; grid-template-columns: 1fr; gap: .8rem; }
   @media (min-width: 900px) { .admin-grid { grid-template-columns: repeat(4, 1fr); } }
-  .admin-card { background: #fff; border: 1px solid #E9ECEF; border-radius: .9rem; padding: 1rem; }
-  .admin-card h2 { color: #6C757D; font-size: .85rem; font-weight: 700; text-transform: uppercase; }
-  .admin-card p { margin-top: .4rem; font-size: 1.6rem; font-weight: 900; color: #E30A17; }
-  .admin-shell { margin-top: 1.25rem; }
+  .admin-card { background: #fff; border: 1px solid #e5eaf1; border-radius: .9rem; padding: .95rem 1rem; }
+  .admin-card h2 { color: #728196; font-size: .8rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; margin: 0; }
+  .admin-card p { margin-top: .35rem; font-size: 1.55rem; font-weight: 900; color: #e30a17; }
+
+  .admin-shell { margin-top: 1.2rem; background: #fff; border: 1px solid #e5eaf1; border-radius: 1rem; padding: 1rem; }
   .admin-toolbar { display: flex; flex-wrap: wrap; gap: .75rem; align-items: end; }
-  .admin-toolbar label { display: grid; gap: .35rem; font-weight: 600; color: #495057; }
-  .admin-toolbar input {
-    min-width: 280px;
-    border: 1px solid #dee2e6;
-    border-radius: .6rem;
-    padding: .55rem .65rem;
+  .admin-toolbar label { display: grid; gap: .35rem; font-weight: 700; color: #526173; font-size: .84rem; }
+  .admin-toolbar input, .admin-toolbar select {
+    min-width: 180px; border: 1px solid #d9e1eb; border-radius: .65rem; padding: .58rem .65rem; background: #fff;
   }
-  .admin-toolbar select {
-    min-width: 180px;
-    border: 1px solid #dee2e6;
-    border-radius: .6rem;
-    padding: .55rem .65rem;
-    background: #fff;
-  }
+  .admin-toolbar input { min-width: 260px; }
   .admin-toolbar button {
-    border: 0;
-    border-radius: .6rem;
-    padding: .58rem .9rem;
-    background: #E30A17;
-    color: #fff;
-    font-weight: 700;
-    cursor: pointer;
+    border: 0; border-radius: .65rem; padding: .62rem .95rem; background: #e30a17; color: #fff; font-weight: 800; cursor: pointer;
   }
   .admin-toolbar button:hover { background: #b5080f; }
-  .admin-columns {
-    margin-top: 1rem;
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-  @media (min-width: 1000px) {
-    .admin-columns {
-      grid-template-columns: minmax(270px, 340px) 1fr;
-      align-items: start;
-    }
-  }
-  .admin-list, .admin-detail {
-    background: #fff;
-    border: 1px solid #e9ecef;
-    border-radius: .9rem;
-    padding: .9rem;
-  }
-  .admin-list h2, .admin-detail h2 {
-    margin: 0 0 .75rem;
-    font-size: 1rem;
-    font-weight: 800;
-    color: #212529;
-  }
-  .admin-list ul {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: grid;
-    gap: .5rem;
-  }
+
+  .admin-columns { margin-top: 1rem; display: grid; grid-template-columns: 1fr; gap: 1rem; }
+  @media (min-width: 1100px) { .admin-columns { grid-template-columns: minmax(290px, 350px) 1fr; align-items: start; } }
+
+  .admin-list, .admin-detail { background: #fbfcfe; border: 1px solid #e3e9f2; border-radius: .95rem; padding: 1rem; }
+  .admin-list h2, .admin-detail h2 { margin: 0 0 .75rem; font-size: 1rem; font-weight: 900; color: #1f2933; }
+  .admin-list ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .55rem; max-height: 72vh; overflow-y: auto; }
+
   .app-item {
-    width: 100%;
-    text-align: left;
-    border: 1px solid #dee2e6;
-    border-radius: .7rem;
-    background: #fff;
-    padding: .6rem .65rem;
-    display: grid;
-    gap: .25rem;
-    cursor: pointer;
+    width: 100%; text-align: left; border: 1px solid #dbe2ed; border-radius: .75rem; background: #fff;
+    padding: .72rem; display: grid; gap: .35rem; cursor: pointer; transition: .15s ease;
   }
-  .app-item.is-active {
-    border-color: #E30A17;
-    box-shadow: 0 0 0 1px #E30A17 inset;
-  }
-  .app-item strong { color: #212529; }
-  .app-item small { color: #6c757d; }
-  .status {
-    display: inline-block;
-    border-radius: 999px;
-    padding: .2rem .5rem;
-    font-size: .75rem;
-    font-weight: 700;
-  }
+  .app-item:hover { border-color: #c9d4e3; transform: translateY(-1px); }
+  .app-item.is-active { border-color: #e30a17; box-shadow: 0 0 0 2px rgba(227, 10, 23, .14); background: #fff7f7; }
+  .app-item-title { font-weight: 800; color: #1f2933; line-height: 1.28; display: block; }
+  .app-item-meta { font-size: .82rem; color: #5d6d81; display: block; }
+  .app-item-status { font-size: .8rem; display: block; }
+
+  .status { display: inline-block; border-radius: 999px; padding: .2rem .55rem; font-size: .74rem; font-weight: 800; width: fit-content; }
   .status-pending { background: #fff3bf; color: #8d6b00; }
   .status-approved { background: #d3f9d8; color: #2b8a3e; }
   .status-rejected { background: #ffe3e3; color: #c92a2a; }
-  .detail-empty { color: #6c757d; }
-  .detail-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: .5rem;
+
+  .detail-empty { color: #6c7a8c; }
+  .detail-hero {
+    display: flex; justify-content: space-between; align-items: flex-start; gap: .8rem; margin-bottom: 1rem;
+    padding-bottom: .85rem; border-bottom: 1px solid #e8edf5;
   }
-  .actions {
-    margin: .85rem 0;
-    display: flex;
-    flex-wrap: wrap;
-    gap: .5rem;
+  .detail-kicker { margin: 0; font-size: .76rem; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: #748396; }
+  .admin-detail h3 { margin: .2rem 0 0; font-size: 1.2rem; color: #1f2933; font-weight: 900; }
+  .detail-sub { margin: .3rem 0 0; color: #67788d; font-size: .9rem; }
+
+  .qa-section {
+    border: 1px solid #e2e8f1;
+    border-radius: .8rem;
+    background: #fff;
+    padding: .85rem .9rem;
+    margin-top: .8rem;
   }
-  .actions button, .doc-add button {
-    border: 0;
-    border-radius: .55rem;
-    padding: .46rem .75rem;
-    background: #212529;
-    color: #fff;
-    cursor: pointer;
-    font-weight: 600;
+  .qa-section h4 {
+    margin: 0 0 .65rem; font-size: .8rem; letter-spacing: .045em; text-transform: uppercase; color: #657488; font-weight: 900;
   }
-  .actions button:hover, .doc-add button:hover { background: #000; }
-  .docs {
-    margin: .5rem 0 0;
-    padding-left: 1rem;
-    display: grid;
-    gap: .45rem;
-  }
-  .docs code {
-    font-size: .75rem;
-    color: #495057;
-  }
-  .doc-download-link {
-    display: inline-block;
-    margin-top: .28rem;
-    font-size: .82rem;
-    font-weight: 700;
-    color: #1864ab;
-    text-decoration: underline;
-    text-underline-offset: 2px;
-  }
-  .doc-download-link:hover {
-    color: #0b4f87;
-  }
-  .doc-add {
-    margin-top: 1rem;
-    border-top: 1px solid #e9ecef;
-    padding-top: .8rem;
-    display: grid;
-    gap: .45rem;
-  }
-  .doc-add label {
-    display: grid;
-    gap: .25rem;
-    color: #495057;
-    font-size: .9rem;
-  }
-  .doc-add input, .doc-add select {
-    border: 1px solid #dee2e6;
-    border-radius: .5rem;
-    padding: .46rem .55rem;
-  }
-  .account-provision {
-    margin-top: 1rem;
-    border-top: 1px solid #e9ecef;
-    padding-top: .85rem;
-    display: grid;
-    gap: .45rem;
-  }
-  .account-provision label {
-    display: grid;
-    gap: .25rem;
-    color: #495057;
-    font-size: .9rem;
-  }
-  .account-provision input, .account-provision select {
-    border: 1px solid #dee2e6;
-    border-radius: .5rem;
-    padding: .46rem .55rem;
-  }
-  .account-provision button {
-    border: 0;
-    border-radius: .55rem;
-    padding: .48rem .75rem;
-    background: #1864ab;
-    color: #fff;
-    cursor: pointer;
-    font-weight: 700;
-    width: fit-content;
-  }
-  .account-provision button:hover { background: #0b4f87; }
-  .hint { color: #6c757d; }
-  .empty { color: #6c757d; font-size: .92rem; }
-  .error { color: #c92a2a; }
-  .admin-note {
-    margin-top: .5rem;
-    display: grid;
-    gap: .35rem;
-  }
-  .admin-note textarea {
-    border: 1px solid #dee2e6;
-    border-radius: .6rem;
-    padding: .55rem .65rem;
-    resize: vertical;
-  }
-  .admin-note input {
-    border: 1px solid #dee2e6;
-    border-radius: .6rem;
-    padding: .55rem .65rem;
-  }
-  #save-note-btn {
-    margin-top: .45rem;
-    border: 0;
-    border-radius: .55rem;
-    padding: .45rem .75rem;
-    background: #495057;
-    color: #fff;
-    cursor: pointer;
-    font-weight: 600;
-  }
-  #save-note-btn:hover { background: #343a40; }
-  .log-timeline-wrap {
-    margin-top: 1rem;
-    border-top: 1px solid #e9ecef;
-    padding-top: .8rem;
-  }
-  .log-list {
-    margin: .45rem 0 0;
-    padding-left: 1rem;
-    display: grid;
-    gap: .6rem;
-  }
-  .log-list li {
-    color: #495057;
-    font-size: .88rem;
+  .section-help {
+    margin: 0 0 .7rem;
+    color: #5f6f82;
+    font-size: .86rem;
     line-height: 1.5;
   }
-  .log-list small {
-    color: #6c757d;
-    font-size: .78rem;
+  .qa-section-red h4 { color: #c92a2a; }
+  .qa-section-blue h4 { color: #1864ab; }
+  .qa-section-amber h4 { color: #9c6b00; }
+  .qa-section-green h4 { color: #2b8a3e; }
+  .qa-section-slate h4 { color: #475569; }
+  .qa-section-action { border-color: #ffd5d8; background: #fff7f7; }
+  .qa-section-action h4 { color: #b5080f; }
+
+  .qa-list {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: .55rem;
+    margin: .1rem 0 .45rem;
   }
+  .qa-list-two,
+  .qa-list-three {
+    grid-template-columns: 1fr;
+  }
+  @media (min-width: 900px) {
+    .qa-list-two { grid-template-columns: 1fr 1fr; }
+    .qa-list-three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+  .qa-item {
+    border: 1px solid #e9edf4;
+    border-radius: .65rem;
+    background: #fcfdff;
+    padding: .55rem .62rem;
+  }
+  .qa-question {
+    margin: 0;
+    font-size: .76rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: #728196;
+  }
+  .qa-answer {
+    margin: .2rem 0 0;
+    font-size: .92rem;
+    color: #1f2937;
+    line-height: 1.45;
+    white-space: pre-wrap;
+  }
+
+  .section-content { margin: 0; color: #334155; line-height: 1.58; white-space: pre-wrap; }
+
+  .kv-grid { display: grid; grid-template-columns: 1fr; gap: .45rem; }
+  .kv-grid p {
+    margin: 0; display: flex; justify-content: space-between; align-items: baseline; gap: .9rem;
+    padding-bottom: .35rem; border-bottom: 1px dashed #edf1f6;
+  }
+  .kv-grid p:last-child { border-bottom: none; padding-bottom: 0; }
+  .kv-grid strong { color: #4b5d71; font-size: .84rem; }
+  .kv-grid span { color: #1f2937; font-size: .9rem; text-align: right; }
+
+  .admin-note {
+    display: grid; gap: .35rem; background: #fcfdff; border: 1px solid #e3e8f1; border-radius: .75rem;
+    padding: .75rem .8rem; margin-top: .5rem;
+  }
+  .admin-note strong { color: #334155; font-size: .88rem; }
+  .field-help {
+    margin: -.1rem 0 .1rem;
+    color: #6b7b8e;
+    font-size: .8rem;
+    line-height: 1.45;
+  }
+  .admin-note input, .admin-note textarea {
+    border: 1px solid #d7dee9; border-radius: .6rem; padding: .56rem .64rem; width: 100%;
+  }
+  .admin-note textarea { resize: vertical; }
+
+  #save-note-btn {
+    margin-top: .55rem; border: 0; border-radius: .58rem; padding: .52rem .82rem; background: #475569; color: #fff;
+    font-weight: 700; cursor: pointer;
+  }
+  #save-note-btn:hover { background: #334155; }
+
+  .actions { margin: .85rem 0 0; display: grid; grid-template-columns: 1fr; gap: .5rem; }
+  @media (min-width: 760px) { .actions { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  .actions button {
+    border: 0; border-radius: .58rem; padding: .6rem .85rem; color: #fff; cursor: pointer; font-weight: 800;
+  }
+  .actions .action-approve { background: #2b8a3e; }
+  .actions .action-approve:hover { background: #237032; }
+  .actions .action-pending { background: #0b7285; }
+  .actions .action-pending:hover { background: #095c6b; }
+  .actions .action-reject { background: #c92a2a; }
+  .actions .action-reject:hover { background: #a61f1f; }
+
+  .docs { margin: .2rem 0 0; padding-left: 1rem; display: grid; gap: .5rem; }
+  .docs code { font-size: .75rem; color: #495057; }
+  .doc-download-link { display: inline-block; margin-top: .28rem; font-size: .82rem; font-weight: 700; color: #1864ab; }
+  .doc-download-link:hover { color: #0b4f87; }
+
+  .form-grid { display: grid; grid-template-columns: 1fr; gap: .6rem; }
+  .form-grid-3 { grid-template-columns: 1fr; }
+  @media (min-width: 860px) { .form-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  .qa-section label { display: grid; gap: .25rem; color: #495057; font-size: .9rem; }
+  .qa-section input, .qa-section select {
+    border: 1px solid #d7dee9; border-radius: .55rem; padding: .48rem .56rem; width: 100%;
+  }
+  .qa-section button {
+    margin-top: .35rem; border: 0; border-radius: .56rem; padding: .52rem .8rem; background: #1f2937; color: #fff;
+    font-weight: 700; cursor: pointer; width: fit-content;
+  }
+  .qa-section button:hover { background: #111827; }
+
+  .log-list { margin: .2rem 0 0; padding-left: 1rem; display: grid; gap: .6rem; }
+  .log-list li { color: #455469; font-size: .87rem; line-height: 1.55; }
+  .log-list small { color: #708096; font-size: .78rem; }
+  .hint { color: #708096; margin: 0; }
+  .empty { color: #708096; font-size: .92rem; }
+  .error { color: #c92a2a; }
 </style>
 

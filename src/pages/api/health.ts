@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import net from 'node:net';
-import { Client } from 'pg';
+import PocketBase from 'pocketbase';
 
 export const prerender = false;
 
@@ -13,25 +13,24 @@ type CheckResult = {
 const DEFAULT_TIMEOUT_MS = 2500;
 
 async function checkDatabaseConnectivity(): Promise<CheckResult> {
-  const databaseUrl = import.meta.env.DATABASE_URL;
-  if (!databaseUrl) {
-    return { ok: false, configured: false, message: 'DATABASE_URL missing' };
+  const pocketbaseUrl = import.meta.env.POCKETBASE_URL;
+  if (!pocketbaseUrl) {
+    return { ok: false, configured: false, message: 'POCKETBASE_URL missing' };
   }
 
-  const client = new Client({
-    connectionString: databaseUrl,
-    connectionTimeoutMillis: DEFAULT_TIMEOUT_MS,
-  });
-
   try {
-    await client.connect();
-    await client.query('select 1 as ok');
+    const pb = new PocketBase(pocketbaseUrl);
+    const adminEmail = import.meta.env.POCKETBASE_ADMIN_EMAIL;
+    const adminPassword = import.meta.env.POCKETBASE_ADMIN_PASSWORD;
+    if (!adminEmail || !adminPassword) {
+      return { ok: false, configured: false, message: 'PocketBase admin credentials missing' };
+    }
+    await pb.collection('_superusers').authWithPassword(adminEmail, adminPassword);
+    await pb.health.check();
     return { ok: true, configured: true };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'database check failed';
     return { ok: false, configured: true, message };
-  } finally {
-    await client.end().catch(() => undefined);
   }
 }
 
@@ -73,9 +72,9 @@ async function checkSmtpConnectivity(): Promise<CheckResult> {
   });
 }
 
-export const GET: APIRoute = async () => {
-  const deep = Astro.url.searchParams.get('deep') === '1';
-  const hasDb = Boolean(import.meta.env.DATABASE_URL);
+export const GET: APIRoute = async ({ url }) => {
+  const deep = url.searchParams.get('deep') === '1';
+  const hasDb = Boolean(import.meta.env.POCKETBASE_URL);
   const hasSmtpConfig = Boolean(
     import.meta.env.SMTP_HOST &&
       import.meta.env.SMTP_USER &&

@@ -1,5 +1,14 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getCurrentSessionUser } from '../../lib/auth/session';
+
+const currentSession = await getCurrentSessionUser(Astro.request).catch(() => null);
+if (currentSession?.role === 'admin') {
+  return Astro.redirect('/admin');
+}
+if (currentSession?.role === 'club') {
+  return Astro.redirect('/panel');
+}
 
 const errorCode = Astro.url.searchParams.get('error') ?? '';
 const errorMessage =

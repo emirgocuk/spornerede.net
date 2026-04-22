@@ -13,6 +13,11 @@ const { searchParams } = Astro.url;
 const seciliIl = searchParams.get('il') || '';
 const seciliIlce = searchParams.get('ilce') || '';
 const secilinBrans = searchParams.get('brans') || '';
+const userLatRaw = searchParams.get('lat');
+const userLngRaw = searchParams.get('lng');
+const userLat = userLatRaw ? Number(userLatRaw) : undefined;
+const userLng = userLngRaw ? Number(userLngRaw) : undefined;
+const hasUserLocation = Number.isFinite(userLat) && Number.isFinite(userLng);
 
 const tumIller = await getAllCities();
 const tumIlceler = await getAllDistricts(seciliIl || undefined);
@@ -21,6 +26,8 @@ const filtreliKulupler = await searchClubs({
   il: seciliIl || undefined,
   ilce: seciliIlce || undefined,
   brans: secilinBrans || undefined,
+  userLat: hasUserLocation ? userLat : undefined,
+  userLng: hasUserLocation ? userLng : undefined,
 });
 
 // Sayfa başlığını URL parametrelerine göre oluştur
@@ -190,6 +197,11 @@ const seciliIlceLabel = ilceler.find((item) => item.slug === seciliIlce)?.ad ?? 
                       </svg>
                       {kulup.ilce}
                     </span>
+                  {hasUserLocation && kulup.distanceKm !== null && (
+                    <span class="kulup-distance" aria-label={`Evinize uzaklık ${kulup.distanceKm} kilometre`}>
+                      {Math.round(kulup.distanceKm)} km
+                    </span>
+                  )}
                   </div>
                 </div>
                 <!-- Puan -->
@@ -821,6 +833,16 @@ const seciliIlceLabel = ilceler.find((item) => item.slug === seciliIlce)?.ad ?? 
     font-size: 0.78rem;
     color: #6C757D;
     font-weight: 500;
+  }
+
+  .kulup-distance {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #0b7285;
+    background: #e3fafc;
+    border: 1px solid #c5f6fa;
+    padding: 0.1rem 0.5rem;
+    border-radius: 9999px;
   }
 
   .kulup-puan {

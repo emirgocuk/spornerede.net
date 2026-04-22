@@ -1,8 +1,6 @@
-import { and, eq, inArray } from 'drizzle-orm';
 import { getDb, hasDatabaseUrl } from '../src/db/client';
 import { hashPassword } from '../src/lib/auth/password';
 import { createUser, findUserByEmail, assignUserToClub } from '../src/lib/repositories/auth';
-import { kulupler, kulupProgramlari } from '../src/db/schema';
 
 type DemoProgram = {
   ad: string;
@@ -44,21 +42,26 @@ async function ensureUsers() {
 }
 
 async function seedProgramsAndMemberships() {
-  const db = getDb();
-  const clubs = await db
-    .select({ id: kulupler.id, ad: kulupler.ad, slug: kulupler.slug })
-    .from(kulupler)
-    .where(eq(kulupler.durum, 'approved'))
-    .orderBy(kulupler.id)
-    .limit(6);
+  const db = await getDb();
+  const clubRows = await db.collection('kulupler').getList(1, 6, {
+    filter: 'durum = "approved"',
+    sort: 'legacyId',
+  });
+  const clubs = clubRows.items.map((row) => ({
+    id: Number(row.legacyId),
+    ad: row.ad as string,
+    slug: row.slug as string,
+  }));
 
   if (!clubs.length) {
     console.warn('Demo seed atlandi: onayli kulup bulunamadi.');
     return;
   }
 
-  const clubIds = clubs.map((club) => club.id);
-  await db.delete(kulupProgramlari).where(inArray(kulupProgramlari.kulupId, clubIds));
+  const programRows = await db.collection('kulup_programlari').getFullList();
+  for (const row of programRows.filter((item) => clubs.some((club) => club.id === Number(item.kulupLegacyId)))) {
+    await db.collection('kulup_programlari').delete(row.id);
+  }
 
   for (const club of clubs) {
     const values = PROGRAM_TEMPLATES.map((template, index) => ({
@@ -70,7 +73,18 @@ async function seedProgramsAndMemberships() {
       ucretBilgisi: index === 0 ? template.ucretBilgisi : 'Aylik 3600 TL',
       aktif: true,
     }));
-    await db.insert(kulupProgramlari).values(values);
+    for (const value of values) {
+      await db.collection('kulup_programlari').create({
+        legacyId: Date.now() + Math.floor(Math.random() * 10000),
+        kulupLegacyId: value.kulupId,
+        ad: value.ad,
+        aciklama: value.aciklama,
+        gunSaat: value.gunSaat,
+        seviye: value.seviye,
+        ucretBilgisi: value.ucretBilgisi,
+        aktif: value.aktif,
+      });
+    }
   }
 
   const demoClubUser = await findUserByEmail('demo-club@spornerede.net');
@@ -81,7 +95,7 @@ async function seedProgramsAndMemberships() {
 
 async function main() {
   if (!hasDatabaseUrl()) {
-    throw new Error('DATABASE_URL tanimli degil. Demo seed icin DB baglantisi zorunlu.');
+    throw new Error('POCKETBASE_URL tanimli degil. Demo seed icin DB baglantisi zorunlu.');
   }
 
   await ensureUsers();

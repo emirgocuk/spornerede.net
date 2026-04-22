@@ -29,7 +29,8 @@ export const POST: APIRoute = async ({ request }) => {
   const headers = new Headers();
   headers.set('Set-Cookie', buildSessionCookie(token, expiresAt));
   const safeRedirect = redirectTo.startsWith('/') ? redirectTo : '/panel';
-  const nextPath = user.mustChangePassword ? '/panel/sifre-degistir' : safeRedirect;
+  const roleDefaultRedirect = user.rol === 'admin' ? '/admin' : safeRedirect;
+  const nextPath = user.mustChangePassword ? '/panel/sifre-degistir' : roleDefaultRedirect;
   headers.set('Location', nextPath);
 
   return new Response(null, { status: 303, headers });

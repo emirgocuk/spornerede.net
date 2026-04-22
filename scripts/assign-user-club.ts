@@ -1,7 +1,5 @@
-import { eq } from 'drizzle-orm';
 import { getDb, hasDatabaseUrl } from '../src/db/client';
 import { assignUserToClub, findUserByEmail } from '../src/lib/repositories/auth';
-import { kulupler } from '../src/db/schema';
 import { slugify } from '../src/data/mockData';
 
 async function main() {
@@ -14,7 +12,7 @@ async function main() {
     process.exit(1);
   }
   if (!hasDatabaseUrl()) {
-    console.error('DATABASE_URL tanimli degil.');
+    console.error('POCKETBASE_URL tanimli degil.');
     process.exit(1);
   }
 
@@ -24,20 +22,16 @@ async function main() {
     process.exit(1);
   }
 
-  const db = getDb();
+  const db = await getDb();
   const clubSlug = slugify(clubSlugInput);
-  const [club] = await db
-    .select({ id: kulupler.id, ad: kulupler.ad, slug: kulupler.slug })
-    .from(kulupler)
-    .where(eq(kulupler.slug, clubSlug))
-    .limit(1);
+  const club = await db.collection('kulupler').getFirstListItem(`slug = "${clubSlug}"`).catch(() => null);
 
   if (!club) {
     console.error('Kulup bulunamadi:', clubSlug);
     process.exit(1);
   }
 
-  const assignment = await assignUserToClub(user.id, club.id, role);
+  const assignment = await assignUserToClub(user.id, Number(club.legacyId), role);
   if (!assignment) {
     console.log('Atama zaten mevcut olabilir. Kullanici:', user.email, 'Kulup:', club.slug);
     process.exit(0);
@@ -45,7 +39,7 @@ async function main() {
 
   console.log('Kulup atamasi tamam:', {
     user: user.email,
-    club: club.slug,
+    club: club.slug as string,
     role: assignment.rol,
   });
 }

@@ -1,6 +1,4 @@
-import { eq } from 'drizzle-orm';
 import { getDb, hasDatabaseUrl } from '../../db/client';
-import { kulupler } from '../../db/schema';
 import { getUserPrimaryClub } from './auth';
 
 export async function getPanelProfile(userId: number) {
@@ -12,22 +10,8 @@ export async function getPanelProfile(userId: number) {
     return null;
   }
 
-  const db = getDb();
-  const [club] = await db
-    .select({
-      id: kulupler.id,
-      ad: kulupler.ad,
-      telefon: kulupler.telefon,
-      email: kulupler.email,
-      adres: kulupler.adres,
-      aciklama: kulupler.aciklama,
-      fiyatBilgisi: kulupler.fiyatBilgisi,
-      yasAraligi: kulupler.yasAraligi,
-      durum: kulupler.durum,
-    })
-    .from(kulupler)
-    .where(eq(kulupler.id, membership.clubId))
-    .limit(1);
+  const db = await getDb();
+  const club = await db.collection('kulupler').getFirstListItem(`legacyId = ${membership.clubId}`).catch(() => null);
 
   if (!club) {
     return null;
@@ -35,6 +19,7 @@ export async function getPanelProfile(userId: number) {
 
   return {
     ...club,
+    id: Number(club.legacyId),
     membershipRole: membership.membershipRole,
   };
 }
@@ -50,7 +35,7 @@ export type UpdatePanelProfileInput = {
 
 export async function updatePanelProfile(userId: number, input: UpdatePanelProfileInput) {
   if (!hasDatabaseUrl()) {
-    throw new Error('DATABASE_URL is not configured.');
+    throw new Error('POCKETBASE_URL is not configured.');
   }
   const membership = await getUserPrimaryClub(userId);
   if (!membership) {
@@ -60,30 +45,27 @@ export async function updatePanelProfile(userId: number, input: UpdatePanelProfi
     throw new Error('Kulup onayli degil.');
   }
 
-  const db = getDb();
-  const [row] = await db
-    .update(kulupler)
-    .set({
-      telefon: input.telefon.trim(),
-      email: input.email.trim(),
-      adres: input.adres.trim(),
-      aciklama: input.aciklama.trim(),
-      fiyatBilgisi: input.fiyatBilgisi.trim(),
-      yasAraligi: input.yasAraligi.trim(),
-      updatedAt: new Date(),
-    })
-    .where(eq(kulupler.id, membership.clubId))
-    .returning({
-      id: kulupler.id,
-      ad: kulupler.ad,
-      telefon: kulupler.telefon,
-      email: kulupler.email,
-      adres: kulupler.adres,
-      aciklama: kulupler.aciklama,
-      fiyatBilgisi: kulupler.fiyatBilgisi,
-      yasAraligi: kulupler.yasAraligi,
-      durum: kulupler.durum,
-    });
+  const db = await getDb();
+  const club = await db.collection('kulupler').getFirstListItem(`legacyId = ${membership.clubId}`).catch(() => null);
+  if (!club) return null;
+  const row = await db.collection('kulupler').update(club.id, {
+    telefon: input.telefon.trim(),
+    email: input.email.trim(),
+    adres: input.adres.trim(),
+    aciklama: input.aciklama.trim(),
+    fiyatBilgisi: input.fiyatBilgisi.trim(),
+    yasAraligi: input.yasAraligi.trim(),
+  });
 
-  return row;
+  return {
+    id: Number(row.legacyId),
+    ad: row.ad as string,
+    telefon: row.telefon as string,
+    email: row.email as string,
+    adres: row.adres as string,
+    aciklama: row.aciklama as string,
+    fiyatBilgisi: row.fiyatBilgisi as string,
+    yasAraligi: row.yasAraligi as string,
+    durum: row.durum as 'pending' | 'approved' | 'rejected',
+  };
 }

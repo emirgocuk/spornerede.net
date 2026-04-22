@@ -1,7 +1,5 @@
 import crypto from 'node:crypto';
-import { and, eq, gt } from 'drizzle-orm';
 import { getDb, hasDatabaseUrl } from '../../db/client';
-import { kullanicilar, kulupUyelikKullanicilari, kulupler, oturumlar } from '../../db/schema';
 
 export type UserRole = 'admin' | 'club';
 export type ClubMembershipRole = 'owner' | 'staff';
@@ -15,19 +13,18 @@ export type CreateUserInput = {
 
 export async function createUser(input: CreateUserInput) {
   if (!hasDatabaseUrl()) {
-    throw new Error('DATABASE_URL is not configured.');
+    throw new Error('POCKETBASE_URL is not configured.');
   }
-  const db = getDb();
-  const [row] = await db
-    .insert(kullanicilar)
-    .values({
-      email: input.email.toLowerCase().trim(),
-      passwordHash: input.passwordHash,
-      rol: input.role ?? 'club',
-      sifreDegistirmeZorunlu: input.forcePasswordChange ?? false,
-    })
-    .returning({ id: kullanicilar.id, email: kullanicilar.email, rol: kullanicilar.rol });
-  return row;
+  const db = await getDb();
+  const row = await db.collection('kullanicilar').create({
+    legacyId: Date.now(),
+    email: input.email.toLowerCase().trim(),
+    passwordHash: input.passwordHash,
+    rol: input.role ?? 'club',
+    aktif: true,
+    sifreDegistirmeZorunlu: input.forcePasswordChange ?? false,
+  });
+  return { id: Number(row.legacyId), email: row.email as string, rol: row.rol as UserRole };
 }
 
 export async function updateUserPassword(
@@ -36,39 +33,36 @@ export async function updateUserPassword(
   options?: { forcePasswordChange?: boolean }
 ) {
   if (!hasDatabaseUrl()) {
-    throw new Error('DATABASE_URL is not configured.');
+    throw new Error('POCKETBASE_URL is not configured.');
   }
-  const db = getDb();
-  const [row] = await db
-    .update(kullanicilar)
-    .set({
-      passwordHash,
-      sifreDegistirmeZorunlu: options?.forcePasswordChange ?? false,
-      updatedAt: new Date(),
-    })
-    .where(eq(kullanicilar.id, userId))
-    .returning({ id: kullanicilar.id, email: kullanicilar.email });
-  return row ?? null;
+  const db = await getDb();
+  const user = await db.collection('kullanicilar').getFirstListItem(`legacyId = ${userId}`).catch(() => null);
+  if (!user) return null;
+  const row = await db.collection('kullanicilar').update(user.id, {
+    passwordHash,
+    sifreDegistirmeZorunlu: options?.forcePasswordChange ?? false,
+  });
+  return { id: Number(row.legacyId), email: row.email as string };
 }
 
 export async function findUserByEmail(email: string) {
   if (!hasDatabaseUrl()) {
     return null;
   }
-  const db = getDb();
-  const [row] = await db
-    .select({
-      id: kullanicilar.id,
-      email: kullanicilar.email,
-      passwordHash: kullanicilar.passwordHash,
-      rol: kullanicilar.rol,
-      aktif: kullanicilar.aktif,
-      mustChangePassword: kullanicilar.sifreDegistirmeZorunlu,
-    })
-    .from(kullanicilar)
-    .where(eq(kullanicilar.email, email.toLowerCase().trim()))
-    .limit(1);
-  return row ?? null;
+  const db = await getDb();
+  const row = await db
+    .collection('kullanicilar')
+    .getFirstListItem(`email = "${email.toLowerCase().trim().replace(/"/g, '\\"')}"`)
+    .catch(() => null);
+  if (!row) return null;
+  return {
+    id: Number(row.legacyId),
+    email: row.email as string,
+    passwordHash: row.passwordHash as string,
+    rol: row.rol as UserRole,
+    aktif: Boolean(row.aktif),
+    mustChangePassword: Boolean(row.sifreDegistirmeZorunlu),
+  };
 }
 
 function hashToken(token: string) {
@@ -77,17 +71,18 @@ function hashToken(token: string) {
 
 export async function createSession(userId: number, ttlDays = 14) {
   if (!hasDatabaseUrl()) {
-    throw new Error('DATABASE_URL is not configured.');
+    throw new Error('POCKETBASE_URL is not configured.');
   }
-  const db = getDb();
+  const db = await getDb();
   const token = crypto.randomBytes(32).toString('hex');
   const tokenHash = hashToken(token);
   const expiresAt = new Date(Date.now() + ttlDays * 24 * 60 * 60 * 1000);
 
-  await db.insert(oturumlar).values({
-    kullaniciId: userId,
+  await db.collection('oturumlar').create({
+    legacyId: Date.now(),
+    kullaniciLegacyId: userId,
     tokenHash,
-    expiresAt,
+    expiresAt: expiresAt.toISOString(),
   });
 
   return { token, expiresAt };
@@ -97,53 +92,63 @@ export async function getSessionWithUser(token: string) {
   if (!hasDatabaseUrl()) {
     return null;
   }
-  const db = getDb();
+  const db = await getDb();
   const tokenHash = hashToken(token);
-
-  const [row] = await db
-    .select({
-      sessionId: oturumlar.id,
-      expiresAt: oturumlar.expiresAt,
-      userId: kullanicilar.id,
-      email: kullanicilar.email,
-      role: kullanicilar.rol,
-      isActive: kullanicilar.aktif,
-      mustChangePassword: kullanicilar.sifreDegistirmeZorunlu,
-    })
-    .from(oturumlar)
-    .innerJoin(kullanicilar, eq(oturumlar.kullaniciId, kullanicilar.id))
-    .where(and(eq(oturumlar.tokenHash, tokenHash), gt(oturumlar.expiresAt, new Date())))
-    .limit(1);
-
-  return row ?? null;
+  const session = await db
+    .collection('oturumlar')
+    .getFirstListItem(`tokenHash = "${tokenHash}" && expiresAt > "${new Date().toISOString()}"`)
+    .catch(() => null);
+  if (!session) return null;
+  const user = await db
+    .collection('kullanicilar')
+    .getFirstListItem(`legacyId = ${Number(session.kullaniciLegacyId)}`)
+    .catch(() => null);
+  if (!user) return null;
+  return {
+    sessionId: Number(session.legacyId),
+    expiresAt: session.expiresAt as string,
+    userId: Number(user.legacyId),
+    email: user.email as string,
+    role: user.rol as UserRole,
+    isActive: Boolean(user.aktif),
+    mustChangePassword: Boolean(user.sifreDegistirmeZorunlu),
+  };
 }
 
 export async function deleteSession(token: string) {
   if (!hasDatabaseUrl()) {
     return;
   }
-  const db = getDb();
+  const db = await getDb();
   const tokenHash = hashToken(token);
-  await db.delete(oturumlar).where(eq(oturumlar.tokenHash, tokenHash));
+  const matches = await db.collection('oturumlar').getFullList({ filter: `tokenHash = "${tokenHash}"` });
+  await Promise.all(matches.map((item) => db.collection('oturumlar').delete(item.id)));
 }
 
 export async function assignUserToClub(userId: number, clubId: number, role: ClubMembershipRole = 'staff') {
   if (!hasDatabaseUrl()) {
-    throw new Error('DATABASE_URL is not configured.');
+    throw new Error('POCKETBASE_URL is not configured.');
   }
-  const db = getDb();
-  const [row] = await db
-    .insert(kulupUyelikKullanicilari)
-    .values({ kullaniciId: userId, kulupId: clubId, rol: role })
-    .onConflictDoNothing()
-    .returning({
-      id: kulupUyelikKullanicilari.id,
-      kullaniciId: kulupUyelikKullanicilari.kullaniciId,
-      kulupId: kulupUyelikKullanicilari.kulupId,
-      rol: kulupUyelikKullanicilari.rol,
-    });
-
-  return row ?? null;
+  const db = await getDb();
+  const existing = await db
+    .collection('kulup_uyelik_kullanicilari')
+    .getFirstListItem(`kullaniciLegacyId = ${userId} && kulupLegacyId = ${clubId}`)
+    .catch(() => null);
+  if (existing) {
+    return null;
+  }
+  const row = await db.collection('kulup_uyelik_kullanicilari').create({
+    legacyId: Date.now(),
+    kullaniciLegacyId: userId,
+    kulupLegacyId: clubId,
+    rol: role,
+  });
+  return {
+    id: Number(row.legacyId),
+    kullaniciId: Number(row.kullaniciLegacyId),
+    kulupId: Number(row.kulupLegacyId),
+    rol: row.rol as ClubMembershipRole,
+  };
 }
 
 export async function ensureClubUserForClub(input: {
@@ -153,46 +158,45 @@ export async function ensureClubUserForClub(input: {
   membershipRole?: ClubMembershipRole;
 }) {
   if (!hasDatabaseUrl()) {
-    throw new Error('DATABASE_URL is not configured.');
+    throw new Error('POCKETBASE_URL is not configured.');
   }
-  const db = getDb();
+  const db = await getDb();
   const normalizedEmail = input.email.toLowerCase().trim();
   let user = await findUserByEmail(normalizedEmail);
 
   if (!user) {
-    const [created] = await db
-      .insert(kullanicilar)
-      .values({
-        email: normalizedEmail,
-        passwordHash: input.passwordHash,
-        rol: 'club',
-        sifreDegistirmeZorunlu: true,
-      })
-      .returning({
-        id: kullanicilar.id,
-        email: kullanicilar.email,
-        passwordHash: kullanicilar.passwordHash,
-        rol: kullanicilar.rol,
-        aktif: kullanicilar.aktif,
-      });
-    user = created;
+    const created = await db.collection('kullanicilar').create({
+      legacyId: Date.now(),
+      email: normalizedEmail,
+      passwordHash: input.passwordHash,
+      rol: 'club',
+      aktif: true,
+      sifreDegistirmeZorunlu: true,
+    });
+    user = {
+      id: Number(created.legacyId),
+      email: created.email as string,
+      passwordHash: created.passwordHash as string,
+      rol: created.rol as UserRole,
+      aktif: Boolean(created.aktif),
+      mustChangePassword: Boolean(created.sifreDegistirmeZorunlu),
+    };
   } else {
     await updateUserPassword(user.id, input.passwordHash, { forcePasswordChange: true });
   }
 
   await assignUserToClub(user.id, input.clubId, input.membershipRole ?? 'owner');
 
-  const [club] = await db
-    .select({ id: kulupler.id, ad: kulupler.ad })
-    .from(kulupler)
-    .where(eq(kulupler.id, input.clubId))
-    .limit(1);
+  const club = await db
+    .collection('kulupler')
+    .getFirstListItem(`legacyId = ${input.clubId}`)
+    .catch(() => null);
 
   return {
     userId: user.id,
     email: user.email,
     clubId: input.clubId,
-    clubName: club?.ad ?? '',
+    clubName: (club?.ad as string | undefined) ?? '',
   };
 }
 
@@ -200,18 +204,21 @@ export async function getUserPrimaryClub(userId: number) {
   if (!hasDatabaseUrl()) {
     return null;
   }
-  const db = getDb();
-  const [row] = await db
-    .select({
-      clubId: kulupUyelikKullanicilari.kulupId,
-      membershipRole: kulupUyelikKullanicilari.rol,
-      clubName: kulupler.ad,
-      clubStatus: kulupler.durum,
-    })
-    .from(kulupUyelikKullanicilari)
-    .innerJoin(kulupler, eq(kulupUyelikKullanicilari.kulupId, kulupler.id))
-    .where(eq(kulupUyelikKullanicilari.kullaniciId, userId))
-    .limit(1);
-
-  return row ?? null;
+  const db = await getDb();
+  const membership = await db
+    .collection('kulup_uyelik_kullanicilari')
+    .getFirstListItem(`kullaniciLegacyId = ${userId}`)
+    .catch(() => null);
+  if (!membership) return null;
+  const club = await db
+    .collection('kulupler')
+    .getFirstListItem(`legacyId = ${Number(membership.kulupLegacyId)}`)
+    .catch(() => null);
+  if (!club) return null;
+  return {
+    clubId: Number(membership.kulupLegacyId),
+    membershipRole: membership.rol as ClubMembershipRole,
+    clubName: club.ad as string,
+    clubStatus: club.durum as 'pending' | 'approved' | 'rejected',
+  };
 }
