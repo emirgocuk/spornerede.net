@@ -1,4 +1,5 @@
 import { getDb, hasDatabaseUrl } from '../../db/client';
+import { expireDueMemberships } from './memberships';
 
 export type SearchFilters = {
   il?: string;
@@ -63,14 +64,16 @@ export async function getAllBranches() {
 export async function searchClubs(filters: SearchFilters) {
   requireDatabase();
 
+  await expireDueMemberships();
   const db = await getDb();
-  const [cities, districts, clubs, clubBranches, branches, programs] = await Promise.all([
+  const [cities, districts, clubs, clubBranches, branches, programs, memberships] = await Promise.all([
     db.collection('iller').getFullList(),
     db.collection('ilceler').getFullList(),
     db.collection('kulupler').getFullList({ filter: 'durum = "approved"' }),
     db.collection('kulup_branslar').getFullList(),
     db.collection('branslar').getFullList(),
     db.collection('kulup_programlari').getFullList({ filter: 'aktif = true' }),
+    db.collection('kulup_uyelikleri').getFullList({ filter: 'odemeDurumu = "paid"' }),
   ]);
 
   const cityById = new Map(cities.map((row) => [Number(row.legacyId), row]));
@@ -84,6 +87,15 @@ export async function searchClubs(filters: SearchFilters) {
   }
 
   const hasUserLocation = Number.isFinite(filters.userLat) && Number.isFinite(filters.userLng);
+  const nowMs = Date.now();
+  const activeMembershipClubIds = new Set<number>();
+  for (const row of memberships) {
+    const clubId = Number(row.kulupLegacyId);
+    const endAt = (row.bitisTarihi as string | undefined) ?? '';
+    if (!endAt || new Date(endAt).getTime() > nowMs) {
+      activeMembershipClubIds.add(clubId);
+    }
+  }
 
   const rows = clubs
     .map((club) => {
@@ -112,6 +124,7 @@ export async function searchClubs(filters: SearchFilters) {
         boylam: Number(club.boylam ?? 0),
       };
     })
+    .filter((club) => activeMembershipClubIds.has(club.id))
     .filter((club) => (!filters.il ? true : club.ilSlug === filters.il))
     .filter((club) => (!filters.ilce ? true : slugify(club.ilce) === filters.ilce))
     .filter((club) => (!filters.brans ? true : club.bransSlug === filters.brans))

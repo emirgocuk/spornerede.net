@@ -6,6 +6,7 @@ import {
   listAdminApplications,
   updateApplicationStatus,
 } from '../../../lib/repositories/applications';
+import type { MembershipPeriod } from '../../../lib/repositories/memberships';
 
 export const prerender = false;
 
@@ -48,6 +49,7 @@ export const POST: APIRoute = async ({ request }) => {
   const body = await request.json().catch(() => null);
   const id = Number(body?.id);
   const status = body?.status as 'pending' | 'approved' | 'rejected';
+  const membershipPeriod = (body?.membershipPeriod as MembershipPeriod | undefined) ?? 'monthly';
   const adminNote = body?.adminNote?.toString?.() ?? '';
   const assignedAdminEmail = body?.assignedAdminEmail?.toString?.() ?? '';
   if (!id || !['pending', 'approved', 'rejected'].includes(status)) {
@@ -57,6 +59,7 @@ export const POST: APIRoute = async ({ request }) => {
   const updated = await updateApplicationStatus(id, status, {
     adminNote: adminNote.slice(0, 5000),
     assignedAdminEmail: assignedAdminEmail.slice(0, 180),
+    membershipPeriod: membershipPeriod === 'yearly' ? 'yearly' : 'monthly',
   });
   if (!updated) {
     return new Response(JSON.stringify({ error: 'Application not found' }), { status: 404 });

@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import { getDb, hasDatabaseUrl } from '../../db/client';
+import { hasActiveMembership } from './memberships';
 
 export type UserRole = 'admin' | 'club';
 export type ClubMembershipRole = 'owner' | 'staff';
@@ -215,6 +216,10 @@ export async function getUserPrimaryClub(userId: number) {
     .getFirstListItem(`legacyId = ${Number(membership.kulupLegacyId)}`)
     .catch(() => null);
   if (!club) return null;
+  const membershipActive = await hasActiveMembership(Number(membership.kulupLegacyId)).catch(() => false);
+  if (!membershipActive) {
+    return null;
+  }
   return {
     clubId: Number(membership.kulupLegacyId),
     membershipRole: membership.rol as ClubMembershipRole,

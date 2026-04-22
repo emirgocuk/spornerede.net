@@ -1,14 +1,29 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getCurrentSessionUser } from '../../lib/auth/session';
+import { getUserPrimaryClub } from '../../lib/repositories/auth';
 
 const currentSession = await getCurrentSessionUser(Astro.request).catch(() => null);
+
+let clubMembership: Awaited<ReturnType<typeof getUserPrimaryClub>> = null;
+if (currentSession?.role === 'club' && !currentSession.mustChangePassword) {
+  clubMembership = await getUserPrimaryClub(currentSession.userId);
+}
+
 if (currentSession?.role === 'admin') {
   return Astro.redirect('/admin');
 }
 if (currentSession?.role === 'club') {
-  return Astro.redirect('/panel');
+  if (currentSession.mustChangePassword) {
+    return Astro.redirect('/panel/sifre-degistir?required=1');
+  }
+  if (clubMembership?.clubStatus === 'approved') {
+    return Astro.redirect('/panel');
+  }
 }
+
+const showPanelAccessDenied =
+  currentSession?.role === 'club' && !currentSession.mustChangePassword && clubMembership?.clubStatus !== 'approved';
 
 const errorCode = Astro.url.searchParams.get('error') ?? '';
 const errorMessage =
@@ -19,7 +34,7 @@ const errorMessage =
       : errorCode === 'auth'
         ? 'Bu sayfayı görmek için önce giriş yapmalısınız.'
         : errorCode === 'forbidden'
-          ? 'Panel erişimi için onaylı kulüp üyeliği gerekli.'
+          ? 'Panele giriş için onaylı kulüp ve aktif üyelik gerekir. Kulüp henüz onaylanmadıysa veya üyelik süresi bittiyse yönetici ile iletişime geçin.'
         : errorCode === 'password_changed'
           ? 'Şifreniz güncellendi, yeni şifrenizle giriş yapabilirsiniz.'
         : '';
@@ -37,6 +52,18 @@ const errorMessage =
         Onaylı kulüp ve kurs temsilcileri için panel girişi buradan yapılır.
       </p>
       {errorMessage && <p class="error-box">{errorMessage}</p>}
+
+      {showPanelAccessDenied && (
+        <div class="warn-box" role="alert">
+          <p>
+            Oturumunuz açık ancak kulüp paneline erişiminiz yok (onaylı kulüp veya aktif üyelik şartı). Çıkış yapıp doğru
+            hesapla tekrar deneyebilir veya yöneticiye başvurabilirsiniz.
+          </p>
+          <form method="post" action="/api/panel/logout">
+            <button type="submit" class="logout-inline-btn">Çıkış yap</button>
+          </form>
+        </div>
+      )}
 
       <form class="login-form" method="post" action="/api/panel/login">
         <input type="hidden" name="redirectTo" value="/panel" />
@@ -91,6 +118,32 @@ const errorMessage =
     border-radius: 0.65rem;
     padding: 0.7rem 0.85rem;
     font-size: 0.92rem;
+  }
+  .warn-box {
+    margin-top: 1rem;
+    border: 1px solid #ffe08a;
+    background: #fff9db;
+    color: #5c4a00;
+    border-radius: 0.65rem;
+    padding: 0.75rem 0.9rem;
+    font-size: 0.92rem;
+    line-height: 1.55;
+  }
+  .warn-box p {
+    margin: 0 0 0.65rem;
+  }
+  .logout-inline-btn {
+    border: 0;
+    border-radius: 0.55rem;
+    background: #495057;
+    color: #fff;
+    font-weight: 700;
+    padding: 0.45rem 0.85rem;
+    cursor: pointer;
+    font-size: 0.88rem;
+  }
+  .logout-inline-btn:hover {
+    background: #343a40;
   }
   .login-form {
     margin-top: 1rem;

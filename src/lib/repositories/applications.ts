@@ -1,5 +1,6 @@
 import { getDb, hasDatabaseUrl } from '../../db/client';
 import { MEMBERSHIP_PLANS, slugify } from '../../data/mockData';
+import { activateClubMembership, hasActiveMembership, type MembershipPeriod } from './memberships';
 
 export type ClubApplicationInput = {
   kulupad: string;
@@ -147,6 +148,7 @@ export async function updateApplicationStatus(
     adminNote?: string;
     assignedAdminEmail?: string;
     actorEmail?: string;
+    membershipPeriod?: MembershipPeriod;
   }
 ) {
   requireDatabase();
@@ -165,6 +167,22 @@ export async function updateApplicationStatus(
     adminNotu: nextAdminNote,
     sorumluAdminEmail: nextAssigned,
   });
+
+  if (status === 'approved') {
+    const period = options?.membershipPeriod ?? 'monthly';
+    const newlyApproved = before.durum !== 'approved';
+    let shouldActivate = newlyApproved;
+    if (!shouldActivate) {
+      try {
+        shouldActivate = !(await hasActiveMembership(id));
+      } catch {
+        shouldActivate = true;
+      }
+    }
+    if (shouldActivate) {
+      await activateClubMembership(id, period);
+    }
+  }
 
   await db.collection('admin_basvuru_loglari').create({
     legacyId: Date.now(),
@@ -185,6 +203,13 @@ export async function updateApplicationStatus(
   };
 }
 
+function recordTimestamp(value: unknown): string | null {
+  if (value == null || value === '') return null;
+  const date = value instanceof Date ? value : new Date(value as string | number);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toISOString();
+}
+
 export async function listAdminApplicationLogs(applicationId: number) {
   requireDatabase();
   const db = await getDb();
@@ -194,6 +219,7 @@ export async function listAdminApplicationLogs(applicationId: number) {
   });
   return rows.items.map((row) => ({
     id: Number(row.legacyId),
+    legacyId: Number(row.legacyId),
     applicationId: Number(row.basvuruLegacyId),
     action: row.aksiyon as string,
     previousStatus: row.oncekiDurum as 'pending' | 'approved' | 'rejected' | null,
@@ -201,7 +227,7 @@ export async function listAdminApplicationLogs(applicationId: number) {
     note: (row.notMetni as string) ?? '',
     assignedAdminEmail: (row.atananAdminEmail as string) ?? '',
     actorEmail: (row.islemYapanEmail as string) ?? '',
-    createdAt: row.created,
+    createdAt: recordTimestamp(row.created) ?? recordTimestamp(row.updated) ?? recordTimestamp(Number(row.legacyId)),
   }));
 }
 

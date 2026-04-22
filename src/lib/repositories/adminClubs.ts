@@ -1,0 +1,122 @@
+import { getDb, hasDatabaseUrl } from '../../db/client';
+
+function requireDatabase() {
+  if (!hasDatabaseUrl()) {
+    throw new Error('POCKETBASE_URL is not configured.');
+  }
+}
+
+export async function listApprovedAdminClubs() {
+  requireDatabase();
+  const db = await getDb();
+  const [rows, cities, districts] = await Promise.all([
+    db.collection('kulupler').getList(1, 200, {
+      filter: 'durum = "approved"',
+      sort: '-legacyId',
+    }),
+    db.collection('iller').getFullList(),
+    db.collection('ilceler').getFullList(),
+  ]);
+
+  const cityMap = new Map(cities.map((row) => [Number(row.legacyId), row.ad as string]));
+  const districtMap = new Map(districts.map((row) => [Number(row.legacyId), row.ad as string]));
+
+  return rows.items.map((row) => ({
+    id: Number(row.legacyId),
+    ad: row.ad as string,
+    il: cityMap.get(Number(row.ilLegacyId)) ?? '',
+    ilce: districtMap.get(Number(row.ilceLegacyId)) ?? '',
+    telefon: (row.telefon as string) ?? '',
+    email: (row.email as string) ?? '',
+    updatedAt: row.updated,
+  }));
+}
+
+export async function getApprovedAdminClubById(clubId: number) {
+  requireDatabase();
+  const db = await getDb();
+
+  const row = await db
+    .collection('kulupler')
+    .getFirstListItem(`legacyId = ${clubId} && durum = "approved"`)
+    .catch(() => null);
+  if (!row) return null;
+
+  const [city, district, programs] = await Promise.all([
+    db.collection('iller').getFirstListItem(`legacyId = ${Number(row.ilLegacyId)}`).catch(() => null),
+    db.collection('ilceler').getFirstListItem(`legacyId = ${Number(row.ilceLegacyId)}`).catch(() => null),
+    db.collection('kulup_programlari').getFullList({
+      filter: `kulupLegacyId = ${clubId}`,
+      sort: '-legacyId',
+    }),
+  ]);
+
+  return {
+    id: Number(row.legacyId),
+    ad: row.ad as string,
+    il: (city?.ad as string | undefined) ?? '',
+    ilce: (district?.ad as string | undefined) ?? '',
+    telefon: (row.telefon as string) ?? '',
+    email: (row.email as string) ?? '',
+    adres: (row.adres as string) ?? '',
+    aciklama: (row.aciklama as string) ?? '',
+    yasAraligi: (row.yasAraligi as string) ?? '',
+    fiyatBilgisi: (row.fiyatBilgisi as string) ?? '',
+    updatedAt: row.updated,
+    programs: programs.map((program) => ({
+      id: Number(program.legacyId),
+      ad: (program.ad as string) ?? '',
+      aciklama: (program.aciklama as string) ?? '',
+      gunSaat: (program.gunSaat as string) ?? '',
+      seviye: (program.seviye as string) ?? '',
+      ucretBilgisi: (program.ucretBilgisi as string) ?? '',
+      aktif: Boolean(program.aktif),
+      updatedAt: program.updated,
+    })),
+  };
+}
+
+export type UpdateApprovedClubInput = {
+  ad: string;
+  telefon: string;
+  email: string;
+  adres: string;
+  aciklama: string;
+  yasAraligi: string;
+  fiyatBilgisi: string;
+};
+
+export async function updateApprovedAdminClub(clubId: number, input: UpdateApprovedClubInput) {
+  requireDatabase();
+  const db = await getDb();
+
+  const row = await db
+    .collection('kulupler')
+    .getFirstListItem(`legacyId = ${clubId} && durum = "approved"`)
+    .catch(() => null);
+  if (!row) {
+    return null;
+  }
+
+  const updated = await db.collection('kulupler').update(row.id, {
+    ad: input.ad.trim(),
+    telefon: input.telefon.trim(),
+    email: input.email.trim(),
+    adres: input.adres.trim(),
+    aciklama: input.aciklama.trim(),
+    yasAraligi: input.yasAraligi.trim(),
+    fiyatBilgisi: input.fiyatBilgisi.trim(),
+  });
+
+  return {
+    id: Number(updated.legacyId),
+    ad: updated.ad as string,
+    telefon: (updated.telefon as string) ?? '',
+    email: (updated.email as string) ?? '',
+    adres: (updated.adres as string) ?? '',
+    aciklama: (updated.aciklama as string) ?? '',
+    yasAraligi: (updated.yasAraligi as string) ?? '',
+    fiyatBilgisi: (updated.fiyatBilgisi as string) ?? '',
+    updatedAt: updated.updated,
+  };
+}

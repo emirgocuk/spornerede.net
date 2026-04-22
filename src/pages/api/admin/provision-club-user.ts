@@ -3,6 +3,7 @@ import { isAdminAuthorized } from '../../../lib/adminAuth';
 import { hashPassword } from '../../../lib/auth/password';
 import { sendClubProvisionedMail } from '../../../lib/mail/onboarding';
 import { ensureClubUserForClub } from '../../../lib/repositories/auth';
+import { ensureApprovedClubMembershipPaidForUser } from '../../../lib/repositories/memberships';
 
 export const prerender = false;
 
@@ -31,6 +32,9 @@ export const POST: APIRoute = async ({ request }) => {
     clubId,
     membershipRole,
   });
+
+  const membershipPeriod = body?.membershipPeriod === 'yearly' ? 'yearly' : 'monthly';
+  await ensureApprovedClubMembershipPaidForUser(provisioned.userId, membershipPeriod).catch(() => undefined);
 
   let mailWarning = '';
   try {

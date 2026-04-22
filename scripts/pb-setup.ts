@@ -101,6 +101,8 @@ const COLLECTIONS: CollectionDef[] = [
       { name: 'kulupLegacyId', type: 'number', required: true },
       { name: 'paketLegacyId', type: 'number', required: true },
       { name: 'odemeDurumu', type: 'text' },
+      { name: 'baslangicTarihi', type: 'date' },
+      { name: 'bitisTarihi', type: 'date' },
     ],
   },
   {

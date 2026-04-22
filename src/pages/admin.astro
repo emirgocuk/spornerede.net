@@ -43,7 +43,12 @@ const summary = await getAdminClubSummary();
         </article>
       </div>
 
-      <section class="admin-shell">
+      <div class="admin-tabs" role="tablist" aria-label="Admin sekmeleri">
+        <button type="button" class="admin-tab is-active" data-tab-target="applications">Başvurular</button>
+        <button type="button" class="admin-tab" data-tab-target="clubs">Kulüpler</button>
+      </div>
+
+      <section class="admin-shell" data-tab-panel="applications">
         <div class="admin-toolbar">
           <label>
             Ara
@@ -77,6 +82,32 @@ const summary = await getAdminClubSummary();
           </article>
         </div>
       </section>
+
+      <section class="admin-shell is-hidden" data-tab-panel="clubs">
+        <div class="admin-toolbar">
+          <label>
+            Ara
+            <input id="club-search" type="text" placeholder="Kulüp adı, il, ilçe..." />
+          </label>
+          <button id="load-clubs" type="button">Kulüpleri Yükle</button>
+        </div>
+
+        <div class="admin-columns">
+          <aside class="admin-list">
+            <h2>Onaylı Kulüpler</h2>
+            <p class="section-help">Yalnızca onaylı kulüpler burada listelenir. Kayıt seçince sağdan bilgileri güncelleyebilirsiniz.</p>
+            <ul id="clubs-list"></ul>
+          </aside>
+
+          <article class="admin-detail">
+            <h2>Kulüp Detayı</h2>
+            <p class="section-help">Kulüp iletişim/profil bilgilerini düzenleyip, altında yayınlanan ilanları görebilirsiniz.</p>
+            <div id="club-detail" class="detail-empty">
+              Sol listeden bir kulüp seçin.
+            </div>
+          </article>
+        </div>
+      </section>
     </div>
   </section>
 
@@ -86,9 +117,18 @@ const summary = await getAdminClubSummary();
     const loadButton = document.getElementById('load-apps');
     const listEl = document.getElementById('applications-list');
     const detailEl = document.getElementById('application-detail');
+    const clubSearchInput = document.getElementById('club-search');
+    const clubsListEl = document.getElementById('clubs-list');
+    const clubDetailEl = document.getElementById('club-detail');
+    const loadClubsButton = document.getElementById('load-clubs');
+    const tabButtons = Array.from(document.querySelectorAll('.admin-tab'));
+    const tabPanels = Array.from(document.querySelectorAll('[data-tab-panel]'));
 
     let cachedApps = [];
     let selectedAppId = 0;
+    let cachedClubs = [];
+    let selectedClubId = 0;
+    const draftProvisionPasswords = new Map();
 
     function adminDownloadUrl(documentId) {
       return `/api/admin/application-document-download?documentId=${encodeURIComponent(documentId)}`;
@@ -126,6 +166,41 @@ const summary = await getAdminClubSummary();
         dateStyle: 'short',
         timeStyle: 'short',
       }).format(date);
+    }
+
+    function formatLogDateTime(value) {
+      if (!value) return 'Tarih bilgisi yok';
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return 'Tarih bilgisi yok';
+      return new Intl.DateTimeFormat('tr-TR', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+      }).format(date);
+    }
+
+    function escapeHtml(text) {
+      return String(text ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function statusLabelTr(status) {
+      const map = { pending: 'Bekliyor', approved: 'Onaylı', rejected: 'Reddedildi' };
+      return map[status] || status || '—';
+    }
+
+    function logActionTitle(action) {
+      if (action === 'application_created') return 'Başvuru oluşturuldu';
+      if (action === 'status_update') return 'Durum güncellendi';
+      return action || 'İşlem';
     }
 
     function statusBadge(status) {
@@ -202,6 +277,17 @@ const summary = await getAdminClubSummary();
     function renderDetailError(message) {
       if (!detailEl) return;
       detailEl.innerHTML = `<p class="error">${message}</p>`;
+    }
+
+    function switchTab(tabKey) {
+      tabButtons.forEach((button) => {
+        const isActive = button.getAttribute('data-tab-target') === tabKey;
+        button.classList.toggle('is-active', isActive);
+      });
+      tabPanels.forEach((panel) => {
+        const isCurrent = panel.getAttribute('data-tab-panel') === tabKey;
+        panel.classList.toggle('is-hidden', !isCurrent);
+      });
     }
 
     async function loadDocuments(appId) {
@@ -306,7 +392,15 @@ const summary = await getAdminClubSummary();
                 <input id="provision-email" type="email" placeholder="kulup@example.com" value="${app.email || ''}" />
               </label>
               <label>Geçici Şifre
-                <input id="provision-password" type="text" value="${generateTemporaryPassword()}" placeholder="En az 8 karakter" />
+                <div class="provision-password-row">
+                  <input
+                    id="provision-password"
+                    type="text"
+                    value="${draftProvisionPasswords.get(appId) || ''}"
+                    placeholder="En az 8 karakter"
+                  />
+                  <button id="generate-password-btn" type="button" class="secondary-button">Şifre Oluştur</button>
+                </div>
               </label>
             </div>
             <button id="provision-user-btn" type="button">Sorumlu Kişiyi Oluştur/Güncelle</button>
@@ -322,6 +416,13 @@ const summary = await getAdminClubSummary();
           <section class="qa-section qa-section-action">
             <h4>Karar</h4>
             <p class="section-help">Başvuruyu onaylama, beklemeye alma veya reddetme işlemini buradan yapabilirsiniz.</p>
+            <label>
+              Üyelik Periyodu (Onay için)
+              <select id="membership-period">
+                <option value="monthly">Aylık</option>
+                <option value="yearly">Yıllık</option>
+              </select>
+            </label>
             <div class="actions">
               <button class="action-approve" data-status="approved">${statusActionLabel(app.durum, 'approved')}</button>
               <button class="action-pending" data-status="pending">${statusActionLabel(app.durum, 'pending')}</button>
@@ -340,20 +441,35 @@ const summary = await getAdminClubSummary();
               return;
             }
             logEl.innerHTML = `
-              <ul class="log-list">
-                ${logs
-                  .map(
-                    (log) => `
-                      <li>
-                        <strong>${log.action}</strong> ${log.nextStatus ? `→ ${log.nextStatus}` : ''}
-                        <br /><small>${formatDate(log.createdAt)}${log.actorEmail ? ` • ${log.actorEmail}` : ''}</small>
-                        ${log.assignedAdminEmail ? `<br /><small>Atanan: ${log.assignedAdminEmail}</small>` : ''}
-                        ${log.note ? `<br /><span>${log.note}</span>` : ''}
-                      </li>
-                    `
-                  )
-                  .join('')}
-              </ul>
+              <div class="log-timeline-scroll" role="region" aria-label="İşlem geçmişi listesi">
+                <ul class="log-timeline">
+                  ${logs
+                    .map((log) => {
+                      const timeLine = formatLogDateTime(log.createdAt);
+                      const title = escapeHtml(logActionTitle(log.action));
+                      const prev = log.previousStatus ? statusLabelTr(log.previousStatus) : '';
+                      const next = log.nextStatus ? statusLabelTr(log.nextStatus) : '';
+                      const statusLine =
+                        prev && next ? `${escapeHtml(prev)} → ${escapeHtml(next)}` : next ? escapeHtml(next) : '';
+                      const actor = log.actorEmail ? escapeHtml(log.actorEmail) : '';
+                      const assigned = log.assignedAdminEmail ? escapeHtml(log.assignedAdminEmail) : '';
+                      const note = log.note?.trim() ? escapeHtml(log.note.trim()) : '';
+                      return `<li class="log-entry">
+                        <div class="log-entry-head">
+                          <time class="log-entry-time" datetime="${escapeHtml(log.createdAt || '')}">${escapeHtml(timeLine)}</time>
+                          <span class="log-entry-title">${title}</span>
+                        </div>
+                        ${statusLine ? `<p class="log-entry-status">${statusLine}</p>` : ''}
+                        <dl class="log-entry-meta">
+                          ${actor ? `<div class="log-meta-row"><dt>İşlemi yapan</dt><dd>${actor}</dd></div>` : ''}
+                          ${assigned ? `<div class="log-meta-row"><dt>Atanan admin</dt><dd>${assigned}</dd></div>` : ''}
+                        </dl>
+                        ${note ? `<p class="log-entry-note"><span class="log-note-label">Not</span>${note}</p>` : ''}
+                      </li>`;
+                    })
+                    .join('')}
+                </ul>
+              </div>
             `;
           } catch {
             logEl.innerHTML = '<p class="error">Geçmiş yüklenemedi.</p>';
@@ -367,8 +483,15 @@ const summary = await getAdminClubSummary();
             if (!nextStatus) return;
             const adminNote = document.getElementById('admin-note')?.value || '';
             const assignedAdminEmail = document.getElementById('assigned-admin-email')?.value?.trim() || '';
+            const membershipPeriod = document.getElementById('membership-period')?.value === 'yearly' ? 'yearly' : 'monthly';
             try {
-              await apiPost('/api/admin/applications', { id: appId, status: nextStatus, adminNote, assignedAdminEmail });
+              await apiPost('/api/admin/applications', {
+                id: appId,
+                status: nextStatus,
+                adminNote,
+                assignedAdminEmail,
+                membershipPeriod,
+              });
               await loadApplications();
               await renderDetail(appId);
             } catch (error) {
@@ -430,6 +553,21 @@ const summary = await getAdminClubSummary();
         });
 
         const provisionBtn = document.getElementById('provision-user-btn');
+        const generatePasswordBtn = document.getElementById('generate-password-btn');
+        const provisionPasswordInput = document.getElementById('provision-password');
+
+        provisionPasswordInput?.addEventListener('input', () => {
+          draftProvisionPasswords.set(appId, provisionPasswordInput.value);
+        });
+
+        generatePasswordBtn?.addEventListener('click', () => {
+          const nextPassword = generateTemporaryPassword();
+          if (provisionPasswordInput) {
+            provisionPasswordInput.value = nextPassword;
+          }
+          draftProvisionPasswords.set(appId, nextPassword);
+        });
+
         provisionBtn?.addEventListener('click', async () => {
           const email = document.getElementById('provision-email')?.value?.trim() || '';
           const password = document.getElementById('provision-password')?.value || '';
@@ -476,6 +614,162 @@ const summary = await getAdminClubSummary();
       }
     }
 
+    function getFilteredClubs() {
+      const query = clubSearchInput?.value?.trim()?.toLowerCase() || '';
+      return cachedClubs.filter((item) => {
+        if (!query) return true;
+        const haystack = `${item.ad || ''} ${item.il || ''} ${item.ilce || ''}`.toLowerCase();
+        return haystack.includes(query);
+      });
+    }
+
+    function renderClubsList() {
+      if (!clubsListEl) return;
+      const filtered = getFilteredClubs();
+      if (!filtered.length) {
+        clubsListEl.innerHTML = '<li class="empty">Onaylı kulüp bulunamadı.</li>';
+        return;
+      }
+      clubsListEl.innerHTML = filtered
+        .map((club) => {
+          const activeClass = club.id === selectedClubId ? 'is-active' : '';
+          return `<li>
+            <button class="app-item ${activeClass}" data-club-id="${club.id}">
+              <span class="app-item-title">${club.ad}</span>
+              <span class="app-item-meta">${club.il || '-'} / ${club.ilce || '-'}</span>
+            </button>
+          </li>`;
+        })
+        .join('');
+    }
+
+    function renderClubDetailLoading() {
+      if (!clubDetailEl) return;
+      clubDetailEl.innerHTML = '<p>Detay yükleniyor...</p>';
+    }
+
+    function renderClubDetailError(message) {
+      if (!clubDetailEl) return;
+      clubDetailEl.innerHTML = `<p class="error">${message}</p>`;
+    }
+
+    function renderClubPrograms(programs) {
+      if (!programs.length) {
+        return '<p class="hint">Bu kulübün yayınlanmış ilanı bulunmuyor.</p>';
+      }
+      return `<ul class="docs">
+        ${programs
+          .map(
+            (program) => `<li>
+              <strong>${program.ad || '-'}</strong> ${program.aktif ? '<span class="status status-approved">Aktif</span>' : '<span class="status status-rejected">Pasif</span>'}
+              ${program.gunSaat ? `<br /><small>${program.gunSaat}</small>` : ''}
+              ${program.seviye ? `<br /><small>Seviye: ${program.seviye}</small>` : ''}
+              ${program.ucretBilgisi ? `<br /><small>Ücret: ${program.ucretBilgisi}</small>` : ''}
+              ${program.aciklama ? `<br /><span>${program.aciklama}</span>` : ''}
+            </li>`
+          )
+          .join('')}
+      </ul>`;
+    }
+
+    async function renderClubDetail(clubId) {
+      selectedClubId = clubId;
+      renderClubsList();
+      renderClubDetailLoading();
+      try {
+        const club = await apiGet(`/api/admin/clubs?id=${clubId}`);
+        if (!clubDetailEl) return;
+        clubDetailEl.innerHTML = `
+          <div class="detail-hero">
+            <div>
+              <p class="detail-kicker">Onaylı kulüp profili</p>
+              <h3>${club.ad}</h3>
+            </div>
+            <span class="status status-approved">Onaylı</span>
+          </div>
+
+          <section class="qa-section qa-section-blue">
+            <h4>Kulüp Bilgileri</h4>
+            <div class="form-grid">
+              <label>Kulüp Adı
+                <input id="club-ad" type="text" value="${club.ad || ''}" />
+              </label>
+              <label>Telefon
+                <input id="club-telefon" type="text" value="${club.telefon || ''}" />
+              </label>
+              <label>E-posta
+                <input id="club-email" type="email" value="${club.email || ''}" />
+              </label>
+              <label>Yaş Aralığı
+                <input id="club-yas-araligi" type="text" value="${club.yasAraligi || ''}" />
+              </label>
+              <label>Fiyat Bilgisi
+                <input id="club-fiyat-bilgisi" type="text" value="${club.fiyatBilgisi || ''}" />
+              </label>
+            </div>
+            <label class="admin-note">
+              <strong>Adres</strong>
+              <textarea id="club-adres" rows="3">${club.adres || ''}</textarea>
+            </label>
+            <label class="admin-note">
+              <strong>Açıklama</strong>
+              <textarea id="club-aciklama" rows="4">${club.aciklama || ''}</textarea>
+            </label>
+            <button id="save-club-btn" type="button">Kulüp Bilgilerini Kaydet</button>
+          </section>
+
+          <section class="qa-section qa-section-slate">
+            <h4>Yayınlanan İlanlar</h4>
+            <p class="section-help">Kulübün panelden eklediği ilan/program kayıtları aşağıda listelenir.</p>
+            ${renderClubPrograms(club.programs || [])}
+          </section>
+        `;
+
+        const saveBtn = document.getElementById('save-club-btn');
+        saveBtn?.addEventListener('click', async () => {
+          try {
+            await apiPost('/api/admin/clubs', {
+              id: clubId,
+              ad: document.getElementById('club-ad')?.value || '',
+              telefon: document.getElementById('club-telefon')?.value || '',
+              email: document.getElementById('club-email')?.value || '',
+              yasAraligi: document.getElementById('club-yas-araligi')?.value || '',
+              fiyatBilgisi: document.getElementById('club-fiyat-bilgisi')?.value || '',
+              adres: document.getElementById('club-adres')?.value || '',
+              aciklama: document.getElementById('club-aciklama')?.value || '',
+            });
+            await loadClubs();
+            await renderClubDetail(clubId);
+          } catch (error) {
+            renderClubDetailError(error.message);
+          }
+        });
+      } catch (error) {
+        renderClubDetailError(error.message);
+      }
+    }
+
+    async function loadClubs() {
+      if (!clubsListEl) return;
+      clubsListEl.innerHTML = '<li class="empty">Yükleniyor...</li>';
+      try {
+        const rows = await apiGet('/api/admin/clubs');
+        cachedClubs = rows || [];
+        if (!selectedClubId && cachedClubs.length) {
+          selectedClubId = cachedClubs[0].id;
+        }
+        renderClubsList();
+        if (selectedClubId) {
+          await renderClubDetail(selectedClubId);
+        }
+      } catch (error) {
+        clubsListEl.innerHTML = `<li class="empty error">${error.message}</li>`;
+        if (clubDetailEl) {
+          clubDetailEl.innerHTML = '<p class="error">Kulüp listesi yüklenemedi.</p>';
+        }
+      }
+    }
+
     listEl?.addEventListener('click', async (event) => {
       const target = event.target;
       if (!(target instanceof HTMLElement)) return;
@@ -486,18 +780,47 @@ const summary = await getAdminClubSummary();
       await renderDetail(id);
     });
 
+    clubsListEl?.addEventListener('click', async (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      const button = target.closest('button[data-club-id]');
+      if (!button) return;
+      const id = Number(button.getAttribute('data-club-id'));
+      if (!id) return;
+      await renderClubDetail(id);
+    });
+
+    tabButtons.forEach((button) => {
+      button.addEventListener('click', async () => {
+        const tabKey = button.getAttribute('data-tab-target') || 'applications';
+        switchTab(tabKey);
+        if (tabKey === 'clubs' && !cachedClubs.length) {
+          await loadClubs();
+        }
+      });
+    });
+
     loadButton?.addEventListener('click', async () => {
       await loadApplications();
+    });
+
+    loadClubsButton?.addEventListener('click', async () => {
+      await loadClubs();
     });
 
     searchInput?.addEventListener('input', () => {
       renderList();
     });
 
+    clubSearchInput?.addEventListener('input', () => {
+      renderClubsList();
+    });
+
     statusFilter?.addEventListener('change', () => {
       renderList();
     });
 
+    switchTab('applications');
     loadApplications().catch((error) => {
       if (listEl) {
         listEl.innerHTML = `<li class="empty error">${error?.message || 'Başvurular yüklenemedi.'}</li>`;
@@ -525,6 +848,36 @@ const summary = await getAdminClubSummary();
   .admin-card p { margin-top: .35rem; font-size: 1.55rem; font-weight: 900; color: #e30a17; }
 
   .admin-shell { margin-top: 1.2rem; background: #fff; border: 1px solid #e5eaf1; border-radius: 1rem; padding: 1rem; }
+  .admin-shell.is-hidden { display: none; }
+  .admin-tabs {
+    margin-top: 1.2rem;
+    display: flex;
+    gap: .5rem;
+    border-bottom: 1px solid #e0e7f0;
+    padding-bottom: .65rem;
+    flex-wrap: nowrap;
+  }
+  .admin-tab {
+    border: 1px solid #d5dde8;
+    border-radius: .7rem;
+    background: #fff;
+    color: #526173;
+    font-weight: 800;
+    padding: .5rem .85rem;
+    cursor: pointer;
+    flex: 1 1 0;
+    text-align: center;
+  }
+  .admin-tab:hover { border-color: #c6d2e0; }
+  .admin-tab.is-active {
+    border-color: #e30a17;
+    color: #e30a17;
+    background: #fff6f6;
+  }
+  @media (max-width: 520px) {
+    .admin-tabs { gap: .4rem; }
+    .admin-tab { padding: .5rem .45rem; font-size: .9rem; }
+  }
   .admin-toolbar { display: flex; flex-wrap: wrap; gap: .75rem; align-items: end; }
   .admin-toolbar label { display: grid; gap: .35rem; font-weight: 700; color: #526173; font-size: .84rem; }
   .admin-toolbar input, .admin-toolbar select {
@@ -689,10 +1042,110 @@ const summary = await getAdminClubSummary();
     font-weight: 700; cursor: pointer; width: fit-content;
   }
   .qa-section button:hover { background: #111827; }
+  .provision-password-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: .5rem;
+    align-items: center;
+  }
+  .qa-section .secondary-button {
+    margin-top: 0;
+    background: #495057;
+    white-space: nowrap;
+  }
+  .qa-section .secondary-button:hover { background: #343a40; }
 
-  .log-list { margin: .2rem 0 0; padding-left: 1rem; display: grid; gap: .6rem; }
-  .log-list li { color: #455469; font-size: .87rem; line-height: 1.55; }
-  .log-list small { color: #708096; font-size: .78rem; }
+  .log-timeline-scroll {
+    margin-top: .35rem;
+    max-height: 17.5rem;
+    overflow-y: auto;
+    border: 1px solid #e2e8f1;
+    border-radius: .65rem;
+    background: #fcfdff;
+    scrollbar-gutter: stable;
+  }
+  .log-timeline {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .log-entry {
+    padding: .62rem .75rem;
+    border-bottom: 1px solid #eef2f7;
+    font-size: .86rem;
+    line-height: 1.45;
+    color: #334155;
+  }
+  .log-entry:last-child {
+    border-bottom: 0;
+  }
+  .log-entry-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: .4rem .65rem;
+    margin-bottom: .28rem;
+  }
+  .log-entry-time {
+    font-weight: 800;
+    font-size: .8rem;
+    color: #1f2937;
+    font-variant-numeric: tabular-nums;
+  }
+  .log-entry-title {
+    font-weight: 700;
+    color: #475569;
+    font-size: .78rem;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+  }
+  .log-entry-status {
+    margin: 0 0 .35rem;
+    font-size: .84rem;
+    font-weight: 600;
+    color: #3d4f63;
+  }
+  .log-entry-meta {
+    margin: 0;
+    display: grid;
+    gap: .2rem;
+  }
+  .log-meta-row {
+    display: grid;
+    grid-template-columns: 7.5rem 1fr;
+    gap: .35rem;
+    font-size: .8rem;
+  }
+  .log-meta-row dt {
+    margin: 0;
+    font-weight: 700;
+    color: #708096;
+  }
+  .log-meta-row dd {
+    margin: 0;
+    color: #455469;
+    word-break: break-word;
+  }
+  .log-entry-note {
+    margin: .45rem 0 0;
+    padding: .45rem .55rem;
+    border-radius: .5rem;
+    background: #f8fafc;
+    border: 1px solid #e8edf5;
+    font-size: .82rem;
+    color: #334155;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .log-note-label {
+    display: block;
+    font-size: .7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: #94a3b8;
+    margin-bottom: .2rem;
+  }
   .hint { color: #708096; margin: 0; }
   .empty { color: #708096; font-size: .92rem; }
   .error { color: #c92a2a; }

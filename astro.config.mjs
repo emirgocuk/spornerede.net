@@ -19,5 +19,20 @@ export default defineConfig({
   // Vite ayarları
   vite: {
     plugins: [tailwindcss()],
+    server: {
+      watch: {
+        ignored: [
+          '**/.git/**',
+          '**/.cursor/**',
+          '**/node_modules/**',
+          '**/dist/**',
+          '**/pocketbase/pb_data/**',
+          '**/*.db',
+          '**/*.db-shm',
+          '**/*.db-wal',
+          '**/terminals/**',
+        ],
+      },
+    },
   },
 });

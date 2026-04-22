@@ -2,6 +2,7 @@ import type { APIRoute } from 'astro';
 import { buildSessionCookie } from '../../../lib/auth/session';
 import { createSession, findUserByEmail } from '../../../lib/repositories/auth';
 import { verifyPassword } from '../../../lib/auth/password';
+import { ensureApprovedClubMembershipPaidForUser } from '../../../lib/repositories/memberships';
 
 export const prerender = false;
 
@@ -23,6 +24,10 @@ export const POST: APIRoute = async ({ request }) => {
   const isValidPassword = await verifyPassword(password, user.passwordHash);
   if (!isValidPassword) {
     return Response.redirect(new URL('/panel/giris?error=invalid', request.url), 303);
+  }
+
+  if (user.rol === 'club') {
+    await ensureApprovedClubMembershipPaidForUser(user.id).catch(() => undefined);
   }
 
   const { token, expiresAt } = await createSession(user.id);
