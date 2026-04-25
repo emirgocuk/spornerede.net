@@ -35,7 +35,11 @@ const kulupListesi = await searchClubs({ brans: branch.slug });
               <p class="desc">{kulup.aciklama}</p>
               <div class="actions">
                 <a class="btn btn-primary btn-sm" href={`tel:${kulup.telefon.replace(/\s/g, '')}`}>Iletisim</a>
-                <a class="btn btn-outline btn-sm" href={`/kulupler/${kulup.id}`}>Detay</a>
+                {kulup.ilkProgramId ? (
+                  <a class="btn btn-outline btn-sm" href={`/ilanlar/${kulup.ilkProgramId}`}>İlan Detayı</a>
+                ) : (
+                  <span class="btn btn-outline btn-sm disabled">İlan Yok</span>
+                )}
               </div>
             </article>
           ))}
@@ -65,6 +69,7 @@ const kulupListesi = await searchClubs({ brans: branch.slug });
   .meta { margin-top: .4rem; color: #6C757D; font-size: .82rem; }
   .desc { margin-top: .5rem; color: #495057; font-size: .88rem; line-height: 1.6; }
   .actions { margin-top: .9rem; display: flex; gap: .5rem; }
+  .disabled { opacity: .6; pointer-events: none; }
   .empty { border: 1px dashed #CED4DA; border-radius: .9rem; padding: 2rem; text-align: center; background: #fff; }
 </style>
 

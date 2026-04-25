@@ -3,7 +3,6 @@
  * ara.astro
  * Arama Sayfası — /ara
  * URL parametrelerine göre kulüp/kurs listesi gösterir.
- * Faz 1: Statik mock veri. Faz 2: PostgreSQL sorgusu.
  */
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { getAllBranches, getAllCities, getAllDistricts, searchClubs } from '../lib/repositories/catalog';
@@ -29,20 +28,33 @@ const filtreliKulupler = await searchClubs({
   userLat: hasUserLocation ? userLat : undefined,
   userLng: hasUserLocation ? userLng : undefined,
 });
+const filtreliIlanlar = filtreliKulupler.flatMap((kulup) =>
+  (kulup.programlar ?? []).map((program) => ({
+    ...program,
+    kulupId: kulup.id,
+    kulupAd: kulup.ad,
+    ilce: kulup.ilce,
+    brans: kulup.brans,
+    emoji: kulup.emoji,
+    renk: kulup.renk,
+    puan: kulup.puan,
+    yorumSayisi: kulup.yorumSayisi,
+    distanceKm: kulup.distanceKm,
+  }))
+);
 
-// Sayfa başlığını URL parametrelerine göre oluştur
 const seciliBransObj = BRANCHES.find((item) => item.slug === secilinBrans);
-const baslikBrans = seciliBransObj?.isim ?? 'Tum Branslar';
+const baslikBrans = seciliBransObj?.isim ?? 'Tüm Branşlar';
 const seciliIlObj = tumIller.find((item) => item.slug === seciliIl);
-const baslikIlce = seciliIlObj ? `${seciliIlObj.ad}'da` : "Turkiye'de";
+const baslikIlce = seciliIlObj ? `${seciliIlObj.ad}'da` : "Türkiye'de";
 
-const sonucSayisi = filtreliKulupler.length;
+const sonucSayisi = filtreliIlanlar.length;
 
 const ilceler = tumIlceler;
 const branslar = BRANCHES;
 const seciliBransLabel = seciliBransObj?.isim ?? 'Tüm Branşlar';
-const seciliIlLabel = seciliIlObj?.ad ?? 'Tum Turkiye';
-const seciliIlceLabel = ilceler.find((item) => item.slug === seciliIlce)?.ad ?? (seciliIl ? 'Tum Ilceler' : 'Once il secin');
+const seciliIlLabel = seciliIlObj?.ad ?? 'Tüm Türkiye';
+const seciliIlceLabel = ilceler.find((item) => item.slug === seciliIlce)?.ad ?? (seciliIl ? 'Tüm İlçeler' : 'Önce il seçin');
 ---
 
 <BaseLayout
@@ -50,60 +62,46 @@ const seciliIlceLabel = ilceler.find((item) => item.slug === seciliIlce)?.ad ?? 
   description={`${baslikIlce} ${baslikBrans.toLowerCase()} kurslari ve kulupleri. Fiyat, konum ve yas araligina gore filtreleyin, size en uygun kulubu bulun.`}
   keywords={`${secilinBrans || 'spor'} kursu, ${seciliIl || 'turkiye'} spor kulubu, cocuk spor kursu`}
 >
-
-  <!-- ===== SONUÇLAR ===== -->
-  <main class="ara-main">
+  <div class="page-background"></div>
+  <main class="ara-main relative z-10">
     <div class="container ara-layout">
-
+      
+      <!-- ===== SİDEBAR FİLTRELER ===== -->
       <aside class="ara-sidebar" aria-label="Konum filtreleri">
-        <div class="ara-sidebar-card">
-          <h2 class="ara-sidebar-title">Konum</h2>
-          <p class="ara-sidebar-hint">Branş, il ve ilçe seçin; ardından uygula.</p>
+        <div class="ara-sidebar-card card-glass animate-fade-in-up">
+          <div class="sidebar-header">
+            <h2 class="ara-sidebar-title">Filtrele</h2>
+            <p class="ara-sidebar-hint">Size en uygun kursu bulalım.</p>
+          </div>
+          
           <form class="ara-sidebar-form" method="get" action="/ara" id="ara-lokasyon-form">
             <div class="ara-sidebar-field">
-              <label for="sidebar-brans" class="ara-sidebar-label">Branş</label>
+              <label for="sidebar-brans" class="ara-sidebar-label">Branş Seçimi</label>
               <div class="ara-custom-select" data-branch-select>
                 <input type="hidden" name="brans" value={secilinBrans} data-branch-hidden />
-                <button
-                  type="button"
-                  class="ara-custom-trigger"
-                  aria-haspopup="listbox"
-                  aria-expanded="false"
-                  data-branch-trigger
-                >
+                <button type="button" class="ara-custom-trigger" aria-haspopup="listbox" aria-expanded="false" data-branch-trigger>
                   <span data-branch-label>{seciliBransLabel}</span>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <polyline points="6 9 12 15 18 9"/>
-                  </svg>
+                  <span class="chevron">▼</span>
                 </button>
                 <div class="ara-custom-menu" role="listbox" data-branch-menu>
                   <button type="button" class={`ara-custom-item ${!secilinBrans ? 'is-active' : ''}`} data-branch-value="" data-branch-text="Tüm Branşlar">Tüm Branşlar</button>
                   {branslar.map((brans) => (
-                    <button
-                      type="button"
-                      class={`ara-custom-item ${brans.slug === secilinBrans ? 'is-active' : ''}`}
-                      data-branch-value={brans.slug}
-                      data-branch-text={brans.isim}
-                    >
-                      {brans.isim}
-                    </button>
+                    <button type="button" class={`ara-custom-item ${brans.slug === secilinBrans ? 'is-active' : ''}`} data-branch-value={brans.slug} data-branch-text={brans.isim}>{brans.isim}</button>
                   ))}
                 </div>
               </div>
             </div>
 
             <div class="ara-sidebar-field">
-              <label class="ara-sidebar-label">Il</label>
+              <label class="ara-sidebar-label">İl</label>
               <div class="ara-custom-select" data-city-select>
                 <input type="hidden" name="il" value={seciliIl} data-city-hidden />
                 <button type="button" class="ara-custom-trigger" aria-haspopup="listbox" aria-expanded="false" data-city-trigger>
                   <span data-city-label>{seciliIlLabel}</span>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <polyline points="6 9 12 15 18 9"/>
-                  </svg>
+                  <span class="chevron">▼</span>
                 </button>
                 <div class="ara-custom-menu" role="listbox" data-city-menu>
-                  <button type="button" class={`ara-custom-item ${!seciliIl ? 'is-active' : ''}`} data-city-value="" data-city-text="Tum Turkiye">Tum Turkiye</button>
+                  <button type="button" class={`ara-custom-item ${!seciliIl ? 'is-active' : ''}`} data-city-value="" data-city-text="Tüm Türkiye">Tüm Türkiye</button>
                   {tumIller.map((il) => (
                     <button type="button" class={`ara-custom-item ${il.slug === seciliIl ? 'is-active' : ''}`} data-city-value={il.slug} data-city-text={il.ad}>{il.ad}</button>
                   ))}
@@ -112,38 +110,33 @@ const seciliIlceLabel = ilceler.find((item) => item.slug === seciliIlce)?.ad ?? 
             </div>
 
             <div class="ara-sidebar-field">
-              <label class="ara-sidebar-label">Ilce</label>
+              <label class="ara-sidebar-label">İlçe</label>
               <div class="ara-custom-select" data-district-select>
                 <input type="hidden" name="ilce" value={seciliIlce} data-district-hidden />
                 <button type="button" class="ara-custom-trigger" aria-haspopup="listbox" aria-expanded="false" data-district-trigger disabled={!seciliIl}>
                   <span data-district-label>{seciliIlceLabel}</span>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <polyline points="6 9 12 15 18 9"/>
-                  </svg>
+                  <span class="chevron">▼</span>
                 </button>
                 <div class="ara-custom-menu" role="listbox" data-district-menu>
                   {seciliIl ? (
                     <>
-                      <button type="button" class={`ara-custom-item ${!seciliIlce ? 'is-active' : ''}`} data-district-value="" data-district-text="Tum Ilceler">Tum Ilceler</button>
+                      <button type="button" class={`ara-custom-item ${!seciliIlce ? 'is-active' : ''}`} data-district-value="" data-district-text="Tüm İlçeler">Tüm İlçeler</button>
                       {ilceler.map((ilce) => (
                         <button type="button" class={`ara-custom-item ${ilce.slug === seciliIlce ? 'is-active' : ''}`} data-district-value={ilce.slug} data-district-text={ilce.ad}>{ilce.ad}</button>
                       ))}
                     </>
                   ) : (
-                    <button type="button" class="ara-custom-item is-disabled" data-district-value="" data-district-text="Once il secin" disabled>Once il secin</button>
+                    <button type="button" class="ara-custom-item is-disabled" data-district-value="" data-district-text="Önce il seçin" disabled>Önce il seçin</button>
                   )}
                 </div>
               </div>
             </div>
 
             <div class="ara-sidebar-actions">
-              <button type="submit" class="btn btn-primary btn-sm ara-sidebar-btn">Uygula</button>
+              <button type="submit" class="btn btn-primary btn-lg ara-sidebar-btn w-full shadow-lg hover:shadow-xl">Sonuçları Göster</button>
               {(seciliIl || seciliIlce) && (
-                <a
-                  href={secilinBrans ? `/ara?brans=${secilinBrans}` : '/ara'}
-                  class="btn btn-outline btn-sm ara-sidebar-btn"
-                >
-                  Konumu sifirla
+                <a href={secilinBrans ? `/ara?brans=${secilinBrans}` : '/ara'} class="btn btn-white btn-sm ara-sidebar-btn w-full mt-2">
+                  Temizle
                 </a>
               )}
             </div>
@@ -151,126 +144,103 @@ const seciliIlceLabel = ilceler.find((item) => item.slug === seciliIlce)?.ad ?? 
         </div>
       </aside>
 
+      <!-- ===== SONUÇLAR İÇERİK ===== -->
       <div class="ara-content">
+        <div class="sonuc-bilgi card-glass animate-fade-in-up delay-100">
+          <p class="sonuc-sayisi">
+            <strong>{baslikIlce}</strong>
+            {secilinBrans && <>{' '}<span class="sonuc-brans">{baslikBrans}</span></>}
+            {' '}için <strong class="sonuc-adet text-brand-red text-xl">{sonucSayisi} ilan</strong> bulundu
+          </p>
+          {(seciliIl || seciliIlce || secilinBrans) && (
+            <a href="/ara" class="filtre-temizle btn-white btn-sm" aria-label="Filtreleri temizle">
+              ✕ Filtreleri Temizle
+            </a>
+          )}
+        </div>
 
-      <!-- Sonuç sayısı -->
-      <div class="sonuc-bilgi" role="status" aria-live="polite">
-        <p class="sonuc-sayisi">
-          <strong>{baslikIlce}</strong>
-          {secilinBrans && <>{' '}<span class="sonuc-brans">{baslikBrans}</span></>}
-          {' '}için <strong class="sonuc-adet">{sonucSayisi} kulüp/kurs</strong> bulundu
-        </p>
-        {(seciliIl || seciliIlce || secilinBrans) && (
-          <a href="/ara" class="filtre-temizle" aria-label="Filtreleri temizle">
-            ✕ Filtreleri Temizle
-          </a>
-        )}
-      </div>
-
-      <!-- Kulüp Grid -->
-      {sonucSayisi > 0 ? (
-        <div class="kulupler-grid" role="list" aria-label="Kulüp Listesi">
-          {filtreliKulupler.map((kulup, index) => (
-            <article
-              class={`kulup-kart ${kulup.oneCikan ? 'one-cikan' : ''} animate-fade-in-up`}
-              style={`animation-delay: ${index * 0.07}s`}
-              role="listitem"
-              aria-label={`${kulup.ad} — ${kulup.brans} kursu, ${kulup.ilce}`}
-            >
-              {kulup.oneCikan && (
-                <div class="one-cikan-ribbon" aria-label="Öne Çıkan Kulüp">⚡ Öne Çıkan</div>
-              )}
-
-              <!-- Kart üst -->
-              <div class="kulup-header">
-                <div class="kulup-icon" style={`--branch-color: ${kulup.renk}`}>
-                  <span aria-hidden="true">{kulup.emoji}</span>
-                </div>
-                <div class="kulup-header-info">
-                  <h2 class="kulup-ad">{kulup.ad}</h2>
-                  <div class="kulup-meta-row">
-                    <span class="kulup-brans-badge">{kulup.brans}</span>
-                    <span class="kulup-ilce">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-                        <circle cx="12" cy="10" r="3"/>
-                      </svg>
-                      {kulup.ilce}
-                    </span>
-                  {hasUserLocation && kulup.distanceKm !== null && (
-                    <span class="kulup-distance" aria-label={`Evinize uzaklık ${kulup.distanceKm} kilometre`}>
-                      {Math.round(kulup.distanceKm)} km
-                    </span>
-                  )}
+        {sonucSayisi > 0 ? (
+          <div class="kulupler-grid" role="list">
+            {filtreliIlanlar.map((ilan, index) => (
+              <article class="kulup-kart card-glass animate-fade-in-up" style={`animation-delay: ${(index % 5) * 0.1 + 0.2}s`} role="listitem">
+                <div class="kulup-header">
+                  <div class="kulup-icon-wrapper" style={`--branch-color: ${ilan.renk}`}>
+                    <div class="icon-bg"></div>
+                    <span class="icon-emoji" aria-hidden="true">{ilan.emoji}</span>
+                  </div>
+                  <div class="kulup-header-info">
+                    <h2 class="kulup-ad">{ilan.ad}</h2>
+                    <div class="kulup-meta-row">
+                      <span class="badge-modern badge-branch">{ilan.brans}</span>
+                      <span class="badge-modern"><i class="badge-icon">📍</i>{ilan.ilce}</span>
+                      {hasUserLocation && ilan.distanceKm !== null && (
+                        <span class="badge-modern badge-distance"><i class="badge-icon">🚗</i>{Math.round(ilan.distanceKm)} km</span>
+                      )}
+                    </div>
+                  </div>
+                  <div class="kulup-puan-box">
+                    <span class="star">★</span>
+                    <span class="score">{ilan.puan}</span>
+                    <span class="reviews">({ilan.yorumSayisi})</span>
                   </div>
                 </div>
-                <!-- Puan -->
-                <div class="kulup-puan" aria-label={`${kulup.puan} puan, ${kulup.yorumSayisi} yorum`}>
-                  <span class="puan-sayi">⭐ {kulup.puan}</span>
-                  <span class="puan-yorum">({kulup.yorumSayisi})</span>
+
+                <p class="kulup-aciklama">{ilan.aciklama || 'Bu ilan için henüz bir açıklama eklenmedi. Detaylar için ilanı inceleyebilirsiniz.'}</p>
+
+                <div class="kulup-details-grid">
+                  <div class="detail-item">
+                    <span class="detail-icon">📅</span>
+                    <div class="detail-text">
+                      <span class="detail-label">Tarih</span>
+                      <strong class="detail-value">{ilan.eventDate || 'Belirtilmedi'}</strong>
+                    </div>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-icon">⏰</span>
+                    <div class="detail-text">
+                      <span class="detail-label">Saat</span>
+                      <strong class="detail-value">{ilan.gunSaat || 'Belirtilmedi'}</strong>
+                    </div>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-icon">💳</span>
+                    <div class="detail-text">
+                      <span class="detail-label">Ücret</span>
+                      <strong class="detail-value">{ilan.ucretBilgisi || 'Fiyat Sorunuz'}</strong>
+                    </div>
+                  </div>
                 </div>
-              </div>
 
-              <!-- Açıklama -->
-              <p class="kulup-aciklama">{kulup.aciklama}</p>
+                <div class="kulup-footer">
+                  <p class="kulup-adres"><i class="badge-icon">🗺️</i> {ilan.locationText || ilan.ilce}</p>
+                  <a href={`/ilanlar/${ilan.id}`} class="btn btn-primary shadow-md hover:shadow-lg transition-all kulup-detay-btn">İlanı İncele →</a>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div class="empty-state card-glass animate-fade-in-up delay-200">
+            <div class="empty-icon">🔍</div>
+            <h2 class="empty-title">Sonuç bulunamadı</h2>
+            <p class="empty-desc">Arama kriterlerinize uygun ilan bulunamadı. Filtreleri değiştirerek tekrar deneyin.</p>
+            <a href="/ara" class="btn btn-primary mt-4">Tüm İlanları Gör</a>
+          </div>
+        )}
 
-              {kulup.programOzet && (
-                <p class="kulup-program-ozet" aria-label="Program özeti">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M8 2v4" />
-                    <path d="M16 2v4" />
-                    <rect width="18" height="18" x="3" y="4" rx="2" />
-                    <path d="M3 10h18" />
-                  </svg>
-                  {kulup.programOzet}
-                </p>
-              )}
-
-              <!-- Adres -->
-              <p class="kulup-adres">
-                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-                  <polyline points="9 22 9 12 15 12 15 22"/>
-                </svg>
-                {kulup.adres}
-              </p>
-
-              <a
-                href={`/kulupler/${kulup.id}`}
-                class="kulup-detay-link"
-                id={`kulup-detay-${kulup.id}`}
-                aria-label={`${kulup.ad} detay sayfası`}
-              >
-                Detaylar →
-              </a>
-            </article>
-          ))}
+        <div class="cta-box mt-8 animate-fade-in-up delay-300">
+          <div class="cta-content">
+            <h3>Kulübünüz listede yok mu?</h3>
+            <p>Hemen kulübünüzü ekleyin, binlerce sporcuya ulaşın.</p>
+          </div>
+          <a href="/basvuru" class="btn btn-white shadow-lg hover:shadow-xl transition-all">Kulübünü Ekle →</a>
         </div>
-      ) : (
-        <!-- Boş durum -->
-        <div class="bos-durum" role="status">
-          <div class="bos-durum-icon" aria-hidden="true">🔍</div>
-          <h2 class="bos-durum-baslik">Sonuç bulunamadı</h2>
-          <p class="bos-durum-aciklama">
-            Arama kriterlerinize uygun kulüp veya kurs bulunamadı. Filtreleri değiştirerek tekrar deneyin.
-          </p>
-          <a href="/ara" class="btn btn-primary">Filtreleri Temizle</a>
-        </div>
-      )}
-
-      <!-- Kulüpünü ekle daveti -->
-      <div class="ara-footer-cta">
-        <p>Kulübünüz listede yok mu?</p>
-        <a href="/basvuru" class="btn btn-outline" id="ara-kulubuekle-btn">Kulübünü Ekle →</a>
-      </div>
-
       </div>
     </div>
   </main>
-
 </BaseLayout>
 
 <script>
+  // Script remains untouched logic-wise
   const citySelect = document.querySelector('[data-city-select]');
   const cityTrigger = citySelect?.querySelector('[data-city-trigger]');
   const cityLabel = citySelect?.querySelector('[data-city-label]');
@@ -367,9 +337,9 @@ const seciliIlceLabel = ilceler.find((item) => item.slug === seciliIlce)?.ad ?? 
   function renderDefaultDistrictState() {
     if (!districtMenu || !districtLabel || !districtHidden || !districtTrigger) return;
     districtMenu.innerHTML = '';
-    districtMenu.append(createDropdownItem({ value: '', text: 'Once il secin', key: 'district', disabled: true }));
+    districtMenu.append(createDropdownItem({ value: '', text: 'Önce il seçin', key: 'district', disabled: true }));
     districtHidden.value = '';
-    districtLabel.textContent = 'Once il secin';
+    districtLabel.textContent = 'Önce il seçin';
     districtTrigger.disabled = true;
   }
 
@@ -387,11 +357,11 @@ const seciliIlceLabel = ilceler.find((item) => item.slug === seciliIlce)?.ad ?? 
 
     districtTrigger.disabled = true;
     districtMenu.innerHTML = '';
-    districtMenu.append(createDropdownItem({ value: '', text: 'Yukleniyor...', key: 'district', disabled: true }));
+    districtMenu.append(createDropdownItem({ value: '', text: 'Yükleniyor...', key: 'district', disabled: true }));
 
     try {
       const response = await fetch(`/api/districts?il=${encodeURIComponent(citySlug)}`);
-      if (!response.ok) throw new Error('Ilce listesi alinamadi');
+      if (!response.ok) throw new Error('İlçe listesi alınamadı');
       const payload = await response.json();
       const items = Array.isArray(payload?.items) ? payload.items : [];
       const selectedDistrict = items.find((item) => item.slug === preferredValue);
@@ -400,7 +370,7 @@ const seciliIlceLabel = ilceler.find((item) => item.slug === seciliIlce)?.ad ?? 
       districtMenu.append(
         createDropdownItem({
           value: '',
-          text: 'Tum Ilceler',
+          text: 'Tüm İlçeler',
           key: 'district',
           active: !selectedDistrict,
         }),
@@ -417,14 +387,14 @@ const seciliIlceLabel = ilceler.find((item) => item.slug === seciliIlce)?.ad ?? 
       }
 
       districtHidden.value = selectedDistrict?.slug ?? '';
-      districtLabel.textContent = selectedDistrict?.ad ?? 'Tum Ilceler';
+      districtLabel.textContent = selectedDistrict?.ad ?? 'Tüm İlçeler';
       districtTrigger.disabled = false;
       attachDistrictEvents();
     } catch (_error) {
       districtMenu.innerHTML = '';
-      districtMenu.append(createDropdownItem({ value: '', text: 'Ilceler yuklenemedi', key: 'district', disabled: true }));
+      districtMenu.append(createDropdownItem({ value: '', text: 'İlçeler yüklenemedi', key: 'district', disabled: true }));
       districtHidden.value = '';
-      districtLabel.textContent = 'Ilceler yuklenemedi';
+      districtLabel.textContent = 'İlçeler yüklenemedi';
       districtTrigger.disabled = true;
     }
   }
@@ -439,7 +409,7 @@ const seciliIlceLabel = ilceler.find((item) => item.slug === seciliIlce)?.ad ?? 
   for (const cityItem of cityItems) {
     cityItem.addEventListener('click', () => {
       const value = cityItem.getAttribute('data-city-value') ?? '';
-      const text = cityItem.getAttribute('data-city-text') ?? 'Tum Turkiye';
+      const text = cityItem.getAttribute('data-city-text') ?? 'Tüm Türkiye';
       if (cityHidden) cityHidden.value = value;
       if (cityLabel) cityLabel.textContent = text;
       setActive(cityItems, cityItem);
@@ -482,138 +452,160 @@ const seciliIlceLabel = ilceler.find((item) => item.slug === seciliIlce)?.ad ?? 
 </script>
 
 <style>
-  /* ===== SONUÇ ALANI ===== */
+  /* Base Layout */
+  .page-background {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(135deg, #f8f9fa 0%, #fff1f2 100%);
+    z-index: 0;
+    pointer-events: none;
+  }
+  
   .ara-main {
-    padding: 1.5rem 0 4rem;
-    min-height: 60vh;
-    background: #F8F9FA;
+    padding: 2rem 0 5rem;
+    min-height: 80vh;
   }
 
   .ara-layout {
     display: grid;
-    grid-template-columns: minmax(0, 280px) minmax(0, 1fr);
-    gap: 1.5rem;
+    grid-template-columns: 320px 1fr;
+    gap: 2rem;
     align-items: start;
   }
 
+  /* Shared Glass Card */
+  .card-glass {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255,255,255,1);
+    border-radius: 1.25rem;
+  }
+
+  /* Sidebar */
   .ara-sidebar {
     position: sticky;
-    top: calc(68px + 16px);
-    z-index: 80;
+    top: 85px;
   }
 
   .ara-sidebar-card {
-    background: #ffffff;
-    border: 2px solid #E9ECEF;
-    border-radius: 1rem;
-    padding: 1.25rem;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+    padding: 1.5rem;
+  }
+
+  .sidebar-header {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px dashed var(--color-brand-gray-200);
   }
 
   .ara-sidebar-title {
-    margin: 0 0 0.35rem;
-    font-size: 1rem;
-    font-weight: 800;
-    color: #212529;
+    margin: 0 0 0.2rem;
+    font-size: 1.2rem;
+    font-weight: 900;
+    color: var(--color-brand-gray-900);
   }
 
   .ara-sidebar-hint {
-    margin: 0 0 1rem;
-    font-size: 0.82rem;
-    color: #6C757D;
-    line-height: 1.45;
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--color-brand-gray-500);
   }
 
   .ara-sidebar-form {
     display: flex;
     flex-direction: column;
-    gap: 0.875rem;
+    gap: 1.25rem;
   }
 
   .ara-sidebar-field {
     display: flex;
     flex-direction: column;
-    gap: 0.35rem;
+    gap: 0.5rem;
   }
 
   .ara-sidebar-label {
-    font-size: 0.7rem;
-    font-weight: 700;
-    color: #6C757D;
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: var(--color-brand-gray-600);
     text-transform: uppercase;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.05em;
   }
 
-  .ara-sidebar-select {
-    width: 100%;
-    border: 1px solid #E9ECEF;
-    border-radius: 0.625rem;
-    padding: 0.55rem 2.25rem 0.55rem 0.75rem;
-    font-family: 'Outfit', sans-serif;
-    font-size: 0.88rem;
-    font-weight: 600;
-    color: #212529;
-    background-color: #ffffff;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%236C757D' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 0.65rem center;
-    background-size: 14px;
-    appearance: none;
-    cursor: pointer;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-  }
-
+  /* Custom Select Components */
   :global(.ara-custom-select) {
     position: relative;
   }
 
   :global(.ara-custom-trigger) {
     width: 100%;
-    border: 1px solid #E9ECEF;
-    border-radius: 0.625rem;
-    padding: 0.55rem 0.75rem;
-    font-family: 'Outfit', sans-serif;
-    font-size: 0.88rem;
-    font-weight: 600;
-    color: #212529;
-    background: #ffffff;
+    border: 2px solid var(--color-brand-gray-200);
+    border-radius: 0.75rem;
+    padding: 0.7rem 1rem;
+    font-family: inherit;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--color-brand-gray-800);
+    background: white;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 0.5rem;
     cursor: pointer;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
+    transition: all 0.2s ease;
+  }
+
+  :global(.chevron) {
+    font-size: 0.7rem;
+    color: var(--color-brand-gray-400);
+    transition: transform 0.2s;
+  }
+
+  :global(.ara-custom-select.open .chevron) {
+    transform: rotate(180deg);
+    color: var(--color-brand-red);
+  }
+
+  :global(.ara-custom-trigger:hover:not(:disabled)) {
+    border-color: var(--color-brand-gray-300);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.03);
   }
 
   :global(.ara-custom-trigger:disabled) {
-    opacity: 0.55;
+    opacity: 0.6;
     cursor: not-allowed;
-    background: #F8F9FA;
+    background: var(--color-brand-gray-50);
   }
 
   :global(.ara-custom-select.open .ara-custom-trigger) {
-    border-color: rgba(227, 10, 23, 0.55);
-    box-shadow: 0 0 0 3px rgba(227, 10, 23, 0.12);
+    border-color: var(--color-brand-red);
+    box-shadow: 0 0 0 4px rgba(227, 10, 23, 0.1);
   }
 
   :global(.ara-custom-menu) {
     position: absolute;
-    top: calc(100% + 0.35rem);
+    top: calc(100% + 0.5rem);
     left: 0;
     right: 0;
-    background: #ffffff;
-    border: 1px solid #E9ECEF;
-    border-radius: 0.625rem;
-    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
-    padding: 0.25rem;
+    background: white;
+    border: 1px solid var(--color-brand-gray-200);
+    border-radius: 1rem;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    padding: 0.5rem;
     display: none;
-    z-index: 30;
-    max-height: 220px;
+    z-index: 50;
+    max-height: 250px;
     overflow-y: auto;
   }
 
   :global(.ara-custom-select.open .ara-custom-menu) {
     display: block;
+    animation: fadeInDown 0.2s ease;
+  }
+
+  @keyframes fadeInDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 
   :global(.ara-custom-item) {
@@ -622,178 +614,145 @@ const seciliIlceLabel = ilceler.find((item) => item.slug === seciliIlce)?.ad ?? 
     border: none;
     background: transparent;
     text-align: left;
-    padding: 0.5rem 0.6rem;
-    border-radius: 0.45rem;
-    font-family: 'Outfit', sans-serif;
-    font-size: 0.86rem;
+    padding: 0.6rem 0.8rem;
+    border-radius: 0.5rem;
+    font-family: inherit;
+    font-size: 0.9rem;
     font-weight: 600;
-    color: #212529;
+    color: var(--color-brand-gray-700);
     cursor: pointer;
+    transition: all 0.15s;
   }
 
-  :global(.ara-custom-item:hover) {
-    background: #FFF1F2;
-    color: #A30711;
+  :global(.ara-custom-item:hover:not(.is-disabled)) {
+    background: var(--color-brand-red-50);
+    color: var(--color-brand-red-dark);
+    padding-left: 1rem;
   }
 
   :global(.ara-custom-item.is-active) {
-    background: #FEEAEC;
-    color: #A30711;
+    background: var(--color-brand-red-50);
+    color: var(--color-brand-red);
+    font-weight: 800;
   }
 
   :global(.ara-custom-item.is-disabled) {
-    color: #6C757D;
+    color: var(--color-brand-gray-400);
     cursor: not-allowed;
-  }
-
-  .ara-sidebar-select:focus {
-    outline: none;
-    border-color: rgba(227, 10, 23, 0.55);
-    box-shadow: 0 0 0 3px rgba(227, 10, 23, 0.12);
-  }
-
-  .ara-sidebar-select:disabled {
-    opacity: 0.55;
-    cursor: not-allowed;
-    background-color: #F8F9FA;
   }
 
   .ara-sidebar-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    margin-top: 0.25rem;
+    margin-top: 1rem;
   }
 
-  .ara-sidebar-btn {
-    width: 100%;
-    justify-content: center;
-  }
-
+  /* Content Area */
   .ara-content {
     min-width: 0;
   }
 
-  @media (max-width: 900px) {
-    .ara-layout {
-      grid-template-columns: 1fr;
-    }
-    .ara-sidebar {
-      position: static;
-    }
-  }
-
-  /* ===== SONUÇ BİLGİ ===== */
+  /* Top Info Bar */
   .sonuc-bilgi {
     display: flex;
     align-items: center;
     justify-content: space-between;
     flex-wrap: wrap;
-    gap: 0.75rem;
-    margin-bottom: 1.75rem;
-    padding-bottom: 1.25rem;
-    border-bottom: 1px solid #E9ECEF;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 2rem;
   }
 
   .sonuc-sayisi {
-    font-size: 0.95rem;
-    color: #495057;
+    font-size: 1.05rem;
+    color: var(--color-brand-gray-700);
+    margin: 0;
   }
 
   .sonuc-brans {
-    font-weight: 700;
-    color: #E30A17;
-    background: #FFF1F2;
-    padding: 0.1rem 0.5rem;
-    border-radius: 4px;
+    font-weight: 800;
+    color: var(--color-brand-red);
+    background: var(--color-brand-red-50);
+    padding: 0.2rem 0.6rem;
+    border-radius: 6px;
   }
 
-  .sonuc-adet {
-    color: #E30A17;
-  }
+  .text-brand-red { color: var(--color-brand-red); }
+  .text-xl { font-size: 1.25rem; font-weight: 900; }
 
   .filtre-temizle {
-    font-size: 0.82rem;
-    font-weight: 600;
-    color: #6C757D;
-    text-decoration: none;
-    padding: 0.35rem 0.875rem;
-    border: 1px solid #DEE2E6;
-    border-radius: 9999px;
-    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--color-brand-gray-600);
+    background: white;
+    border: 1px solid var(--color-brand-gray-300);
+    padding: 0.5rem 1rem;
+    border-radius: 999px;
+    transition: all 0.2s;
   }
 
   .filtre-temizle:hover {
-    border-color: #E30A17;
-    color: #E30A17;
-    background: #FFF1F2;
+    border-color: var(--color-brand-red);
+    color: var(--color-brand-red);
+    background: var(--color-brand-red-50);
   }
 
-  /* ===== KULÜP GRİD ===== */
+  /* Cards Grid */
   .kulupler-grid {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 1.125rem;
+    gap: 1.5rem;
   }
 
-  /* ===== KULÜP KART ===== */
+  /* Card Design */
   .kulup-kart {
-    background: #ffffff;
-    border-radius: 1rem;
-    border: 2px solid #E9ECEF;
     padding: 1.5rem;
     display: flex;
     flex-direction: column;
-    gap: 1rem;
-    transition: all 0.22s ease;
-    position: relative;
-    overflow: hidden;
+    gap: 1.25rem;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
   }
 
   .kulup-kart:hover {
-    border-color: #E30A17;
-    box-shadow: 0 8px 32px rgba(227,10,23,0.1);
-    transform: translateY(-3px);
+    border-color: rgba(227, 10, 23, 0.2);
+    box-shadow: 0 15px 40px rgba(227, 10, 23, 0.08);
+    transform: translateY(-4px);
   }
 
-  .kulup-kart.one-cikan {
-    border-color: #FFE0E2;
-    background: linear-gradient(180deg, #FFF8F8 0%, #ffffff 40%);
-  }
-
-  /* Öne çıkan ribbon */
-  .one-cikan-ribbon {
-    position: absolute;
-    bottom: 14px;
-    right: 14px;
-    background: linear-gradient(90deg, #E30A17, #FF2D3A);
-    color: #ffffff;
-    font-size: 0.7rem;
-    font-weight: 700;
-    padding: 0.2rem 0.75rem;
-    transform: rotate(0);
-    letter-spacing: 0.03em;
-    border-radius: 999px;
-    box-shadow: 0 2px 8px rgba(227,10,23,0.3);
-  }
-
-  /* ===== KART HEADER ===== */
   .kulup-header {
     display: flex;
     align-items: flex-start;
-    gap: 0.875rem;
+    gap: 1.25rem;
   }
 
-  .kulup-icon {
-    width: 46px;
-    height: 46px;
-    border-radius: 10px;
-    background: color-mix(in srgb, var(--branch-color, #E30A17) 12%, transparent);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.4rem;
+  .kulup-icon-wrapper {
+    position: relative;
+    width: 60px;
+    height: 60px;
     flex-shrink: 0;
+    display: grid;
+    place-items: center;
+  }
+
+  .icon-bg {
+    position: absolute;
+    inset: 0;
+    background: var(--branch-color, var(--color-brand-red));
+    opacity: 0.15;
+    border-radius: 1rem;
+    transform: rotate(-3deg);
+    transition: transform 0.3s;
+  }
+
+  .kulup-kart:hover .icon-bg {
+    transform: rotate(3deg) scale(1.05);
+  }
+
+  .icon-emoji {
+    font-size: 2rem;
+    position: relative;
+    z-index: 2;
   }
 
   .kulup-header-info {
@@ -802,160 +761,167 @@ const seciliIlceLabel = ilceler.find((item) => item.slug === seciliIlce)?.ad ?? 
   }
 
   .kulup-ad {
-    font-size: 0.98rem;
-    font-weight: 800;
-    color: #212529;
-    line-height: 1.3;
+    font-size: 1.3rem;
+    font-weight: 900;
+    color: var(--color-brand-gray-900);
+    margin: 0 0 0.5rem 0;
+    line-height: 1.2;
   }
 
   .kulup-meta-row {
     display: flex;
-    align-items: center;
-    gap: 0.625rem;
-    margin-top: 0.3rem;
     flex-wrap: wrap;
+    gap: 0.5rem;
   }
 
-  .kulup-brans-badge {
-    font-size: 0.7rem;
-    font-weight: 700;
-    color: #E30A17;
-    background: #FFF1F2;
-    border: 1px solid #FFE0E2;
-    padding: 0.1rem 0.5rem;
-    border-radius: 9999px;
-  }
-
-  .kulup-ilce {
-    display: flex;
+  .badge-modern {
+    display: inline-flex;
     align-items: center;
-    gap: 0.2rem;
-    font-size: 0.78rem;
-    color: #6C757D;
-    font-weight: 500;
+    gap: 0.3rem;
+    padding: 0.3rem 0.6rem;
+    background: var(--color-brand-gray-50);
+    border: 1px solid var(--color-brand-gray-200);
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--color-brand-gray-600);
   }
 
-  .kulup-distance {
-    font-size: 0.72rem;
-    font-weight: 700;
-    color: #0b7285;
-    background: #e3fafc;
-    border: 1px solid #c5f6fa;
-    padding: 0.1rem 0.5rem;
-    border-radius: 9999px;
+  .badge-branch {
+    background: var(--color-brand-red-50);
+    color: var(--color-brand-red);
+    border-color: var(--color-brand-red-100);
+    font-weight: 800;
   }
 
-  .kulup-puan {
+  .badge-distance {
+    background: #eff6ff;
+    color: #2563eb;
+    border-color: #bfdbfe;
+  }
+
+  .kulup-puan-box {
     display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    flex-shrink: 0;
+    align-items: baseline;
+    gap: 0.2rem;
+    background: #fff8ec;
+    border: 1px solid #ffe1b0;
+    padding: 0.5rem 0.8rem;
+    border-radius: 0.75rem;
   }
 
-  .puan-sayi {
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: #212529;
-    white-space: nowrap;
-  }
+  .kulup-puan-box .star { color: #f59e0b; font-size: 1rem; }
+  .kulup-puan-box .score { font-weight: 800; color: #b45309; font-size: 1.1rem; }
+  .kulup-puan-box .reviews { font-size: 0.8rem; color: #9ca3af; font-weight: 600; }
 
-  .puan-yorum {
-    font-size: 0.7rem;
-    color: #6C757D;
-  }
-
-  /* ===== AÇIKLAMA ===== */
   .kulup-aciklama {
-    font-size: 0.85rem;
-    color: #495057;
+    margin: 0;
+    font-size: 0.95rem;
     line-height: 1.6;
+    color: var(--color-brand-gray-700);
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
 
-  .kulup-program-ozet {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    width: fit-content;
-    font-size: 0.76rem;
-    color: #495057;
-    background: #f1f3f5;
-    border: 1px solid #e9ecef;
-    border-radius: 999px;
-    padding: 0.15rem 0.55rem;
+  .kulup-details-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+    background: var(--color-brand-gray-50);
+    padding: 1rem;
+    border-radius: 1rem;
+    border: 1px dashed var(--color-brand-gray-300);
   }
 
-  /* ===== ADRES ===== */
-  .kulup-adres {
+  .detail-item {
     display: flex;
-    align-items: flex-start;
-    gap: 0.35rem;
-    font-size: 0.78rem;
-    color: #6C757D;
-    line-height: 1.5;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .detail-icon { font-size: 1.2rem; }
+  .detail-text { display: flex; flex-direction: column; }
+  .detail-label { font-size: 0.7rem; text-transform: uppercase; font-weight: 800; color: var(--color-brand-gray-500); }
+  .detail-value { font-size: 0.9rem; font-weight: 700; color: var(--color-brand-gray-900); }
+
+  .kulup-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--color-brand-gray-100);
     margin-top: auto;
   }
 
-  .kulup-detay-link {
-    margin-top: 0.35rem;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    font-size: 0.82rem;
-    font-weight: 700;
-    color: #A30711;
-    text-decoration: none;
-    width: fit-content;
-  }
-
-  .kulup-detay-link:hover {
-    text-decoration: underline;
-    text-underline-offset: 2px;
-  }
-
-  /* ===== BOŞ DURUM ===== */
-  .bos-durum {
+  .kulup-adres {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--color-brand-gray-600);
+    font-weight: 600;
     display: flex;
-    flex-direction: column;
     align-items: center;
+    gap: 0.3rem;
+  }
+
+  .kulup-detay-btn {
+    padding: 0.6rem 1.2rem;
+    border-radius: 8px;
+  }
+
+  /* Empty State & CTA */
+  .empty-state {
     text-align: center;
-    padding: 5rem 2rem;
-    gap: 1rem;
+    padding: 4rem 2rem;
   }
 
-  .bos-durum-icon {
-    font-size: 3.5rem;
-  }
+  .empty-icon { font-size: 3rem; margin-bottom: 1rem; opacity: 0.5; }
+  .empty-title { font-size: 1.5rem; font-weight: 900; margin-bottom: 0.5rem; }
+  .empty-desc { color: var(--color-brand-gray-600); font-size: 1.05rem; }
 
-  .bos-durum-baslik {
-    font-size: 1.5rem;
-    font-weight: 800;
-    color: #212529;
-  }
-
-  .bos-durum-aciklama {
-    font-size: 0.95rem;
-    color: #6C757D;
-    max-width: 380px;
-  }
-
-  /* ===== ARA FOOTER CTA ===== */
-  .ara-footer-cta {
+  .cta-box {
+    background: linear-gradient(135deg, var(--color-brand-red) 0%, #a30711 100%);
+    border-radius: 1.25rem;
+    padding: 2rem;
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    justify-content: center;
-    gap: 1.25rem;
-    margin-top: 3rem;
-    padding-top: 2.5rem;
-    border-top: 1px solid #E9ECEF;
-    flex-wrap: wrap;
+    color: white;
+    box-shadow: 0 15px 30px rgba(227, 10, 23, 0.2);
   }
 
-  .ara-footer-cta p {
-    font-size: 0.9rem;
-    color: #6C757D;
+  .cta-content h3 { font-size: 1.4rem; font-weight: 900; margin: 0 0 0.3rem; }
+  .cta-content p { margin: 0; font-size: 1rem; opacity: 0.9; }
+
+  /* Utilities */
+  .w-full { width: 100%; }
+  .mt-2 { margin-top: 0.5rem; }
+  .mt-4 { margin-top: 1rem; }
+  .mt-8 { margin-top: 2rem; }
+  .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+  .shadow-md { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+  .hover\:shadow-xl:hover { box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); }
+  .transition-all { transition-property: all; transition-duration: 300ms; }
+  
+  .animate-fade-in-up { animation: fadeInUp 0.5s ease-out forwards; opacity: 0; transform: translateY(15px); }
+  .delay-100 { animation-delay: 0.1s; }
+  .delay-200 { animation-delay: 0.2s; }
+  .delay-300 { animation-delay: 0.3s; }
+  
+  @keyframes fadeInUp { to { opacity: 1; transform: translateY(0); } }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .ara-layout { grid-template-columns: 1fr; }
+    .ara-sidebar { position: static; }
+    .cta-box { flex-direction: column; text-align: center; gap: 1.5rem; }
+  }
+
+  @media (max-width: 600px) {
+    .kulup-header { flex-direction: column; }
+    .kulup-puan-box { align-self: flex-start; }
+    .kulup-details-grid { grid-template-columns: 1fr; }
+    .kulup-footer { flex-direction: column; align-items: stretch; gap: 1rem; text-align: center; }
   }
 </style>

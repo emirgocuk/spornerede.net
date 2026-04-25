@@ -16,109 +16,249 @@ if (!membership || membership.clubStatus !== 'approved') {
 }
 ---
 
-<BaseLayout title="Kulüp paneli — Kurslar" description="Kulüp kurs ve programlarını yönetin." noIndex={true}>
-  <section class="section panel-programs">
+<BaseLayout title="Kurs / Program Yönetimi | SporNerede" description="Kulüp kurs ve programlarını yönetin." noIndex={true}>
+  <div class="panel-background"></div>
+  <section class="section panel-programs relative z-10">
     <div class="container container--wide">
-      <h1 class="page-title">Kurs / Program yönetimi</h1>
-      <p class="page-lead">Yeni program ekleyin, mevcutları düzenleyin veya pasife çekin.</p>
+      
+      <!-- Header -->
+      <header class="page-header animate-fade-in-up">
+        <a href="/panel" class="back-link">← Panele Dön</a>
+        <h1 class="page-title">Kurs ve Program Yönetimi</h1>
+        <p class="page-lead">Yeni bir kurs ilanı yayınlayın, mevcut ilanlarınızı güncelleyin veya yayından kaldırın.</p>
+      </header>
 
-      <div class="program-layout">
-        <form id="program-form" class="program-form">
-          <input id="program-id" type="hidden" />
-          <label>
-            Program adı *
-            <input id="program-ad" required />
-          </label>
-          <label>
-            Gün/Saat
-            <input id="program-gunsaat" placeholder="Pzt-Crş-Cuma 18:00-19:00" />
-          </label>
-          <label>
-            Seviye
-            <input id="program-seviye" placeholder="Başlangıç / Orta / İleri" />
-          </label>
-          <label>
-            Ücret bilgisi
-            <input id="program-ucret" placeholder="Aylık 2500 TL" />
-          </label>
-          <label>
-            Açıklama
-            <textarea id="program-aciklama" rows="4"></textarea>
-          </label>
-          <label class="checkbox-row">
-            <input id="program-aktif" type="checkbox" checked />
-            Aktif program
-          </label>
-          <div class="form-actions">
-            <button type="submit">Kaydet</button>
-            <button id="form-reset" type="button" class="btn-muted">Yeni kayıt</button>
-            <a href="/panel">Panele dön</a>
+      <div class="program-layout animate-fade-in-up delay-100">
+        <!-- Sol Form Alanı -->
+        <div class="form-column">
+          <form id="program-form" class="program-form card-glass">
+            <div class="form-header">
+              <h2 class="form-title">İlan Detayları</h2>
+              <span class="badge-modern">Yeni Kayıt</span>
+            </div>
+            
+            <input id="program-id" type="hidden" />
+            
+            <div class="form-group">
+              <label for="program-ad">Program Adı <span class="text-red">*</span></label>
+              <input id="program-ad" class="modern-input" required placeholder="Örn: Hafta Sonu Yüzme Eğitimi" />
+            </div>
+
+            <div class="form-row-2">
+              <div class="form-group">
+                <label for="program-gunsaat">Gün / Saat</label>
+                <input id="program-gunsaat" class="modern-input" placeholder="Pzt-Çrş-Cuma 18:00" />
+              </div>
+              <div class="form-group">
+                <label for="program-event-date">Başlangıç Tarihi</label>
+                <input id="program-event-date" type="date" class="modern-input" />
+              </div>
+            </div>
+
+            <div class="form-row-2">
+              <div class="form-group">
+                <label for="program-location">Konum / Şube</label>
+                <input id="program-location" class="modern-input" placeholder="Kadıköy Merkez Şube" />
+              </div>
+              <div class="form-group">
+                <label for="program-seviye">Seviye</label>
+                <input id="program-seviye" class="modern-input" placeholder="Başlangıç / İleri" />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="program-ucret">Ücret Bilgisi</label>
+              <input id="program-ucret" class="modern-input" placeholder="Aylık 1500 TL" />
+            </div>
+
+            <div class="form-group">
+              <label for="program-aciklama">Kısa Özet (Arama Kartlarında Görünür)</label>
+              <textarea id="program-aciklama" class="modern-textarea" rows="2" placeholder="Kursun temel amacını özetleyin..."></textarea>
+            </div>
+
+            <div class="form-group">
+              <label>Geniş Tanıtım Metni</label>
+              <div class="editor-toolbar">
+                <button type="button" class="toolbar-btn" data-editor-action="bold" title="Kalın">B</button>
+                <button type="button" class="toolbar-btn italic" data-editor-action="italic" title="İtalik">I</button>
+                <button type="button" class="toolbar-btn" data-editor-action="bullet" title="Madde İşareti">•</button>
+                <button type="button" class="toolbar-btn" data-editor-action="h2" title="Başlık">H</button>
+              </div>
+              <div id="program-editor" class="program-editor"></div>
+            </div>
+
+            <div class="form-group">
+              <label>Galeri Görselleri</label>
+              <div class="gallery-upload-box">
+                <input id="gallery-file" type="file" accept="image/*" class="modern-file-input" />
+                <button id="gallery-upload-btn" type="button" class="btn-outline-sm">Buluta Yükle</button>
+              </div>
+              <ul id="gallery-list" class="gallery-list"></ul>
+            </div>
+
+            <div class="form-group checkbox-wrapper">
+              <label class="toggle-label">
+                <input id="program-aktif" type="checkbox" checked class="toggle-input" />
+                <div class="toggle-switch"></div>
+                <span class="toggle-text">İlanı Yayına Al (Aktif)</span>
+              </label>
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" class="btn-primary-gradient w-full">💾 İlanı Kaydet</button>
+              <button id="form-reset" type="button" class="btn-white w-full mt-2">🔄 Formu Temizle</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Sağ Liste Alanı -->
+        <div class="list-column">
+          <div class="program-list-box card-glass">
+            <div class="list-header">
+              <h2>Mevcut İlanlar</h2>
+              <span class="badge-modern bg-gray" id="program-count">0 İlan</span>
+            </div>
+            <ul id="program-list" class="modern-program-list">
+              <li class="empty-state">
+                <div class="spinner-small"></div>
+                <p>İlanlar yükleniyor...</p>
+              </li>
+            </ul>
           </div>
-        </form>
-
-        <div class="program-list-box">
-          <h2>Programlar</h2>
-          <ul id="program-list" class="program-list">
-            <li class="hint">Yükleniyor...</li>
-          </ul>
         </div>
       </div>
     </div>
   </section>
 
-  <script is:inline>
+  <script>
+    import { Editor } from '@tiptap/core';
+    import StarterKit from '@tiptap/starter-kit';
+
     const form = document.getElementById('program-form');
     const list = document.getElementById('program-list');
     const resetBtn = document.getElementById('form-reset');
     const idEl = document.getElementById('program-id');
     const adEl = document.getElementById('program-ad');
     const gunSaatEl = document.getElementById('program-gunsaat');
+    const eventDateEl = document.getElementById('program-event-date');
+    const locationEl = document.getElementById('program-location');
     const seviyeEl = document.getElementById('program-seviye');
     const ucretEl = document.getElementById('program-ucret');
     const aciklamaEl = document.getElementById('program-aciklama');
     const aktifEl = document.getElementById('program-aktif');
+    const galleryFileEl = document.getElementById('gallery-file');
+    const galleryUploadBtn = document.getElementById('gallery-upload-btn');
+    const galleryListEl = document.getElementById('gallery-list');
+    const editorRoot = document.getElementById('program-editor');
+    const countBadge = document.getElementById('program-count');
 
     let programs = [];
+    let gallery = [];
+
+    const editor = new Editor({
+      element: editorRoot,
+      extensions: [StarterKit],
+      content: '<p>Program tanıtım detaylarını buraya yazın...</p>',
+    });
+
+    function resetEditorContent() {
+      editor.commands.setContent('<p>Program tanıtım detaylarını buraya yazın...</p>');
+    }
+
+    function setEditorFromJson(bodyJson) {
+      if (bodyJson && typeof bodyJson === 'object') {
+        editor.commands.setContent(bodyJson);
+        return;
+      }
+      resetEditorContent();
+    }
 
     function clearForm() {
       idEl.value = '';
       adEl.value = '';
       gunSaatEl.value = '';
+      eventDateEl.value = '';
+      locationEl.value = '';
       seviyeEl.value = '';
       ucretEl.value = '';
       aciklamaEl.value = '';
       aktifEl.checked = true;
+      gallery = [];
+      galleryFileEl.value = '';
+      renderGallery();
+      resetEditorContent();
+      document.querySelector('.form-header .badge-modern').textContent = 'Yeni Kayıt';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     function fillForm(program) {
       idEl.value = String(program.id);
       adEl.value = program.ad || '';
       gunSaatEl.value = program.gunSaat || '';
+      eventDateEl.value = program.eventDate || '';
+      locationEl.value = program.locationText || '';
       seviyeEl.value = program.seviye || '';
       ucretEl.value = program.ucretBilgisi || '';
       aciklamaEl.value = program.aciklama || '';
       aktifEl.checked = Boolean(program.aktif);
+      gallery = Array.isArray(program.gallery) ? [...program.gallery] : [];
+      renderGallery();
+      setEditorFromJson(program.bodyJson);
+      
+      document.querySelector('.form-header .badge-modern').textContent = 'Düzenleniyor';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       adEl.focus();
     }
 
-    function renderList() {
-      if (!programs.length) {
-        list.innerHTML = '<li class="hint">Henüz program eklenmedi.</li>';
+    function renderGallery() {
+      if (!gallery.length) {
+        galleryListEl.innerHTML = '<li class="empty-gallery">Görsel seçilmedi.</li>';
         return;
       }
+      galleryListEl.innerHTML = gallery
+        .map(
+          (url, index) => `
+            <li class="gallery-item">
+              <img src="${url}" alt="Görsel" />
+              <button type="button" class="btn-remove-img" data-gallery-remove="${index}" title="Kaldır">✕</button>
+            </li>
+          `
+        )
+        .join('');
+    }
+
+    function renderList() {
+      if (countBadge) countBadge.textContent = `${programs.length} İlan`;
+      
+      if (!programs.length) {
+        list.innerHTML = `
+          <li class="empty-state">
+            <div class="empty-icon">📝</div>
+            <p>Henüz ilan eklenmedi.</p>
+          </li>
+        `;
+        return;
+      }
+      
       list.innerHTML = programs
         .map(
           (p) => `
-            <li class="program-item">
-              <div>
-                <strong>${p.ad}</strong>
-                <small>${p.gunSaat || '-'} | ${p.seviye || '-'}</small>
-                <small>${p.ucretBilgisi || '-'}</small>
-                <small class="${p.aktif ? 'ok' : 'warn'}">${p.aktif ? 'Aktif' : 'Pasif'}</small>
-              </div>
-              <div class="item-actions">
-                <button data-action="edit" data-id="${p.id}" type="button">Duzenle</button>
-                <button data-action="delete" data-id="${p.id}" type="button" class="danger">Sil</button>
+            <li class="list-item">
+              <div class="item-status-strip ${p.aktif ? 'bg-green' : 'bg-red'}"></div>
+              <div class="item-content">
+                <div class="item-header">
+                  <strong class="item-title">${p.ad}</strong>
+                  <span class="badge-mini ${p.aktif ? 'bg-green-light text-green' : 'bg-red-light text-red'}">${p.aktif ? 'Aktif' : 'Pasif'}</span>
+                </div>
+                <div class="item-details">
+                  ${p.gunSaat ? `<span><i class="icon">⏰</i>${p.gunSaat}</span>` : ''}
+                  ${p.locationText ? `<span><i class="icon">📍</i>${p.locationText}</span>` : ''}
+                  ${p.ucretBilgisi ? `<span><i class="icon">💳</i>${p.ucretBilgisi}</span>` : ''}
+                </div>
+                <div class="item-actions">
+                  <button class="btn-sm btn-edit" data-action="edit" data-id="${p.id}" type="button">✏️ Düzenle</button>
+                  <button class="btn-sm btn-delete" data-action="delete" data-id="${p.id}" type="button">🗑️ Sil</button>
+                </div>
               </div>
             </li>
           `
@@ -127,14 +267,15 @@ if (!membership || membership.clubStatus !== 'approved') {
     }
 
     async function loadPrograms() {
-      const response = await fetch('/api/panel/programs');
-      if (!response.ok) {
-        list.innerHTML = '<li class="hint warn">Programlar yüklenemedi.</li>';
-        return;
+      try {
+        const response = await fetch('/api/panel/programs');
+        if (!response.ok) throw new Error();
+        const payload = await response.json();
+        programs = payload.data || [];
+        renderList();
+      } catch (error) {
+        list.innerHTML = '<li class="empty-state"><p class="text-red">İlanlar yüklenirken hata oluştu.</p></li>';
       }
-      const payload = await response.json();
-      programs = payload.data || [];
-      renderList();
     }
 
     async function saveProgram(event) {
@@ -143,45 +284,98 @@ if (!membership || membership.clubStatus !== 'approved') {
         id: Number(idEl.value || '0'),
         ad: adEl.value.trim(),
         gunSaat: gunSaatEl.value.trim(),
+        eventDate: eventDateEl.value.trim(),
+        locationText: locationEl.value.trim(),
         seviye: seviyeEl.value.trim(),
         ucretBilgisi: ucretEl.value.trim(),
         aciklama: aciklamaEl.value.trim(),
+        bodyJson: editor.getJSON(),
+        gallery,
         aktif: aktifEl.checked,
       };
-      if (!payload.ad) {
-        return;
-      }
+      if (!payload.ad) return;
 
-      const isEdit = payload.id > 0;
-      const response = await fetch('/api/panel/programs', {
-        method: isEdit ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      if (!response.ok) {
-        alert('Kayit islemi basarisiz oldu.');
+      const submitBtn = event.target.querySelector('button[type="submit"]');
+      const originalText = submitBtn.innerHTML;
+      submitBtn.innerHTML = '<div class="spinner-small"></div> Kaydediliyor...';
+      submitBtn.disabled = true;
+
+      try {
+        const isEdit = payload.id > 0;
+        const response = await fetch('/api/panel/programs', {
+          method: isEdit ? 'PUT' : 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        
+        if (!response.ok) throw new Error('Kayıt işlemi başarısız oldu.');
+        
+        clearForm();
+        await loadPrograms();
+      } catch (err) {
+        alert(err.message);
+      } finally {
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+      }
+    }
+
+    async function uploadGalleryImage() {
+      const file = galleryFileEl.files?.[0];
+      if (!file) {
+        alert('Lütfen bir görsel seçin.');
         return;
       }
-      clearForm();
-      await loadPrograms();
+      
+      galleryUploadBtn.disabled = true;
+      galleryUploadBtn.innerHTML = '<div class="spinner-small"></div>';
+      
+      try {
+        const formData = new FormData();
+        formData.append('image', file);
+        
+        const response = await fetch('/api/panel/program-image-upload', {
+          method: 'POST',
+          body: formData,
+        });
+        
+        const payload = await response.json().catch(() => ({}));
+        
+        if (!response.ok || !payload.url) {
+          throw new Error(payload?.error || 'Görsel yüklenemedi.');
+        }
+        
+        gallery.push(payload.url);
+        galleryFileEl.value = '';
+        renderGallery();
+      } catch (err) {
+        alert(err.message);
+      } finally {
+        galleryUploadBtn.disabled = false;
+        galleryUploadBtn.textContent = 'Buluta Yükle';
+      }
     }
 
     async function removeProgram(id) {
-      const ok = confirm('Bu programi silmek istiyor musunuz?');
+      const ok = confirm('Bu ilanı silmek istediğinize emin misiniz? Bu işlem geri alınamaz.');
       if (!ok) return;
-      const response = await fetch('/api/panel/programs', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id }),
-      });
-      if (!response.ok) {
-        alert('Silme islemi basarisiz oldu.');
-        return;
+      
+      try {
+        const response = await fetch('/api/panel/programs', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id }),
+        });
+        
+        if (!response.ok) throw new Error('Silme işlemi başarısız oldu.');
+        
+        if (Number(idEl.value || '0') === id) {
+          clearForm();
+        }
+        await loadPrograms();
+      } catch (err) {
+        alert(err.message);
       }
-      if (Number(idEl.value || '0') === id) {
-        clearForm();
-      }
-      await loadPrograms();
     }
 
     list.addEventListener('click', async (event) => {
@@ -189,11 +383,14 @@ if (!membership || membership.clubStatus !== 'approved') {
       if (!(target instanceof HTMLElement)) return;
       const button = target.closest('button[data-action]');
       if (!button) return;
+      
       const action = button.getAttribute('data-action');
       const id = Number(button.getAttribute('data-id'));
       if (!id) return;
+      
       const row = programs.find((item) => item.id === id);
       if (!row) return;
+      
       if (action === 'edit') {
         fillForm(row);
       } else if (action === 'delete') {
@@ -201,77 +398,462 @@ if (!membership || membership.clubStatus !== 'approved') {
       }
     });
 
+    galleryListEl.addEventListener('click', (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      const button = target.closest('button[data-gallery-remove]');
+      if (!button) return;
+      
+      const index = Number(button.getAttribute('data-gallery-remove'));
+      if (Number.isNaN(index)) return;
+      
+      gallery = gallery.filter((_, itemIndex) => itemIndex !== index);
+      renderGallery();
+    });
+
+    document.querySelectorAll('[data-editor-action]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const action = button.getAttribute('data-editor-action');
+        if (action === 'bold') editor.chain().focus().toggleBold().run();
+        if (action === 'italic') editor.chain().focus().toggleItalic().run();
+        if (action === 'bullet') editor.chain().focus().toggleBulletList().run();
+        if (action === 'h2') editor.chain().focus().toggleHeading({ level: 2 }).run();
+        
+        // Active state
+        document.querySelectorAll('[data-editor-action]').forEach(b => b.classList.remove('is-active'));
+        if (editor.isActive(action)) button.classList.add('is-active');
+      });
+    });
+
     form.addEventListener('submit', saveProgram);
     resetBtn.addEventListener('click', clearForm);
+    galleryUploadBtn.addEventListener('click', uploadGalleryImage);
+    
+    // Init
     loadPrograms();
+    renderGallery();
   </script>
-</BaseLayout>
 
-<style>
-  .panel-programs { background: #f8f9fa; min-height: 60vh; }
-  .container--wide { max-width: 72rem; }
-  .page-title { margin: 0; font-size: clamp(1.7rem, 3vw, 2.1rem); font-weight: 900; color: #212529; }
-  .page-lead { margin-top: .65rem; color: #495057; }
-  .program-layout {
-    margin-top: 1rem;
-    display: grid;
-    gap: 1rem;
-    grid-template-columns: 1fr;
-  }
-  @media (min-width: 980px) {
-    .program-layout { grid-template-columns: minmax(320px, 400px) 1fr; align-items: start; }
-  }
-  .program-form, .program-list-box {
-    background: #fff;
-    border: 1px solid #e9ecef;
-    border-radius: .85rem;
-    padding: .95rem;
-  }
-  .program-form { display: grid; gap: .7rem; }
-  .program-form label { display: grid; gap: .3rem; color: #343a40; font-weight: 600; font-size: .9rem; }
-  .program-form input, .program-form textarea {
-    border: 1px solid #dee2e6;
-    border-radius: .55rem;
-    padding: .54rem .63rem;
-    font-size: .93rem;
-  }
-  .checkbox-row { display: flex !important; align-items: center; gap: .45rem; font-weight: 600; }
-  .form-actions { display: flex; align-items: center; gap: .65rem; flex-wrap: wrap; }
-  .form-actions button {
-    border: 0;
-    border-radius: .58rem;
-    background: #e30a17;
-    color: #fff;
-    padding: .56rem .85rem;
-    cursor: pointer;
-    font-weight: 700;
-  }
-  .form-actions .btn-muted { background: #495057; }
-  .form-actions a { color: #495057; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
-  .program-list-box h2 { margin: 0 0 .65rem; font-size: 1.05rem; color: #212529; }
-  .program-list { margin: 0; padding: 0; list-style: none; display: grid; gap: .6rem; }
-  .program-item {
-    border: 1px solid #dee2e6;
-    border-radius: .7rem;
-    padding: .65rem .7rem;
-    display: flex;
-    justify-content: space-between;
-    gap: .75rem;
-  }
-  .program-item strong { color: #212529; display: block; }
-  .program-item small { display: block; color: #6c757d; margin-top: .12rem; }
-  .item-actions { display: grid; gap: .45rem; }
-  .item-actions button {
-    border: 0;
-    border-radius: .5rem;
-    padding: .38rem .62rem;
-    background: #212529;
-    color: #fff;
-    cursor: pointer;
-    font-size: .82rem;
-  }
-  .item-actions button.danger { background: #c92a2a; }
-  .ok { color: #2b8a3e !important; font-weight: 700; }
-  .warn { color: #c92a2a !important; font-weight: 700; }
-  .hint { color: #6c757d; }
-</style>
+  <style>
+    /* Base Layout */
+    .panel-background {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: linear-gradient(135deg, #f8f9fa 0%, #f1f5f9 100%);
+      z-index: 0;
+      pointer-events: none;
+    }
+    
+    .panel-programs {
+      min-height: 80vh;
+      padding-top: 2rem;
+      padding-bottom: 4rem;
+    }
+    
+    .container--wide { max-width: 1200px; }
+
+    /* Shared Glass Card */
+    .card-glass {
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03), inset 0 1px 0 rgba(255,255,255,1);
+      border-radius: 1.25rem;
+      overflow: hidden;
+    }
+
+    /* Header */
+    .page-header { margin-bottom: 2rem; }
+    
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      color: var(--color-brand-gray-600);
+      font-weight: 700;
+      font-size: 0.9rem;
+      text-decoration: none;
+      margin-bottom: 1rem;
+      transition: color 0.2s;
+    }
+    .back-link:hover { color: var(--color-brand-red); }
+
+    .page-title {
+      font-size: clamp(1.8rem, 3vw, 2.5rem);
+      font-weight: 900;
+      color: var(--color-brand-gray-900);
+      margin: 0 0 0.5rem;
+      letter-spacing: -0.02em;
+    }
+    
+    .page-lead { margin: 0; color: var(--color-brand-gray-600); font-size: 1.05rem; }
+
+    /* Layout Grid */
+    .program-layout {
+      display: grid;
+      gap: 2rem;
+      grid-template-columns: 1fr;
+    }
+    
+    @media (min-width: 1024px) {
+      .program-layout { grid-template-columns: 1fr 400px; align-items: start; }
+    }
+
+    /* Form Container */
+    .program-form {
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .form-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px dashed var(--color-brand-gray-200);
+    }
+
+    .form-title { margin: 0; font-size: 1.2rem; font-weight: 800; color: var(--color-brand-gray-900); }
+
+    .badge-modern {
+      background: var(--color-brand-gray-100);
+      color: var(--color-brand-gray-700);
+      padding: 0.3rem 0.8rem;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+
+    /* Inputs */
+    .form-group { display: flex; flex-direction: column; gap: 0.4rem; }
+    
+    .form-row-2 {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.25rem;
+    }
+    
+    @media (min-width: 600px) { .form-row-2 { grid-template-columns: 1fr 1fr; } }
+
+    label { font-size: 0.85rem; font-weight: 700; color: var(--color-brand-gray-700); }
+    .text-red { color: var(--color-brand-red); }
+
+    .modern-input, .modern-textarea {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--color-brand-gray-300);
+      border-radius: 0.75rem;
+      font-family: inherit;
+      font-size: 0.95rem;
+      transition: all 0.2s;
+      background: white;
+    }
+
+    .modern-input:focus, .modern-textarea:focus {
+      outline: none;
+      border-color: var(--color-brand-red);
+      box-shadow: 0 0 0 3px rgba(227, 10, 23, 0.1);
+    }
+
+    .modern-textarea { resize: vertical; min-height: 80px; }
+
+    /* Editor */
+    .editor-toolbar {
+      display: flex;
+      gap: 0.4rem;
+      background: var(--color-brand-gray-50);
+      padding: 0.4rem;
+      border: 1px solid var(--color-brand-gray-300);
+      border-bottom: none;
+      border-radius: 0.75rem 0.75rem 0 0;
+    }
+
+    .toolbar-btn {
+      width: 32px; height: 32px;
+      display: grid;
+      place-items: center;
+      background: white;
+      border: 1px solid var(--color-brand-gray-200);
+      border-radius: 0.4rem;
+      cursor: pointer;
+      font-weight: 800;
+      color: var(--color-brand-gray-700);
+      transition: all 0.15s;
+    }
+
+    .toolbar-btn.italic { font-style: italic; }
+    .toolbar-btn:hover { background: var(--color-brand-gray-100); }
+    .toolbar-btn.is-active { background: var(--color-brand-red-50); color: var(--color-brand-red); border-color: var(--color-brand-red-100); }
+
+    .program-editor {
+      border: 1px solid var(--color-brand-gray-300);
+      border-radius: 0 0 0.75rem 0.75rem;
+      min-height: 200px;
+      padding: 1rem;
+      background: white;
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+
+    .program-editor:focus-within {
+      border-color: var(--color-brand-red);
+      box-shadow: 0 0 0 3px rgba(227, 10, 23, 0.1);
+      outline: none;
+    }
+
+    .program-editor p { margin: 0 0 0.5rem; }
+    .program-editor h2 { margin: 1rem 0 0.5rem; font-size: 1.2rem; font-weight: 800; }
+    .program-editor ul { padding-left: 1.5rem; margin: 0 0 0.5rem; }
+
+    /* Custom Toggle Switch */
+    .checkbox-wrapper { margin-top: 0.5rem; }
+    .toggle-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.75rem;
+      cursor: pointer;
+    }
+    
+    .toggle-input { display: none; }
+    
+    .toggle-switch {
+      position: relative;
+      width: 44px; height: 24px;
+      background: var(--color-brand-gray-300);
+      border-radius: 12px;
+      transition: background 0.3s;
+    }
+    
+    .toggle-switch::after {
+      content: '';
+      position: absolute;
+      top: 2px; left: 2px;
+      width: 20px; height: 20px;
+      background: white;
+      border-radius: 50%;
+      transition: transform 0.3s;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    
+    .toggle-input:checked + .toggle-switch { background: #10b981; }
+    .toggle-input:checked + .toggle-switch::after { transform: translateX(20px); }
+    
+    .toggle-text { font-size: 0.95rem; font-weight: 700; color: var(--color-brand-gray-800); }
+
+    /* Gallery */
+    .gallery-upload-box {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .modern-file-input {
+      flex: 1;
+      padding: 0.5rem;
+      border: 1px dashed var(--color-brand-gray-300);
+      border-radius: 0.75rem;
+      background: var(--color-brand-gray-50);
+      font-size: 0.85rem;
+    }
+
+    .btn-outline-sm {
+      padding: 0.6rem 1rem;
+      border: 1px solid var(--color-brand-gray-300);
+      background: white;
+      border-radius: 0.75rem;
+      font-weight: 700;
+      font-size: 0.85rem;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .btn-outline-sm:hover { background: var(--color-brand-gray-50); }
+
+    .gallery-list {
+      list-style: none; padding: 0; margin: 0.5rem 0 0;
+      display: flex; gap: 0.5rem; flex-wrap: wrap;
+    }
+
+    .empty-gallery { font-size: 0.85rem; color: var(--color-brand-gray-500); }
+
+    .gallery-item {
+      position: relative;
+      width: 80px; height: 60px;
+      border-radius: 0.5rem;
+      overflow: hidden;
+      border: 1px solid var(--color-brand-gray-200);
+    }
+
+    .gallery-item img { width: 100%; height: 100%; object-fit: cover; }
+
+    .btn-remove-img {
+      position: absolute;
+      top: 4px; right: 4px;
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.6);
+      color: white;
+      border: none;
+      font-size: 0.6rem;
+      cursor: pointer;
+      display: grid; place-items: center;
+    }
+    .btn-remove-img:hover { background: #ef4444; }
+
+    /* Buttons */
+    .form-actions {
+      margin-top: 1.5rem;
+      padding-top: 1.5rem;
+      border-top: 1px dashed var(--color-brand-gray-200);
+    }
+
+    .w-full { width: 100%; }
+    .mt-2 { margin-top: 0.5rem; }
+
+    .btn-primary-gradient {
+      display: flex; justify-content: center; align-items: center;
+      padding: 0.9rem;
+      border-radius: 0.75rem;
+      background: linear-gradient(135deg, var(--color-brand-red) 0%, #b5080f 100%);
+      color: white;
+      font-weight: 800;
+      font-size: 1rem;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(227, 10, 23, 0.2);
+      transition: all 0.2s;
+    }
+    .btn-primary-gradient:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(227, 10, 23, 0.3); }
+
+    .btn-white {
+      display: flex; justify-content: center; align-items: center;
+      padding: 0.8rem;
+      border-radius: 0.75rem;
+      background: white;
+      color: var(--color-brand-gray-700);
+      font-weight: 700;
+      font-size: 0.95rem;
+      border: 1px solid var(--color-brand-gray-300);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-white:hover { background: var(--color-brand-gray-50); color: var(--color-brand-gray-900); }
+
+    /* Right Sidebar List */
+    .program-list-box {
+      padding: 1.5rem;
+      position: sticky;
+      top: 85px;
+    }
+
+    .list-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.25rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px dashed var(--color-brand-gray-200);
+    }
+
+    .list-header h2 { margin: 0; font-size: 1.2rem; font-weight: 800; color: var(--color-brand-gray-900); }
+    .bg-gray { background: var(--color-brand-gray-100); }
+
+    .modern-program-list {
+      list-style: none; margin: 0; padding: 0;
+      display: flex; flex-direction: column; gap: 1rem;
+      max-height: 65vh;
+      overflow-y: auto;
+      padding-right: 0.5rem;
+    }
+
+    .modern-program-list::-webkit-scrollbar { width: 4px; }
+    .modern-program-list::-webkit-scrollbar-track { background: transparent; }
+    .modern-program-list::-webkit-scrollbar-thumb { background: var(--color-brand-gray-300); border-radius: 4px; }
+
+    .empty-state {
+      text-align: center;
+      padding: 2rem 1rem;
+      color: var(--color-brand-gray-500);
+      display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
+    }
+    .empty-icon { font-size: 2rem; opacity: 0.5; }
+
+    .list-item {
+      display: flex;
+      background: white;
+      border: 1px solid var(--color-brand-gray-200);
+      border-radius: 0.85rem;
+      overflow: hidden;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .list-item:hover {
+      border-color: var(--color-brand-gray-300);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+    }
+
+    .item-status-strip { width: 6px; flex-shrink: 0; }
+    .bg-green { background: #10b981; }
+    .bg-red { background: #ef4444; }
+
+    .item-content { padding: 1rem; flex: 1; display: flex; flex-direction: column; gap: 0.75rem; }
+    
+    .item-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; }
+    .item-title { font-size: 0.95rem; font-weight: 800; color: var(--color-brand-gray-900); line-height: 1.3; }
+    
+    .badge-mini {
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+    .bg-green-light { background: #dcfce7; } .text-green { color: #166534; }
+    .bg-red-light { background: #fee2e2; } .text-red { color: #991b1b; }
+
+    .item-details { display: flex; flex-direction: column; gap: 0.25rem; }
+    .item-details span { font-size: 0.8rem; color: var(--color-brand-gray-600); display: flex; align-items: center; gap: 0.35rem; }
+    .icon { font-style: normal; font-size: 0.8rem; opacity: 0.7; }
+
+    .item-actions {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.25rem;
+    }
+
+    .btn-sm {
+      flex: 1;
+      padding: 0.4rem;
+      border-radius: 0.5rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      border: 1px solid transparent;
+      display: flex; justify-content: center; align-items: center; gap: 0.25rem;
+    }
+
+    .btn-edit { background: var(--color-brand-gray-50); color: var(--color-brand-gray-700); border-color: var(--color-brand-gray-200); }
+    .btn-edit:hover { background: white; border-color: var(--color-brand-gray-400); color: var(--color-brand-gray-900); }
+
+    .btn-delete { background: #fff5f5; color: #dc2626; border-color: #fecaca; }
+    .btn-delete:hover { background: #fee2e2; border-color: #fca5a5; }
+
+    .spinner-small {
+      display: inline-block;
+      width: 16px; height: 16px;
+      border: 2px solid rgba(0,0,0,0.1);
+      border-top-color: currentColor;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Animations */
+    .animate-fade-in-up { animation: fadeInUp 0.5s ease-out forwards; opacity: 0; transform: translateY(15px); }
+    .delay-100 { animation-delay: 0.1s; }
+    @keyframes fadeInUp { to { opacity: 1; transform: translateY(0); } }
+
+  </style>
+</BaseLayout>

@@ -8,6 +8,40 @@ if (!club) {
   return Astro.redirect('/ara');
 }
 const programs = await getClubProgramsByClubId(club.id);
+
+function getBodySections(bodyJson: unknown) {
+  if (!bodyJson || typeof bodyJson !== 'object') return [];
+  const content = (bodyJson as { content?: unknown }).content;
+  if (!Array.isArray(content)) return [];
+  return content
+    .map((node) => {
+      if (!node || typeof node !== 'object') return '';
+      const typedNode = node as { type?: string; content?: unknown };
+      const children = Array.isArray(typedNode.content) ? typedNode.content : [];
+      const text = children
+        .map((child) => {
+          if (!child || typeof child !== 'object') return '';
+          const childNode = child as { text?: unknown; content?: unknown };
+          if (typeof childNode.text === 'string') return childNode.text;
+          if (Array.isArray(childNode.content)) {
+            return childNode.content
+              .map((nested) =>
+                nested && typeof nested === 'object' && typeof (nested as { text?: unknown }).text === 'string'
+                  ? String((nested as { text?: unknown }).text)
+                  : ''
+              )
+              .join(' ')
+              .trim();
+          }
+          return '';
+        })
+        .join(' ')
+        .trim();
+      if (!text) return '';
+      return typedNode.type === 'heading' ? `# ${text}` : text;
+    })
+    .filter(Boolean);
+}
 ---
 
 <BaseLayout
@@ -17,46 +51,70 @@ const programs = await getClubProgramsByClubId(club.id);
 >
   <section class="section detail-page">
     <div class="container detail">
-      <a href={`/ara?brans=${club.bransSlug}`} class="back-link">← Arama Sonuclarina Don</a>
+      <a href={`/ara?brans=${club.bransSlug}`} class="back-link">← Arama sonuçlarına dön</a>
 
       <header class="hero">
-        <div class="icon" style={`--branch-color: ${club.renk}`}>{club.emoji}</div>
-        <div>
-          <h1>{club.ad}</h1>
-          <p>{club.brans} • {club.ilce || club.il}</p>
+        <div class="hero-main">
+          <div class="icon" style={`--branch-color: ${club.renk}`}>{club.emoji}</div>
+          <div>
+            <p class="hero-kicker">{club.brans} ilanları</p>
+            <h1>{club.ad}</h1>
+            <p class="hero-sub">{club.ilce || club.il} • {club.yasAraligi || 'Tüm yaş grupları'}</p>
+          </div>
+        </div>
+        <div class="hero-badges">
+          <span>{programs.length} aktif ilan</span>
+          <span>Puan {club.puan} / 5</span>
+          <span>{club.yorumSayisi} yorum</span>
         </div>
       </header>
 
-      <div class="grid">
-        <article class="card">
-          <h2>Kulup Hakkinda</h2>
-          <p>{club.aciklama}</p>
-        </article>
-        <article class="card">
-          <h2>Temel Bilgiler</h2>
-          <ul>
-            <li><strong>Yas araligi:</strong> {club.yasAraligi}</li>
-            <li><strong>Aylik ucret:</strong> {club.fiyat}</li>
-            <li><strong>Adres:</strong> {club.adres}</li>
-            <li><strong>Puan:</strong> {club.puan} ({club.yorumSayisi} yorum)</li>
-          </ul>
-          <a class="btn btn-primary btn-sm" href={`tel:${club.telefon.replace(/\s/g, '')}`}>Kulubu Ara</a>
-        </article>
-      </div>
-
-      <article class="card program-card">
-        <h2>Programlar</h2>
+      <article class="program-zone" data-club-lat={club.enlem || ''} data-club-lng={club.boylam || ''}>
+        <h2 class="section-title">Spor ilanları</h2>
         {programs.length > 0 ? (
           <ul class="program-list">
             {programs.map((program) => (
               <li class="program-item">
-                <div class="program-top">
-                  <strong>{program.ad}</strong>
-                  {program.seviye && <span class="program-level">{program.seviye}</span>}
+                <div class="listing-header">
+                  <div>
+                    <strong>{program.ad}</strong>
+                    <p class="listing-meta">{program.seviye || 'Genel seviye'}</p>
+                  </div>
+                  <div class="listing-badges">
+                    <span class="price-badge">{program.ucretBilgisi || 'Fiyat sorunuz'}</span>
+                    <span class="program-level">{program.aktif ? 'Yayında' : 'Pasif'}</span>
+                  </div>
                 </div>
-                {program.gunSaat && <p><strong>Gün/Saat:</strong> {program.gunSaat}</p>}
-                {program.ucretBilgisi && <p><strong>Ücret:</strong> {program.ucretBilgisi}</p>}
-                {program.aciklama && <p>{program.aciklama}</p>}
+                <ul class="listing-grid">
+                  <li><span>Tarih</span><strong>{program.eventDate || 'Belirtilmedi'}</strong></li>
+                  <li><span>Saat</span><strong>{program.gunSaat || 'Belirtilmedi'}</strong></li>
+                  <li><span>Konum</span><strong>{program.locationText || club.ilce || club.il}</strong></li>
+                  <li><span>Eve uzaklık</span><strong class="distance-output">Konum izni bekleniyor</strong></li>
+                </ul>
+                {program.aciklama && <p class="listing-summary">{program.aciklama}</p>}
+                {getBodySections(program.bodyJson).length > 0 && (
+                  <div class="listing-body">
+                    {getBodySections(program.bodyJson).map((line) => (
+                      <p>{line}</p>
+                    ))}
+                  </div>
+                )}
+                <div class="listing-gallery">
+                  <h3>Galeri</h3>
+                  {program.gallery.length > 0 ? (
+                    <div class="gallery-grid">
+                      {program.gallery.map((imageUrl) => (
+                        <img src={imageUrl} alt={`${program.ad} görseli`} loading="lazy" />
+                      ))}
+                    </div>
+                  ) : (
+                    <p class="muted">Bu ilan için galeri görseli eklenmedi.</p>
+                  )}
+                </div>
+                <div class="listing-comments">
+                  <h3>Kullanıcı yorumları</h3>
+                  <p class="muted">Yorum alanı hazırlanıyor. Bu kulübün genel puanı {club.puan} ve toplam {club.yorumSayisi} yorumu var.</p>
+                </div>
               </li>
             ))}
           </ul>
@@ -68,46 +126,267 @@ const programs = await getClubProgramsByClubId(club.id);
   </section>
 </BaseLayout>
 
+<script is:inline>
+  const card = document.querySelector('.program-zone');
+  if (card) {
+    const lat = Number(card.getAttribute('data-club-lat'));
+    const lng = Number(card.getAttribute('data-club-lng'));
+    const outputs = Array.from(document.querySelectorAll('.distance-output'));
+    const setOutput = (text) => outputs.forEach((node) => (node.textContent = text));
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      setOutput('Konum bilgisi yok');
+    } else if (!navigator.geolocation) {
+      setOutput('Tarayıcı konum desteklemiyor');
+    } else {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const toRad = (value) => (value * Math.PI) / 180;
+          const earthRadiusKm = 6371;
+          const dLat = toRad(lat - pos.coords.latitude);
+          const dLon = toRad(lng - pos.coords.longitude);
+          const a =
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(toRad(pos.coords.latitude)) * Math.cos(toRad(lat)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+          const km = Math.round(earthRadiusKm * c * 10) / 10;
+          setOutput(`${km} km`);
+        },
+        () => setOutput('Konum izni verilmedi')
+      );
+    }
+  }
+</script>
+
 <style>
-  .detail-page { background: #F8F9FA; min-height: 60vh; }
-  .back-link { color: #6C757D; text-decoration: none; font-weight: 600; font-size: .85rem; }
-  .hero { margin-top: 1rem; display: flex; align-items: center; gap: .9rem; }
-  .icon {
-    width: 52px; height: 52px; border-radius: .75rem; display: grid; place-items: center; font-size: 1.5rem;
-    background: color-mix(in srgb, var(--branch-color, #E30A17) 14%, transparent);
+  .detail-page {
+    background:
+      radial-gradient(circle at top left, rgba(227, 10, 23, 0.08), transparent 38%),
+      radial-gradient(circle at top right, rgba(22, 28, 36, 0.06), transparent 30%),
+      #f4f6f8;
+    min-height: 60vh;
   }
-  .hero h1 { font-size: clamp(1.4rem, 3.2vw, 2.1rem); font-weight: 900; color: #212529; }
-  .hero p { margin-top: .2rem; color: #6C757D; }
-  .grid { margin-top: 1.25rem; display: grid; grid-template-columns: 1fr; gap: 1rem; }
-  @media (min-width: 980px) { .grid { grid-template-columns: 1.4fr 1fr; } }
-  .card { background: #fff; border: 1px solid #E9ECEF; border-radius: .9rem; padding: 1rem; }
-  .card h2 { font-size: 1rem; font-weight: 800; color: #212529; margin-bottom: .5rem; }
-  .card p, .card li { color: #495057; line-height: 1.65; font-size: .9rem; }
-  .card ul { display: grid; gap: .35rem; margin-bottom: .8rem; padding-left: 1rem; }
-  .program-card { margin-top: 1rem; }
-  .program-list { list-style: none; padding: 0; margin: 0; display: grid; gap: .65rem; }
-  .program-item {
-    border: 1px solid #e9ecef;
-    border-radius: .7rem;
-    padding: .65rem .75rem;
-    background: #fff;
+  .detail {
+    max-width: 75rem;
   }
-  .program-top {
+  .back-link {
+    color: #6c757d;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 0.85rem;
+  }
+  .hero {
+    margin-top: 0.85rem;
+    border: 1px solid #e5e9ef;
+    border-radius: 1rem;
+    background: linear-gradient(140deg, #ffffff 0%, #f9fbff 100%);
+    padding: 1.25rem;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.9rem;
+  }
+  .hero-main {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: .5rem;
-    margin-bottom: .35rem;
+    gap: 0.9rem;
   }
-  .program-level {
-    font-size: .72rem;
-    background: #fff1f2;
-    color: #a30711;
-    border: 1px solid #ffe0e2;
+  .icon {
+    width: 54px;
+    height: 54px;
+    border-radius: 0.85rem;
+    display: grid;
+    place-items: center;
+    font-size: 1.5rem;
+    background: color-mix(in srgb, var(--branch-color, #E30A17) 14%, transparent);
+  }
+  .hero-kicker {
+    margin: 0;
+    color: #e30a17;
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .hero h1 {
+    margin: 0.2rem 0 0;
+    font-size: clamp(1.7rem, 3.2vw, 2.3rem);
+    font-weight: 900;
+    color: #212529;
+  }
+  .hero-sub {
+    margin: 0.35rem 0 0;
+    color: #6c757d;
+    font-size: 1rem;
+  }
+  .hero-badges {
+    display: flex;
+    gap: 0.45rem;
+    flex-wrap: wrap;
+    align-content: flex-start;
+  }
+  .hero-badges span {
+    border: 1px solid #e8ecf1;
     border-radius: 999px;
-    padding: .1rem .45rem;
+    background: #fbfcfd;
+    color: #3f4953;
+    padding: 0.35rem 0.65rem;
+    font-size: 0.78rem;
     font-weight: 700;
   }
-  .program-empty { color: #6c757d; }
+  .program-zone {
+    margin-top: 1rem;
+  }
+  .section-title {
+    margin: 0 0 0.6rem;
+    font-size: 1.35rem;
+    color: #1f2933;
+    font-weight: 900;
+  }
+  .program-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 0.8rem;
+  }
+  .program-item {
+    border: 1px solid #e5e9ef;
+    border-radius: 1rem;
+    padding: 1rem;
+    background: #fff;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+  }
+  .program-item strong {
+    font-size: 1.2rem;
+    color: #17212b;
+  }
+  .listing-badges {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .price-badge {
+    border-radius: 999px;
+    padding: 0.2rem 0.6rem;
+    font-size: 0.75rem;
+    font-weight: 800;
+    border: 1px solid #dbe3f5;
+    color: #1f2a44;
+    background: #f2f6ff;
+  }
+  .program-level {
+    font-size: 0.72rem;
+    background: #fff2f3;
+    color: #a30f1c;
+    border: 1px solid #ffd9dd;
+    border-radius: 999px;
+    padding: 0.15rem 0.5rem;
+    font-weight: 700;
+  }
+  .program-empty {
+    color: #6c757d;
+    border: 1px dashed #d6dce3;
+    border-radius: 0.8rem;
+    background: #fff;
+    padding: 0.9rem;
+  }
+  .listing-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.8rem;
+  }
+  .listing-meta {
+    margin: 0.3rem 0 0;
+    color: #5b6670;
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+  .listing-grid {
+    margin-top: 0.65rem;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.45rem 0.8rem;
+    background: #f8fafc;
+    border: 1px solid #e9edf2;
+    border-radius: 0.7rem;
+    padding: 0.65rem;
+    list-style: none;
+  }
+  .listing-grid li {
+    margin: 0;
+    display: grid;
+    gap: 0.08rem;
+    padding: 0.2rem 0.15rem;
+  }
+  .listing-grid span {
+    color: #74808c;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .listing-grid strong {
+    font-size: 0.98rem;
+    color: #1f2933;
+    font-weight: 700;
+  }
+  .listing-summary {
+    margin-top: 0.7rem;
+    font-weight: 600;
+    line-height: 1.65;
+    font-size: 1rem;
+    color: #25313d;
+  }
+  .listing-body p {
+    margin: 0.45rem 0 0;
+    color: #3f4953;
+    line-height: 1.68;
+  }
+  .listing-gallery,
+  .listing-comments {
+    margin-top: 0.85rem;
+    border-top: 1px solid #edf0f2;
+    padding-top: 0.75rem;
+  }
+  .listing-gallery h3,
+  .listing-comments h3 {
+    margin: 0;
+    font-size: 1rem;
+    color: #1f2933;
+    font-weight: 800;
+  }
+  .gallery-grid {
+    margin-top: 0.55rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 0.55rem;
+  }
+  .gallery-grid img {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    border-radius: 0.55rem;
+    border: 1px solid #e9ecef;
+  }
+  .muted {
+    margin-top: 0.35rem;
+    color: #6c757d;
+    font-size: 0.92rem;
+    line-height: 1.6;
+  }
+  @media (max-width: 760px) {
+    .hero {
+      padding: 0.9rem;
+    }
+    .hero-main {
+      align-items: flex-start;
+    }
+    .listing-grid {
+      grid-template-columns: 1fr;
+    }
+  }
 </style>
 

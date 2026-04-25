@@ -1,5 +1,6 @@
 import { getDb, hasDatabaseUrl } from '../../db/client';
 import { expireDueMemberships } from './memberships';
+import { parseProgramContent } from './programContent';
 
 export type SearchFilters = {
   il?: string;
@@ -17,6 +18,10 @@ export type ClubProgramSummary = {
   seviye: string;
   ucretBilgisi: string;
   aktif: boolean;
+  eventDate: string;
+  locationText: string;
+  gallery: string[];
+  bodyJson: unknown | null;
 };
 
 function requireDatabase() {
@@ -145,14 +150,34 @@ export async function searchClubs(filters: SearchFilters) {
       return a.ad.localeCompare(b.ad, 'tr');
     });
 
-  const programsByClub = new Map<number, Array<{ ad: string; gunSaat: string; aktif: boolean }>>();
+  const programsByClub = new Map<
+    number,
+    Array<{
+      id: number;
+      ad: string;
+      gunSaat: string;
+      seviye: string;
+      ucretBilgisi: string;
+      aktif: boolean;
+      eventDate: string;
+      locationText: string;
+      aciklama: string;
+    }>
+  >();
   for (const row of programs) {
     const clubId = Number(row.kulupLegacyId);
+    const parsed = parseProgramContent((row.aciklama as string) ?? '');
     const current = programsByClub.get(clubId) ?? [];
     current.push({
+      id: Number(row.legacyId),
       ad: (row.ad as string) ?? '',
       gunSaat: (row.gunSaat as string) ?? '',
+      seviye: (row.seviye as string) ?? '',
+      ucretBilgisi: (row.ucretBilgisi as string) ?? '',
       aktif: Boolean(row.aktif),
+      eventDate: parsed.content.eventDate,
+      locationText: parsed.content.locationText,
+      aciklama: parsed.content.summary || parsed.legacyText || '',
     });
     programsByClub.set(clubId, current);
   }
@@ -173,6 +198,8 @@ export async function searchClubs(filters: SearchFilters) {
           : null,
       programSayisi: programs.length,
       programOzet,
+      ilkProgramId: firstProgram?.id ?? null,
+      programlar: programs,
     };
   });
 }
@@ -215,15 +242,86 @@ export async function getClubProgramsByClubId(clubId: number) {
     filter: `kulupLegacyId = ${clubId} && aktif = true`,
     sort: 'ad',
   });
-  return rows.map((row) => ({
-    id: Number(row.legacyId),
-    ad: row.ad as string,
-    aciklama: row.aciklama as string,
-    gunSaat: row.gunSaat as string,
-    seviye: row.seviye as string,
-    ucretBilgisi: row.ucretBilgisi as string,
-    aktif: Boolean(row.aktif),
-  }));
+  return rows.map((row) => {
+    const parsed = parseProgramContent((row.aciklama as string) ?? '');
+    return {
+      id: Number(row.legacyId),
+      ad: row.ad as string,
+      aciklama: parsed.content.summary || parsed.legacyText || '',
+      gunSaat: row.gunSaat as string,
+      seviye: row.seviye as string,
+      ucretBilgisi: row.ucretBilgisi as string,
+      aktif: Boolean(row.aktif),
+      eventDate: parsed.content.eventDate,
+      locationText: parsed.content.locationText,
+      gallery: parsed.content.gallery,
+      bodyJson: parsed.content.bodyJson,
+    };
+  });
+}
+
+export async function getProgramListingById(programId: number) {
+  requireDatabase();
+  await expireDueMemberships();
+  const db = await getDb();
+
+  const [program, clubs, cities, districts, clubBranches, branches, memberships] = await Promise.all([
+    db.collection('kulup_programlari').getFirstListItem(`legacyId = ${programId} && aktif = true`).catch(() => null),
+    db.collection('kulupler').getFullList({ filter: 'durum = "approved"' }),
+    db.collection('iller').getFullList(),
+    db.collection('ilceler').getFullList(),
+    db.collection('kulup_branslar').getFullList(),
+    db.collection('branslar').getFullList(),
+    db.collection('kulup_uyelikleri').getFullList({ filter: 'odemeDurumu = "paid"' }),
+  ]);
+
+  if (!program) return null;
+  const clubLegacyId = Number(program.kulupLegacyId);
+  const nowMs = Date.now();
+  const hasValidMembership = memberships.some((row) => {
+    const matchesClub = Number(row.kulupLegacyId) === clubLegacyId;
+    if (!matchesClub) return false;
+    const endAt = (row.bitisTarihi as string | undefined) ?? '';
+    return !endAt || new Date(endAt).getTime() > nowMs;
+  });
+  if (!hasValidMembership) return null;
+
+  const club = clubs.find((item) => Number(item.legacyId) === clubLegacyId);
+  if (!club) return null;
+  const city = cities.find((item) => Number(item.legacyId) === Number(club.ilLegacyId));
+  const district = districts.find((item) => Number(item.legacyId) === Number(club.ilceLegacyId));
+  const branchLink = clubBranches.find((item) => Number(item.kulupLegacyId) === clubLegacyId);
+  const branch = branches.find((item) => Number(item.legacyId) === Number(branchLink?.bransLegacyId));
+  const parsed = parseProgramContent((program.aciklama as string) ?? '');
+
+  return {
+    id: Number(program.legacyId),
+    ad: (program.ad as string) ?? '',
+    aciklama: parsed.content.summary || parsed.legacyText || '',
+    gunSaat: (program.gunSaat as string) ?? '',
+    seviye: (program.seviye as string) ?? '',
+    ucretBilgisi: (program.ucretBilgisi as string) ?? '',
+    aktif: Boolean(program.aktif),
+    eventDate: parsed.content.eventDate,
+    locationText: parsed.content.locationText || ((district?.ad as string | undefined) ?? (city?.ad as string | undefined) ?? ''),
+    gallery: parsed.content.gallery,
+    bodyJson: parsed.content.bodyJson,
+    club: {
+      id: Number(club.legacyId),
+      ad: (club.ad as string) ?? '',
+      il: (city?.ad as string | undefined) ?? '',
+      ilce: (district?.ad as string | undefined) ?? '',
+      yasAraligi: (club.yasAraligi as string) ?? '',
+      puan: Number(club.puan ?? 0),
+      yorumSayisi: Number(club.yorumSayisi ?? 0),
+      enlem: Number(club.enlem ?? 0),
+      boylam: Number(club.boylam ?? 0),
+      emoji: (branch?.emoji as string | undefined) ?? '',
+      renk: (branch?.renk as string | undefined) ?? '',
+      brans: (branch?.ad as string | undefined) ?? '',
+      bransSlug: (branch?.slug as string | undefined) ?? '',
+    },
+  };
 }
 
 export async function getCityBranchLanding(citySlug: string, branchSlug: string) {

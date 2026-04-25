@@ -2,6 +2,7 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getCurrentSessionUser } from '../../lib/auth/session';
 import { getUserPrimaryClub } from '../../lib/repositories/auth';
+import { listPanelPrograms } from '../../lib/repositories/panelPrograms';
 
 const session = await getCurrentSessionUser(Astro.request);
 if (!session) {
@@ -14,90 +15,653 @@ const membership = await getUserPrimaryClub(session.userId);
 if (!membership || membership.clubStatus !== 'approved') {
   return Astro.redirect('/panel/giris?error=forbidden');
 }
+const programs = await listPanelPrograms(session.userId);
+const activePrograms = programs.filter((program) => program.aktif);
+const passivePrograms = programs.filter((program) => !program.aktif);
+const latestPrograms = [...programs]
+  .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+  .slice(0, 3);
 ---
 
 <BaseLayout
-  title="Kulüp paneli"
-  description="Kulüp paneli özeti ve oturum bilgileri."
+  title="Kulüp Paneli | SporNerede"
+  description="Kulüp paneli ana sayfası, özet metrikler ve hızlı işlemler."
   noIndex={true}
 >
-  <section class="section panel-home">
-    <div class="container container--narrow">
-      <h1 class="page-title">Kulüp paneli</h1>
-      <p class="page-lead">
-        Oturum açık. Bu alan bir sonraki adımda profil, kurslar ve başvuru/belge yönetimi modülleriyle genişletilecek.
-      </p>
+  <div class="panel-background"></div>
+  <section class="section panel-home relative z-10">
+    <div class="container panel-wrap">
+      
+      <!-- Welcome Hero -->
+      <header class="hero-card card-glass animate-fade-in-up">
+        <div class="hero-content">
+          <div class="kicker-wrap">
+            <span class="pulse-dot"></span>
+            <p class="eyebrow">KULÜP YÖNETİM PANELİ</p>
+          </div>
+          <h1 class="page-title">Hoş Geldiniz, <span class="text-brand-red">{membership.clubName || 'Yönetici'}</span></h1>
+          <p class="page-lead">
+            Spor ilanlarınızı tek yerden yayınlayın, performansını takip edin ve yüzlerce sporcuya daha kolay ulaşın.
+          </p>
+        </div>
+        <div class="session-box">
+          <div class="session-avatar">👤</div>
+          <div class="session-info">
+            <p class="session-email">{session.email}</p>
+            <p class="session-role badge-modern">{session.role === 'owner' ? 'Kulüp Sahibi' : 'Yönetici'}</p>
+          </div>
+        </div>
+      </header>
 
-      <div class="session-box">
-        <p><strong>E-posta:</strong> {session.email}</p>
-        <p><strong>Rol:</strong> {session.role}</p>
-      </div>
+      <!-- Metrics Grid -->
+      <section class="kpi-grid animate-fade-in-up delay-100" aria-label="Panel metrikleri">
+        <article class="kpi-card card-glass">
+          <div class="kpi-icon bg-green-light text-green">📢</div>
+          <div class="kpi-data">
+            <p class="kpi-value">{activePrograms.length}</p>
+            <p class="kpi-label">Aktif İlan</p>
+          </div>
+          <div class="kpi-note-bottom">Yayında olan ilanlar</div>
+        </article>
+        
+        <article class="kpi-card card-glass">
+          <div class="kpi-icon bg-blue-light text-blue">📋</div>
+          <div class="kpi-data">
+            <p class="kpi-value">{programs.length}</p>
+            <p class="kpi-label">Toplam İlan</p>
+          </div>
+          <div class="kpi-note-bottom">Kayıtlı tüm ilanlar</div>
+        </article>
+        
+        <article class="kpi-card card-glass">
+          <div class="kpi-icon bg-amber-light text-amber">👁️</div>
+          <div class="kpi-data">
+            <p class="kpi-value">--</p>
+            <p class="kpi-label">Görüntülenme</p>
+          </div>
+          <div class="kpi-note-bottom">Yakında aktif edilecek</div>
+        </article>
+        
+        <article class="kpi-card card-glass">
+          <div class="kpi-icon bg-red-light text-red">⏸️</div>
+          <div class="kpi-data">
+            <p class="kpi-value">{passivePrograms.length}</p>
+            <p class="kpi-label">Pasif İlan</p>
+          </div>
+          <div class="kpi-note-bottom">Yayında olmayan ilanlar</div>
+        </article>
+      </section>
 
-      <div class="panel-links">
-        <a href="/panel/profil">Profili duzenle</a>
-        <a href="/panel/kurslar">Kurs/program yonetimi</a>
-      </div>
+      <!-- Main Content Grid -->
+      <section class="content-grid animate-fade-in-up delay-200">
+        <!-- Latest Programs -->
+        <article class="panel-card card-glass">
+          <div class="card-header">
+            <h2>Son Güncellenen İlanlar</h2>
+            <a href="/panel/kurslar" class="view-all-link">Tümünü Gör →</a>
+          </div>
+          <ul class="timeline-list">
+            {latestPrograms.length === 0 ? (
+              <li class="empty-timeline">
+                <div class="empty-icon">📝</div>
+                <div>
+                  <p class="item-title">Henüz ilanınız yok</p>
+                  <p class="item-sub">"Yeni ilan yayınla" butonu ile ilk kursunuzu ekleyebilirsiniz.</p>
+                </div>
+              </li>
+            ) : (
+              latestPrograms.map((program) => (
+                <li class="timeline-item">
+                  <div class="timeline-status">
+                    <div class={`status-indicator ${program.aktif ? 'bg-green' : 'bg-red'}`}></div>
+                    <span class="time">{program.aktif ? 'Aktif' : 'Pasif'}</span>
+                  </div>
+                  <div class="timeline-item-main">
+                    <div class="timeline-info">
+                      <p class="item-title">{program.ad}</p>
+                      <p class="item-sub"><i class="badge-icon">⏰</i> {program.gunSaat || 'Gün/saat bilgisi eklenmedi'}</p>
+                    </div>
+                    <a class="btn-icon" href="/panel/kurslar" title="Düzenle">✏️</a>
+                  </div>
+                </li>
+              ))
+            )}
+          </ul>
+        </article>
 
-      <form method="post" action="/api/panel/logout">
-        <button class="logout-btn" type="submit">Çıkış yap</button>
-      </form>
+        <!-- System Overview -->
+        <article class="panel-card card-glass">
+          <div class="card-header">
+            <h2>Sistem Durumu</h2>
+          </div>
+          <div class="status-cards">
+            <div class="status-card border-l-green">
+              <div class="status-icon">🚀</div>
+              <div class="status-info">
+                <p class="item-title">Yayındaki İlanlar</p>
+                <p class="item-sub"><strong>{activePrograms.length}</strong> ilan şu anda ziyaretçilere açık ve vitrinde sergileniyor.</p>
+              </div>
+            </div>
+            
+            <div class="status-card border-l-amber">
+              <div class="status-icon">⏳</div>
+              <div class="status-info">
+                <p class="item-title">Bekleyen İlanlar</p>
+                <p class="item-sub"><strong>{passivePrograms.length}</strong> ilan taslak olarak bekliyor veya pasife çekilmiş.</p>
+              </div>
+            </div>
+            
+            <div class="status-card border-l-blue">
+              <div class="status-icon">📈</div>
+              <div class="status-info">
+                <p class="item-title">Performans (Beta)</p>
+                <p class="item-sub">İlanlarınıza ait ziyaretçi istatistikleri modülü yakında devreye girecek.</p>
+              </div>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <!-- Quick Actions -->
+      <section class="quick-actions card-glass animate-fade-in-up delay-300" aria-label="Hızlı işlemler">
+        <h2>Hızlı İşlemler</h2>
+        <div class="action-grid">
+          <a href="/panel/kurslar" class="action-btn btn-primary-gradient">
+            <span class="action-icon">➕</span>
+            <span>Yeni İlan Ekle</span>
+          </a>
+          <a href="/panel/kurslar" class="action-btn btn-white">
+            <span class="action-icon">📂</span>
+            <span>İlanları Yönet</span>
+          </a>
+          <a href="/panel/profil" class="action-btn btn-white">
+            <span class="action-icon">🏢</span>
+            <span>Kulüp Profilini Düzenle</span>
+          </a>
+          <a href="/panel/sifre-degistir" class="action-btn btn-white">
+            <span class="action-icon">🔐</span>
+            <span>Şifre Güncelle</span>
+          </a>
+          <form method="post" action="/api/panel/logout" class="logout-form">
+            <button class="action-btn btn-danger" type="submit">
+              <span class="action-icon">🚪</span>
+              <span>Çıkış Yap</span>
+            </button>
+          </form>
+        </div>
+      </section>
     </div>
   </section>
 </BaseLayout>
 
 <style>
+  /* Base Layout */
+  .panel-background {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(135deg, #f8f9fa 0%, #f1f5f9 100%);
+    z-index: 0;
+    pointer-events: none;
+  }
+  
   .panel-home {
-    background: #f8f9fa;
-    min-height: 55vh;
-    padding-block: 2.5rem;
+    min-height: 80vh;
+    padding-top: 2rem;
+    padding-bottom: 4rem;
   }
-  .container--narrow {
-    max-width: 36rem;
+  
+  .panel-wrap {
+    max-width: 1200px;
   }
-  .page-title {
-    font-size: clamp(1.65rem, 3vw, 2rem);
-    font-weight: 900;
-    color: #212529;
+  
+  /* Shared Glass Card */
+  .card-glass {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03), inset 0 1px 0 rgba(255,255,255,1);
+    border-radius: 1.25rem;
+  }
+
+  /* Hero Section */
+  .hero-card {
+    padding: 2.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 2rem;
+    flex-wrap: wrap;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-card::before {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 300px; height: 300px;
+    background: radial-gradient(circle, var(--color-brand-red-50) 0%, transparent 70%);
+    opacity: 0.8;
+    border-radius: 50%;
+    transform: translate(30%, -30%);
+    pointer-events: none;
+  }
+
+  .kicker-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .pulse-dot {
+    width: 8px; height: 8px;
+    background-color: var(--color-brand-red);
+    border-radius: 50%;
+    box-shadow: 0 0 0 0 rgba(227, 10, 23, 0.4);
+    animation: pulse-red 2s infinite;
+  }
+
+  @keyframes pulse-red {
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(227, 10, 23, 0.7); }
+    70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(227, 10, 23, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(227, 10, 23, 0); }
+  }
+
+  .eyebrow {
     margin: 0;
+    color: var(--color-brand-red);
+    font-size: 0.85rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
   }
+
+  .page-title {
+    font-size: clamp(1.8rem, 4vw, 2.5rem);
+    font-weight: 900;
+    color: var(--color-brand-gray-900);
+    margin: 0 0 0.5rem;
+    line-height: 1.2;
+  }
+
+  .text-brand-red { color: var(--color-brand-red); }
+
   .page-lead {
-    margin-top: 0.75rem;
-    color: #495057;
-    line-height: 1.65;
+    margin: 0;
+    color: var(--color-brand-gray-600);
+    font-size: 1.05rem;
+    line-height: 1.6;
+    max-width: 600px;
   }
+
   .session-box {
-    margin-top: 1rem;
-    border: 1px solid #e9ecef;
-    border-radius: 0.75rem;
-    background: #fff;
-    padding: 0.9rem 1rem;
-    color: #343a40;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: white;
+    border: 1px solid var(--color-brand-gray-200);
+    padding: 1rem 1.25rem;
+    border-radius: 1rem;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+    z-index: 1;
   }
-  .logout-btn {
-    margin-top: 1rem;
-    border: 0;
-    border-radius: 0.7rem;
-    background: #e30a17;
-    color: #fff;
-    font-weight: 700;
-    padding: 0.6rem 1rem;
-    cursor: pointer;
+
+  .session-avatar {
+    width: 48px; height: 48px;
+    background: var(--color-brand-gray-50);
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-size: 1.5rem;
   }
-  .logout-btn:hover {
-    background: #b5080f;
+
+  .session-email {
+    margin: 0 0 0.3rem 0;
+    font-weight: 800;
+    color: var(--color-brand-gray-900);
+    font-size: 0.95rem;
   }
-  .panel-links {
-    margin-top: .9rem;
-  }
-  .panel-links a {
-    color: #e30a17;
-    font-weight: 700;
-    text-decoration: underline;
-    text-underline-offset: 2px;
+
+  .badge-modern {
     display: inline-block;
-    margin-right: .85rem;
+    padding: 0.2rem 0.6rem;
+    background: var(--color-brand-red-50);
+    color: var(--color-brand-red);
+    border: 1px solid var(--color-brand-red-100);
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 700;
   }
-  .panel-links a:hover {
-    color: #b5080f;
+
+  /* KPI Grid */
+  .kpi-grid {
+    margin-top: 2rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.25rem;
+  }
+
+  .kpi-card {
+    padding: 1.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1.25rem;
+    position: relative;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .kpi-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.06);
+  }
+
+  .kpi-icon {
+    width: 56px; height: 56px;
+    border-radius: 14px;
+    display: grid;
+    place-items: center;
+    font-size: 1.8rem;
+  }
+
+  .bg-green-light { background: #dcfce7; }
+  .text-green { color: #16a34a; }
+  .bg-blue-light { background: #dbeafe; }
+  .text-blue { color: #2563eb; }
+  .bg-amber-light { background: #fef3c7; }
+  .text-amber { color: #d97706; }
+  .bg-red-light { background: #fee2e2; }
+  .text-red { color: #dc2626; }
+
+  .kpi-data {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .kpi-value {
+    margin: 0;
+    font-size: 2rem;
+    font-weight: 900;
+    color: var(--color-brand-gray-900);
+    line-height: 1;
+  }
+
+  .kpi-label {
+    margin: 0.3rem 0 0;
+    color: var(--color-brand-gray-500);
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .kpi-note-bottom {
+    width: 100%;
+    margin-top: 0.5rem;
+    padding-top: 0.75rem;
+    border-top: 1px dashed var(--color-brand-gray-200);
+    font-size: 0.85rem;
+    color: var(--color-brand-gray-600);
+  }
+
+  /* Content Grid */
+  .content-grid {
+    margin-top: 1.5rem;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  
+  @media (min-width: 900px) {
+    .content-grid { grid-template-columns: 1fr 1fr; }
+  }
+
+  .panel-card {
+    padding: 1.75rem;
+  }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+  }
+
+  .panel-card h2 {
+    margin: 0;
+    color: var(--color-brand-gray-900);
+    font-size: 1.25rem;
+    font-weight: 800;
+  }
+
+  .view-all-link {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--color-brand-red);
+    text-decoration: none;
+  }
+
+  .view-all-link:hover { text-decoration: underline; }
+
+  /* Timeline List */
+  .timeline-list {
+    list-style: none;
+    margin: 0; padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .timeline-item {
+    display: flex;
+    gap: 1rem;
+    background: white;
+    border: 1px solid var(--color-brand-gray-200);
+    border-radius: 1rem;
+    padding: 1rem;
+    transition: border-color 0.2s;
+  }
+
+  .timeline-item:hover {
+    border-color: var(--color-brand-gray-300);
+  }
+
+  .empty-timeline {
+    text-align: center;
+    padding: 2rem;
+    background: var(--color-brand-gray-50);
+    border-radius: 1rem;
+    border: 1px dashed var(--color-brand-gray-300);
+  }
+
+  .empty-icon { font-size: 2rem; margin-bottom: 0.5rem; opacity: 0.5; }
+
+  .timeline-status {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+    min-width: 3.5rem;
+    padding-right: 1rem;
+    border-right: 1px dashed var(--color-brand-gray-200);
+  }
+
+  .status-indicator {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+  }
+  .bg-green { background: #10b981; box-shadow: 0 0 0 3px #d1fae5; }
+  .bg-red { background: #ef4444; box-shadow: 0 0 0 3px #fee2e2; }
+
+  .time { font-size: 0.75rem; font-weight: 800; color: var(--color-brand-gray-500); text-transform: uppercase; }
+
+  .timeline-item-main {
+    flex: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .timeline-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .item-title {
+    margin: 0;
+    color: var(--color-brand-gray-900);
+    font-weight: 800;
+    font-size: 1rem;
+  }
+
+  .item-sub {
+    margin: 0;
+    color: var(--color-brand-gray-600);
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .badge-icon { font-style: normal; font-size: 0.9rem; }
+
+  .btn-icon {
+    width: 36px; height: 36px;
+    display: grid;
+    place-items: center;
+    background: var(--color-brand-gray-50);
+    border: 1px solid var(--color-brand-gray-200);
+    border-radius: 0.5rem;
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+  
+  .btn-icon:hover {
+    background: white;
+    border-color: var(--color-brand-red);
+    transform: scale(1.05);
+  }
+
+  /* Status Cards */
+  .status-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .status-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: white;
+    padding: 1.25rem;
+    border-radius: 1rem;
+    border: 1px solid var(--color-brand-gray-200);
+    border-left-width: 4px;
+  }
+
+  .border-l-green { border-left-color: #10b981; }
+  .border-l-amber { border-left-color: #f59e0b; }
+  .border-l-blue { border-left-color: #3b82f6; }
+
+  .status-icon {
+    font-size: 2rem;
+  }
+
+  .status-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  /* Quick Actions */
+  .quick-actions {
+    margin-top: 1.5rem;
+    padding: 1.75rem;
+  }
+
+  .quick-actions h2 {
+    margin: 0 0 1.25rem;
+    color: var(--color-brand-gray-900);
+    font-size: 1.25rem;
+    font-weight: 800;
+  }
+
+  .action-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+  }
+
+  .action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 1rem;
+    border-radius: 1rem;
+    font-weight: 700;
+    font-size: 0.95rem;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+  }
+
+  .action-icon { font-size: 1.2rem; }
+
+  .btn-primary-gradient {
+    background: linear-gradient(135deg, var(--color-brand-red) 0%, #b5080f 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(227, 10, 23, 0.2);
+  }
+  .btn-primary-gradient:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(227, 10, 23, 0.3);
+  }
+
+  .btn-white {
+    background: white;
+    color: var(--color-brand-gray-800);
+    border-color: var(--color-brand-gray-200);
+  }
+  .btn-white:hover {
+    border-color: var(--color-brand-gray-300);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+    transform: translateY(-2px);
+  }
+
+  .btn-danger {
+    width: 100%;
+    background: #fff5f5;
+    color: #dc2626;
+    border-color: #fecaca;
+  }
+  .btn-danger:hover {
+    background: #fee2e2;
+  }
+
+  .logout-form { margin: 0; padding: 0; }
+
+  /* Animations */
+  .animate-fade-in-up { animation: fadeInUp 0.5s ease-out forwards; opacity: 0; transform: translateY(15px); }
+  .delay-100 { animation-delay: 0.1s; }
+  .delay-200 { animation-delay: 0.2s; }
+  .delay-300 { animation-delay: 0.3s; }
+  
+  @keyframes fadeInUp { to { opacity: 1; transform: translateY(0); } }
+
+  @media (max-width: 768px) {
+    .hero-card { flex-direction: column; align-items: flex-start; }
+    .session-box { width: 100%; }
+    .kpi-grid { grid-template-columns: 1fr 1fr; }
+  }
+  
+  @media (max-width: 480px) {
+    .kpi-grid { grid-template-columns: 1fr; }
+    .action-grid { grid-template-columns: 1fr; }
   }
 </style>

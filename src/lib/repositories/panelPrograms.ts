@@ -1,5 +1,6 @@
 import { getDb, hasDatabaseUrl } from '../../db/client';
 import { getUserPrimaryClub } from './auth';
+import { parseProgramContent, serializeProgramContent } from './programContent';
 
 export type ProgramPayload = {
   ad: string;
@@ -8,6 +9,10 @@ export type ProgramPayload = {
   seviye?: string;
   ucretBilgisi?: string;
   aktif?: boolean;
+  eventDate?: string;
+  locationText?: string;
+  gallery?: string[];
+  bodyJson?: unknown | null;
 };
 
 async function resolveClubId(userId: number) {
@@ -31,17 +36,24 @@ export async function listPanelPrograms(userId: number) {
     filter: `kulupLegacyId = ${clubId}`,
     sort: '-legacyId',
   });
-  return rows.map((row) => ({
-    id: Number(row.legacyId),
-    ad: row.ad as string,
-    aciklama: (row.aciklama as string) ?? '',
-    gunSaat: (row.gunSaat as string) ?? '',
-    seviye: (row.seviye as string) ?? '',
-    ucretBilgisi: (row.ucretBilgisi as string) ?? '',
-    aktif: Boolean(row.aktif),
-    createdAt: row.created,
-    updatedAt: row.updated,
-  }));
+  return rows.map((row) => {
+    const parsed = parseProgramContent((row.aciklama as string) ?? '');
+    return {
+      id: Number(row.legacyId),
+      ad: row.ad as string,
+      aciklama: parsed.content.summary || parsed.legacyText || '',
+      gunSaat: (row.gunSaat as string) ?? '',
+      seviye: (row.seviye as string) ?? '',
+      ucretBilgisi: (row.ucretBilgisi as string) ?? '',
+      aktif: Boolean(row.aktif),
+      eventDate: parsed.content.eventDate,
+      locationText: parsed.content.locationText,
+      gallery: parsed.content.gallery,
+      bodyJson: parsed.content.bodyJson,
+      createdAt: row.created,
+      updatedAt: row.updated,
+    };
+  });
 }
 
 export async function createPanelProgram(userId: number, payload: ProgramPayload) {
@@ -54,7 +66,13 @@ export async function createPanelProgram(userId: number, payload: ProgramPayload
     legacyId: Date.now(),
     kulupLegacyId: clubId,
     ad: payload.ad.trim(),
-    aciklama: payload.aciklama?.trim() ?? '',
+    aciklama: serializeProgramContent({
+      summary: payload.aciklama?.trim() ?? '',
+      eventDate: payload.eventDate ?? '',
+      locationText: payload.locationText ?? '',
+      gallery: payload.gallery ?? [],
+      bodyJson: payload.bodyJson ?? null,
+    }),
     gunSaat: payload.gunSaat?.trim() ?? '',
     seviye: payload.seviye?.trim() ?? '',
     ucretBilgisi: payload.ucretBilgisi?.trim() ?? '',
@@ -63,11 +81,15 @@ export async function createPanelProgram(userId: number, payload: ProgramPayload
   return {
     id: Number(row.legacyId),
     ad: row.ad as string,
-    aciklama: (row.aciklama as string) ?? '',
+    aciklama: payload.aciklama?.trim() ?? '',
     gunSaat: (row.gunSaat as string) ?? '',
     seviye: (row.seviye as string) ?? '',
     ucretBilgisi: (row.ucretBilgisi as string) ?? '',
     aktif: Boolean(row.aktif),
+    eventDate: payload.eventDate?.trim() ?? '',
+    locationText: payload.locationText?.trim() ?? '',
+    gallery: payload.gallery ?? [],
+    bodyJson: payload.bodyJson ?? null,
   };
 }
 
@@ -84,7 +106,13 @@ export async function updatePanelProgram(userId: number, programId: number, payl
   if (!existing) return null;
   const row = await db.collection('kulup_programlari').update(existing.id, {
     ad: payload.ad.trim(),
-    aciklama: payload.aciklama?.trim() ?? '',
+    aciklama: serializeProgramContent({
+      summary: payload.aciklama?.trim() ?? '',
+      eventDate: payload.eventDate ?? '',
+      locationText: payload.locationText ?? '',
+      gallery: payload.gallery ?? [],
+      bodyJson: payload.bodyJson ?? null,
+    }),
     gunSaat: payload.gunSaat?.trim() ?? '',
     seviye: payload.seviye?.trim() ?? '',
     ucretBilgisi: payload.ucretBilgisi?.trim() ?? '',
@@ -93,11 +121,15 @@ export async function updatePanelProgram(userId: number, programId: number, payl
   return {
     id: Number(row.legacyId),
     ad: row.ad as string,
-    aciklama: (row.aciklama as string) ?? '',
+    aciklama: payload.aciklama?.trim() ?? '',
     gunSaat: (row.gunSaat as string) ?? '',
     seviye: (row.seviye as string) ?? '',
     ucretBilgisi: (row.ucretBilgisi as string) ?? '',
     aktif: Boolean(row.aktif),
+    eventDate: payload.eventDate?.trim() ?? '',
+    locationText: payload.locationText?.trim() ?? '',
+    gallery: payload.gallery ?? [],
+    bodyJson: payload.bodyJson ?? null,
   };
 }
 

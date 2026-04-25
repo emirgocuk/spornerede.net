@@ -39,6 +39,10 @@ export const POST: APIRoute = async ({ request }) => {
     seviye: body?.seviye?.toString() ?? '',
     ucretBilgisi: body?.ucretBilgisi?.toString() ?? '',
     aktif: Boolean(body?.aktif ?? true),
+    eventDate: body?.eventDate?.toString() ?? '',
+    locationText: body?.locationText?.toString() ?? '',
+    gallery: Array.isArray(body?.gallery) ? body.gallery.map((item: unknown) => String(item)) : [],
+    bodyJson: body?.bodyJson ?? null,
   });
 
   return new Response(JSON.stringify({ data: row }), {
@@ -66,6 +70,10 @@ export const PUT: APIRoute = async ({ request }) => {
     seviye: body?.seviye?.toString() ?? '',
     ucretBilgisi: body?.ucretBilgisi?.toString() ?? '',
     aktif: Boolean(body?.aktif ?? true),
+    eventDate: body?.eventDate?.toString() ?? '',
+    locationText: body?.locationText?.toString() ?? '',
+    gallery: Array.isArray(body?.gallery) ? body.gallery.map((item: unknown) => String(item)) : [],
+    bodyJson: body?.bodyJson ?? null,
   });
 
   if (!row) {

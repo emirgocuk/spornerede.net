@@ -1,0 +1,711 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getProgramListingById } from '../../lib/repositories/catalog';
+
+const id = Number(Astro.params.id);
+const listing = await getProgramListingById(id);
+if (!listing) {
+  return Astro.redirect('/ara');
+}
+
+function getBodySections(bodyJson: unknown) {
+  if (!bodyJson || typeof bodyJson !== 'object') return [];
+  const content = (bodyJson as { content?: unknown }).content;
+  if (!Array.isArray(content)) return [];
+  return content
+    .map((node) => {
+      if (!node || typeof node !== 'object') return '';
+      const typedNode = node as { type?: string; content?: unknown };
+      const children = Array.isArray(typedNode.content) ? typedNode.content : [];
+      const text = children
+        .map((child) =>
+          child && typeof child === 'object' && typeof (child as { text?: unknown }).text === 'string'
+            ? String((child as { text?: unknown }).text)
+            : ''
+        )
+        .join(' ')
+        .trim();
+      if (!text) return '';
+      return typedNode.type === 'heading' ? `# ${text}` : text;
+    })
+    .filter(Boolean);
+}
+---
+
+<BaseLayout
+  title={`${listing.ad} | ${listing.club.ad}`}
+  description={`${listing.ad} spor ilanı. Tarih, saat, konum ve ilan detaylarını inceleyin.`}
+  keywords={`${listing.club.bransSlug} ilanı, ${listing.club.ilce} spor kursu`}
+>
+  <div class="page-background"></div>
+  <section class="section listing-page relative z-10">
+    <div class="container listing-wrap" data-club-lat={listing.club.enlem || ''} data-club-lng={listing.club.boylam || ''}>
+      
+      <!-- Back Link -->
+      <div class="mb-6 animate-fade-in-up">
+        <a href={`/ara?brans=${listing.club.bransSlug || ''}`} class="back-link group">
+          <span class="back-icon group-hover:-translate-x-1 transition-transform">←</span> 
+          <span>Arama sonuçlarına dön</span>
+        </a>
+      </div>
+
+      <!-- Hero Section -->
+      <header class="listing-hero card-glass animate-fade-in-up delay-100">
+        <div class="hero-content">
+          <div class="icon-wrapper" style={`--branch-color: ${listing.club.renk || '#E30A17'}`}>
+            <div class="icon-bg"></div>
+            <span class="icon-emoji">{listing.club.emoji}</span>
+          </div>
+          <div class="hero-text">
+            <p class="kicker">
+              <span class="pulse-dot"></span>
+              {listing.club.brans || 'Spor'} İlanı
+            </p>
+            <h1 class="listing-title">{listing.ad}</h1>
+            <div class="hero-badges-inline">
+              <span class="badge-modern"><i class="badge-icon">📍</i>{listing.club.ilce || listing.club.il}</span>
+              <span class="badge-modern"><i class="badge-icon">👥</i>{listing.club.yasAraligi ? `${listing.club.yasAraligi} yaş` : 'Tüm yaş grupları'}</span>
+              <span class="badge-modern"><i class="badge-icon">⭐</i>{listing.seviye || 'Genel seviye'}</span>
+              <span class="badge-modern badge-highlight"><i class="badge-icon">💳</i>{listing.ucretBilgisi || 'Fiyat sorunuz'}</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="hero-actions">
+          <div class="rating-box">
+            <span class="rating-label">Değerlendirme</span>
+            <div class="rating-score">
+              <span class="star">★</span>
+              <strong>{listing.club.puan}</strong>
+              <span class="max-score">/ 5</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Details Grid -->
+      <div class="grid-layout animate-fade-in-up delay-200">
+        <!-- Main Content -->
+        <div class="main-column">
+          <article class="content-card card-glass">
+            <h2 class="card-title">İlan Detayları</h2>
+            <ul class="meta-grid">
+              <li class="meta-item">
+                <div class="meta-icon">📅</div>
+                <div class="meta-info">
+                  <span class="meta-label">Tarih</span>
+                  <strong class="meta-value">{listing.eventDate || 'Belirtilmedi'}</strong>
+                </div>
+              </li>
+              <li class="meta-item">
+                <div class="meta-icon">⏰</div>
+                <div class="meta-info">
+                  <span class="meta-label">Saat</span>
+                  <strong class="meta-value">{listing.gunSaat || 'Belirtilmedi'}</strong>
+                </div>
+              </li>
+              <li class="meta-item">
+                <div class="meta-icon">🗺️</div>
+                <div class="meta-info">
+                  <span class="meta-label">Konum</span>
+                  <strong class="meta-value">{listing.locationText || listing.club.ilce || listing.club.il}</strong>
+                </div>
+              </li>
+              <li class="meta-item location-item">
+                <div class="meta-icon">📍</div>
+                <div class="meta-info">
+                  <span class="meta-label">Eve Uzaklık</span>
+                  <strong class="meta-value distance-output text-brand-red">Hesaplanıyor...</strong>
+                </div>
+              </li>
+            </ul>
+            
+            {listing.aciklama && (
+              <div class="summary-box">
+                <p>{listing.aciklama}</p>
+              </div>
+            )}
+            
+            {getBodySections(listing.bodyJson).length > 0 && (
+              <div class="body-content">
+                {getBodySections(listing.bodyJson).map((line) => (
+                  <p>{line}</p>
+                ))}
+              </div>
+            )}
+          </article>
+
+          <article class="content-card card-glass">
+            <h2 class="card-title">Kullanıcı Yorumları</h2>
+            <div class="empty-state">
+              <div class="empty-icon">💬</div>
+              <p>Bu kulübün genel puanı <strong>{listing.club.puan}</strong> ve toplam <strong>{listing.club.yorumSayisi}</strong> yorumu var.</p>
+              <span class="empty-hint">Yorum alanı yakında aktif olacak.</span>
+            </div>
+          </article>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="sidebar-column">
+          <article class="content-card card-glass sticky-sidebar">
+            <h2 class="card-title">Galeri</h2>
+            {listing.gallery.length > 0 ? (
+              <div class="gallery-grid">
+                {listing.gallery.map((imageUrl) => (
+                  <a href={imageUrl} target="_blank" class="gallery-item">
+                    <img src={imageUrl} alt={`${listing.ad} görseli`} loading="lazy" />
+                    <div class="gallery-overlay"><span>Büyüt</span></div>
+                  </a>
+                ))}
+              </div>
+            ) : (
+              <div class="empty-state sm">
+                <div class="empty-icon">📷</div>
+                <p>Bu ilan için henüz görsel eklenmedi.</p>
+              </div>
+            )}
+            
+            <div class="cta-box mt-6">
+              <h3 class="cta-title">Kulüple İletişime Geç</h3>
+              <p class="cta-desc">Bu ilanla ilgileniyorsanız kulüp yetkilisiyle görüşün.</p>
+              <button class="btn btn-primary w-full shadow-lg hover:shadow-xl transition-all">İletişim Bilgilerini Gör</button>
+            </div>
+          </article>
+        </div>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<script is:inline>
+  const container = document.querySelector('.listing-wrap');
+  if (container) {
+    const lat = Number(container.getAttribute('data-club-lat'));
+    const lng = Number(container.getAttribute('data-club-lng'));
+    const out = document.querySelector('.distance-output');
+    const setOutput = (text) => {
+      if (out) out.textContent = text;
+    };
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      setOutput('Konum bilgisi yok');
+    } else if (!navigator.geolocation) {
+      setOutput('Tarayıcı desteklemiyor');
+    } else {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const toRad = (value) => (value * Math.PI) / 180;
+          const earthRadiusKm = 6371;
+          const dLat = toRad(lat - pos.coords.latitude);
+          const dLon = toRad(lng - pos.coords.longitude);
+          const a =
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(toRad(pos.coords.latitude)) * Math.cos(toRad(lat)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+          const km = Math.round(earthRadiusKm * c * 10) / 10;
+          setOutput(`${km} km`);
+        },
+        () => setOutput('Konum izni verilmedi')
+      );
+    }
+  }
+</script>
+
+<style>
+  .page-background {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(135deg, #f8f9fa 0%, #fff1f2 100%);
+    z-index: 0;
+    pointer-events: none;
+  }
+  
+  .listing-page {
+    min-height: 80vh;
+    padding-top: 2rem;
+    padding-bottom: 4rem;
+  }
+  
+  .listing-wrap {
+    max-width: 1100px;
+  }
+  
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--color-brand-gray-600);
+    font-weight: 700;
+    font-size: 0.95rem;
+    text-decoration: none;
+    padding: 0.5rem 1rem;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.6);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--color-brand-gray-200);
+    transition: all 0.2s ease;
+  }
+  
+  .back-link:hover {
+    color: var(--color-brand-red);
+    background: white;
+    border-color: var(--color-brand-red-100);
+    box-shadow: 0 4px 12px rgba(227, 10, 23, 0.08);
+  }
+  
+  .card-glass {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255,255,255,1);
+    border-radius: 1.25rem;
+  }
+  
+  .listing-hero {
+    padding: 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 2rem;
+    flex-wrap: wrap;
+    margin-bottom: 2rem;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .listing-hero::before {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 300px; height: 300px;
+    background: radial-gradient(circle, var(--color-brand-red-50) 0%, transparent 70%);
+    opacity: 0.6;
+    border-radius: 50%;
+    transform: translate(30%, -30%);
+    pointer-events: none;
+  }
+  
+  .hero-content {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    flex: 1 1 min-content;
+    z-index: 1;
+  }
+  
+  .icon-wrapper {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+  }
+  
+  .icon-bg {
+    position: absolute;
+    inset: 0;
+    background: var(--branch-color);
+    opacity: 0.15;
+    border-radius: 1.25rem;
+    transform: rotate(-3deg);
+    transition: transform 0.3s ease;
+  }
+  
+  .listing-hero:hover .icon-bg {
+    transform: rotate(3deg) scale(1.05);
+  }
+  
+  .icon-emoji {
+    font-size: 2.5rem;
+    position: relative;
+    z-index: 2;
+    filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));
+  }
+  
+  .kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: var(--color-brand-red);
+    font-size: 0.85rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 0.4rem;
+  }
+  
+  .pulse-dot {
+    width: 8px;
+    height: 8px;
+    background-color: var(--color-brand-red);
+    border-radius: 50%;
+    box-shadow: 0 0 0 0 rgba(227, 10, 23, 0.4);
+    animation: pulse-red 2s infinite;
+  }
+  
+  @keyframes pulse-red {
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(227, 10, 23, 0.7); }
+    70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(227, 10, 23, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(227, 10, 23, 0); }
+  }
+  
+  .listing-title {
+    font-size: clamp(1.8rem, 4vw, 2.5rem);
+    font-weight: 900;
+    color: var(--color-brand-gray-900);
+    line-height: 1.1;
+    margin-bottom: 1rem;
+    letter-spacing: -0.02em;
+  }
+  
+  .hero-badges-inline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+  }
+  
+  .badge-modern {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0.8rem;
+    background: var(--color-brand-gray-50);
+    border: 1px solid var(--color-brand-gray-200);
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-brand-gray-700);
+    transition: all 0.2s;
+  }
+  
+  .badge-modern:hover {
+    background: white;
+    border-color: var(--color-brand-gray-300);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  }
+  
+  .badge-icon {
+    font-style: normal;
+    font-size: 1rem;
+  }
+  
+  .badge-highlight {
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+    color: #166534;
+  }
+  
+  .rating-box {
+    background: linear-gradient(135deg, #fff8ec 0%, #fff 100%);
+    border: 1px solid #ffe1b0;
+    padding: 1rem 1.5rem;
+    border-radius: 1rem;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(245, 158, 11, 0.08);
+    transform: rotate(2deg);
+    transition: transform 0.3s ease;
+  }
+  
+  .rating-box:hover {
+    transform: rotate(0deg) scale(1.02);
+  }
+  
+  .rating-label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: #b45309;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.2rem;
+  }
+  
+  .rating-score {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 0.2rem;
+  }
+  
+  .star {
+    color: #f59e0b;
+    font-size: 1.2rem;
+  }
+  
+  .rating-score strong {
+    font-size: 2rem;
+    font-weight: 900;
+    color: #1f2937;
+    line-height: 1;
+  }
+  
+  .max-score {
+    font-size: 1rem;
+    color: #9ca3af;
+    font-weight: 600;
+  }
+  
+  /* Layout Grid */
+  .grid-layout {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+  
+  @media (min-width: 992px) {
+    .grid-layout {
+      grid-template-columns: 2fr 1fr;
+    }
+  }
+  
+  .main-column, .sidebar-column {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+  
+  .sticky-sidebar {
+    position: sticky;
+    top: 6rem;
+  }
+  
+  .content-card {
+    padding: 2rem;
+  }
+  
+  .card-title {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: var(--color-brand-gray-900);
+    margin-bottom: 1.5rem;
+    position: relative;
+    padding-bottom: 0.75rem;
+  }
+  
+  .card-title::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0;
+    width: 40px; height: 4px;
+    background: linear-gradient(90deg, var(--color-brand-red), #ff7a82);
+    border-radius: 2px;
+  }
+  
+  /* Meta Grid */
+  .meta-grid {
+    list-style: none;
+    margin: 0 0 2rem 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+  }
+  
+  .meta-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    background: white;
+    padding: 1rem;
+    border-radius: 1rem;
+    border: 1px solid var(--color-brand-gray-100);
+    transition: all 0.2s ease;
+  }
+  
+  .meta-item:hover {
+    border-color: var(--color-brand-red-100);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+    transform: translateY(-2px);
+  }
+  
+  .meta-icon {
+    font-size: 1.5rem;
+    width: 40px; height: 40px;
+    background: var(--color-brand-gray-50);
+    border-radius: 0.75rem;
+    display: grid;
+    place-items: center;
+  }
+  
+  .meta-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+  
+  .meta-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--color-brand-gray-500);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  
+  .meta-value {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: var(--color-brand-gray-900);
+  }
+  
+  .text-brand-red { color: var(--color-brand-red); }
+  
+  /* Content Text */
+  .summary-box {
+    background: var(--color-brand-red-50);
+    border-left: 4px solid var(--color-brand-red);
+    padding: 1.5rem;
+    border-radius: 0 1rem 1rem 0;
+    margin-bottom: 2rem;
+  }
+  
+  .summary-box p {
+    margin: 0;
+    font-size: 1.1rem;
+    color: var(--color-brand-gray-800);
+    font-weight: 600;
+    line-height: 1.6;
+  }
+  
+  .body-content p {
+    color: var(--color-brand-gray-700);
+    line-height: 1.8;
+    margin-bottom: 1.2rem;
+    font-size: 1.05rem;
+  }
+  
+  /* Gallery Grid */
+  .gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+  
+  .gallery-item {
+    position: relative;
+    border-radius: 1rem;
+    overflow: hidden;
+    aspect-ratio: 4/3;
+    display: block;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+  }
+  
+  .gallery-item img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s ease;
+  }
+  
+  .gallery-item:hover img {
+    transform: scale(1.1);
+  }
+  
+  .gallery-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  
+  .gallery-overlay span {
+    color: white;
+    font-weight: 700;
+    padding: 0.5rem 1rem;
+    border: 2px solid white;
+    border-radius: 2rem;
+    transform: translateY(10px);
+    transition: transform 0.3s ease;
+  }
+  
+  .gallery-item:hover .gallery-overlay {
+    opacity: 1;
+  }
+  
+  .gallery-item:hover .gallery-overlay span {
+    transform: translateY(0);
+  }
+  
+  /* Empty States */
+  .empty-state {
+    text-align: center;
+    padding: 3rem 1.5rem;
+    background: var(--color-brand-gray-50);
+    border: 1px dashed var(--color-brand-gray-300);
+    border-radius: 1rem;
+  }
+  
+  .empty-state.sm {
+    padding: 2rem 1rem;
+  }
+  
+  .empty-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+  }
+  
+  .empty-state p {
+    color: var(--color-brand-gray-700);
+    margin-bottom: 0.5rem;
+    font-size: 1.05rem;
+  }
+  
+  .empty-hint {
+    display: inline-block;
+    font-size: 0.85rem;
+    color: var(--color-brand-gray-500);
+    background: white;
+    padding: 0.3rem 0.8rem;
+    border-radius: 999px;
+    border: 1px solid var(--color-brand-gray-200);
+  }
+  
+  /* CTA Box */
+  .cta-box {
+    background: linear-gradient(135deg, var(--color-brand-gray-900) 0%, #111827 100%);
+    padding: 1.5rem;
+    border-radius: 1rem;
+    color: white;
+    text-align: center;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+  }
+  
+  .cta-title {
+    font-size: 1.2rem;
+    font-weight: 800;
+    margin-bottom: 0.5rem;
+  }
+  
+  .cta-desc {
+    font-size: 0.9rem;
+    color: var(--color-brand-gray-300);
+    margin-bottom: 1.2rem;
+  }
+  
+  .w-full { width: 100%; }
+  .mt-6 { margin-top: 1.5rem; }
+  .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
+  .hover\:shadow-xl:hover { box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); }
+  .transition-all { transition-property: all; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 300ms; }
+  
+  @media (max-width: 768px) {
+    .listing-hero {
+      flex-direction: column;
+      align-items: flex-start;
+      padding: 1.5rem;
+    }
+    
+    .rating-box {
+      width: 100%;
+      transform: none;
+    }
+    
+    .content-card {
+      padding: 1.5rem;
+    }
+  }
+</style>
