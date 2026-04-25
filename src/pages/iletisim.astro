@@ -1,5 +1,7 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+
+const formStatus = Astro.url.searchParams.get('status');
 ---
 
 <BaseLayout
@@ -9,25 +11,105 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 >
   <section class="contact-page section">
     <div class="container contact-container">
-      <p class="contact-eyebrow">İletişim</p>
-      <h1 class="section-title">
-        Sorunuz mu var? <span class="title-underline">Bize ulaşın</span>
-      </h1>
-      <p class="section-subtitle">
-        Platform hakkında görüşlerinizi, iş birliği taleplerinizi ve kulüp başvuru sorularınızı memnuniyetle dinliyoruz.
-      </p>
+      <div class="contact-hero">
+        <div>
+          <p class="contact-eyebrow">İletişim</p>
+          <h1 class="section-title">
+            Sorunuz mu var? <span class="title-underline">Bize ulaşın</span>
+          </h1>
+          <p class="section-subtitle">
+            Kulüp başvuruları, iş birliği talepleri, platform önerileri veya destek ihtiyaçları için bize yazın. En kısa sürede dönüş yapalım.
+          </p>
+        </div>
+        <div class="contact-hero-card" aria-hidden="true">
+          <span>SporNerede Destek</span>
+          <strong>Doğru kişiye, doğru kanaldan ulaşın.</strong>
+        </div>
+      </div>
 
-      <div class="contact-cards">
-        <article class="contact-card">
-          <h2>E-posta</h2>
-          <a href="mailto:info@spornerede.net">info@spornerede.net</a>
-          <p>Genel bilgi, destek ve iş birliği başvuruları için.</p>
-        </article>
-        <article class="contact-card">
-          <h2>Kulüp Başvurusu</h2>
-          <a href="/basvuru">Başvuru formuna git</a>
-          <p>Kulübünüzü veya kursunuzu platforma eklemek için başvuru sayfasını kullanın.</p>
-        </article>
+      <div class="contact-layout">
+        <form class="contact-form" action="/api/contact" method="post">
+          <div class="form-head">
+            <span class="form-icon">✉️</span>
+            <div>
+              <h2>Mesaj Gönder</h2>
+              <p>Mesajınız yönetim paneline iletişim bildirimi olarak düşer.</p>
+            </div>
+          </div>
+
+          {formStatus === 'success' && (
+            <div class="form-alert form-alert--success">Mesajınız alındı. En kısa sürede dönüş yapacağız.</div>
+          )}
+          {formStatus === 'error' && (
+            <div class="form-alert form-alert--error">Mesaj gönderilemedi. Lütfen bilgileri kontrol edip tekrar deneyin.</div>
+          )}
+
+          <div class="form-row-2">
+            <div class="form-group">
+              <label for="adsoyad">Ad Soyad</label>
+              <input id="adsoyad" name="adsoyad" type="text" placeholder="Adınız Soyadınız" required />
+            </div>
+            <div class="form-group">
+              <label for="telefon">Telefon</label>
+              <input id="telefon" name="telefon" type="tel" placeholder="05XX XXX XX XX" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="email">E-posta</label>
+            <input id="email" name="email" type="email" placeholder="ornek@eposta.com" required />
+          </div>
+
+          <div class="form-group">
+            <label for="konu">Konu</label>
+            <select id="konu" name="konu" required>
+              <option value="">Konu seçin...</option>
+              <option value="kulup-basvurusu">Kulüp başvurusu</option>
+              <option value="destek">Destek talebi</option>
+              <option value="is-birligi">İş birliği</option>
+              <option value="oneriler">Öneri / geri bildirim</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="mesaj">Mesajınız</label>
+            <textarea id="mesaj" name="mesaj" rows="6" placeholder="Bize iletmek istediğiniz mesajı yazın..." required></textarea>
+          </div>
+
+          <button type="submit" class="contact-submit">
+            Mesajı Gönder
+            <span aria-hidden="true">→</span>
+          </button>
+        </form>
+
+        <aside class="contact-side">
+          <article class="contact-info-card contact-info-card--dark">
+            <span class="info-label">Doğrudan İletişim</span>
+            <h2>Size yardımcı olmaya hazırız.</h2>
+            <p>Form dışında bize dummy iletişim kanallarından da ulaşabilirsiniz.</p>
+          </article>
+
+          <article class="contact-info-card">
+            <span class="info-icon">📧</span>
+            <h3>E-posta</h3>
+            <a href="mailto:info@spornerede.net">info@spornerede.net</a>
+            <p>Genel bilgi, destek ve iş birliği talepleri için.</p>
+          </article>
+
+          <article class="contact-info-card">
+            <span class="info-icon">📞</span>
+            <h3>Telefon</h3>
+            <a href="tel:+905551234567">+90 555 123 45 67</a>
+            <p>Hafta içi 09:00 - 18:00 arası ulaşabilirsiniz.</p>
+          </article>
+
+          <article class="contact-info-card">
+            <span class="info-icon">🏢</span>
+            <h3>Kulüp Başvurusu</h3>
+            <a href="/basvuru">Başvuru formuna git</a>
+            <p>Kulübünüzü veya kursunuzu platforma eklemek için başvuru sayfasını kullanın.</p>
+          </article>
+        </aside>
       </div>
     </div>
   </section>
@@ -35,67 +117,300 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 
 <style>
   .contact-page {
+    min-height: 80vh;
     background:
-      radial-gradient(circle at 82% 10%, rgba(227, 10, 23, 0.08), transparent 36%),
-      radial-gradient(circle at 8% 92%, rgba(227, 10, 23, 0.05), transparent 30%),
-      #fff9f9;
+      radial-gradient(circle at 82% 10%, rgba(227, 10, 23, 0.12), transparent 34%),
+      radial-gradient(circle at 8% 92%, rgba(17, 24, 39, 0.06), transparent 30%),
+      linear-gradient(180deg, #fff8f8 0%, #ffffff 100%);
   }
 
   .contact-container {
-    max-width: 900px;
+    max-width: 1120px;
   }
 
   .contact-eyebrow {
     display: inline-block;
     margin-bottom: 0.9rem;
     font-size: 0.76rem;
-    font-weight: 700;
+    font-weight: 800;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: #b5080f;
   }
 
-  .contact-cards {
-    margin-top: 2rem;
+  .contact-hero {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 0.9rem;
+    align-items: center;
+    gap: 1.5rem;
+    margin-bottom: 2.25rem;
   }
 
-  @media (min-width: 760px) {
-    .contact-cards {
-      grid-template-columns: repeat(2, 1fr);
+  @media (min-width: 900px) {
+    .contact-hero {
+      grid-template-columns: minmax(0, 1.15fr) minmax(260px, 0.85fr);
     }
   }
 
-  .contact-card {
+  .contact-hero .section-subtitle {
+    margin-left: 0;
+    max-width: 720px;
+  }
+
+  .contact-hero-card {
+    min-height: 220px;
+    border-radius: 1.4rem;
+    padding: 1.6rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    color: #ffffff;
+    background:
+      radial-gradient(circle at 82% 16%, rgba(255, 255, 255, 0.2), transparent 28%),
+      linear-gradient(135deg, #E30A17 0%, #5f050b 58%, #111827 100%);
+    box-shadow: 0 22px 54px rgba(127, 29, 29, 0.2);
+  }
+
+  .contact-hero-card span {
+    width: fit-content;
+    padding: 0.35rem 0.7rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.24);
+    font-size: 0.78rem;
+    font-weight: 800;
+    margin-bottom: 0.85rem;
+  }
+
+  .contact-hero-card strong {
+    font-size: clamp(1.35rem, 3vw, 2rem);
+    line-height: 1.08;
+    letter-spacing: -0.035em;
+  }
+
+  .contact-layout {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+    align-items: start;
+  }
+
+  @media (min-width: 960px) {
+    .contact-layout {
+      grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+    }
+  }
+
+  .contact-form,
+  .contact-info-card {
     background: rgba(255, 255, 255, 0.95);
     border: 1px solid #f1dede;
-    border-radius: 0.95rem;
-    padding: 1.1rem;
+    box-shadow: 0 16px 42px rgba(127, 29, 29, 0.08);
+  }
+
+  .contact-form {
+    border-radius: 1.35rem;
+    padding: clamp(1.25rem, 3vw, 2rem);
+  }
+
+  .form-head {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.25rem;
+    border-bottom: 1px dashed #f1dede;
+  }
+
+  .form-icon {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 1rem;
+    display: grid;
+    place-items: center;
+    background: #fff1f2;
+    font-size: 1.4rem;
+  }
+
+  .form-head h2 {
+    margin: 0 0 0.2rem;
+    color: #111827;
+    font-size: 1.35rem;
+  }
+
+  .form-head p {
+    margin: 0;
+    color: #6b7280;
+    font-size: 0.92rem;
+  }
+
+  .form-alert {
+    padding: 0.85rem 1rem;
+    border-radius: 0.9rem;
+    font-weight: 700;
+    line-height: 1.5;
+  }
+
+  .form-alert--success {
+    color: #166534;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+  }
+
+  .form-alert--error {
+    color: #991b1b;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+  }
+
+  .form-row-2 {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  @media (min-width: 680px) {
+    .form-row-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  .form-group {
+    display: grid;
+    gap: 0.45rem;
+    margin-bottom: 1rem;
+  }
+
+  .form-group label {
+    color: #374151;
+    font-size: 0.86rem;
+    font-weight: 800;
+  }
+
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    width: 100%;
+    border: 2px solid #e5e7eb;
+    border-radius: 0.9rem;
+    padding: 0.85rem 1rem;
+    font-family: inherit;
+    font-size: 0.95rem;
+    color: #111827;
+    background: #ffffff;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+  }
+
+  .form-group textarea {
+    resize: vertical;
+    min-height: 150px;
+  }
+
+  .form-group input:focus,
+  .form-group select:focus,
+  .form-group textarea:focus {
+    outline: none;
+    border-color: #E30A17;
+    box-shadow: 0 0 0 4px rgba(227, 10, 23, 0.1);
+    transform: translateY(-1px);
+  }
+
+  .contact-submit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border: 0;
+    border-radius: 999px;
+    padding: 0.9rem 1.35rem;
+    background: #E30A17;
+    color: #ffffff;
+    font-family: inherit;
+    font-weight: 900;
+    cursor: pointer;
+    box-shadow: 0 12px 28px rgba(227, 10, 23, 0.22);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, gap 0.2s ease;
+  }
+
+  .contact-submit:hover {
+    gap: 0.8rem;
+    transform: translateY(-2px);
+    box-shadow: 0 18px 36px rgba(227, 10, 23, 0.28);
+  }
+
+  .contact-side {
+    display: grid;
+    gap: 0.9rem;
+  }
+
+  .contact-info-card {
+    border-radius: 1.1rem;
+    padding: 1.15rem;
     display: flex;
     flex-direction: column;
     gap: 0.45rem;
   }
 
-  .contact-card h2 {
-    font-size: 1rem;
-    color: #1f2937;
+  .contact-info-card--dark {
+    color: #ffffff;
+    background:
+      radial-gradient(circle at 86% 18%, rgba(255, 255, 255, 0.14), transparent 28%),
+      linear-gradient(135deg, #111827 0%, #52050a 100%);
+    border-color: rgba(255, 255, 255, 0.1);
   }
 
-  .contact-card a {
+  .info-label {
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #E30A17;
+  }
+
+  .contact-info-card--dark .info-label {
+    color: rgba(255, 255, 255, 0.72);
+  }
+
+  .contact-info-card h2,
+  .contact-info-card h3 {
+    font-size: 1rem;
+    color: #1f2937;
+    margin: 0;
+  }
+
+  .contact-info-card--dark h2 {
+    color: #ffffff;
+    font-size: 1.35rem;
+    line-height: 1.15;
+  }
+
+  .info-icon {
+    width: 2.4rem;
+    height: 2.4rem;
+    border-radius: 0.8rem;
+    display: grid;
+    place-items: center;
+    background: #fff1f2;
+  }
+
+  .contact-info-card a {
     color: #a30711;
-    font-weight: 700;
+    font-weight: 800;
     text-decoration: none;
   }
 
-  .contact-card a:hover {
+  .contact-info-card a:hover {
     text-decoration: underline;
   }
 
-  .contact-card p {
+  .contact-info-card p {
     font-size: 0.9rem;
     color: #4b5563;
     line-height: 1.6;
+    margin: 0;
+  }
+
+  .contact-info-card--dark p {
+    color: rgba(255, 255, 255, 0.72);
   }
 </style>

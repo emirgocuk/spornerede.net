@@ -1,4 +1,5 @@
 import { getDb, hasDatabaseUrl } from '../../db/client';
+import { MEMBERSHIP_PLANS } from '../../data/mockData';
 
 export type MembershipPeriod = 'monthly' | 'yearly';
 
@@ -18,17 +19,52 @@ function addPeriod(startAt: Date, period: MembershipPeriod) {
   return next;
 }
 
-export async function activateClubMembership(clubId: number, period: MembershipPeriod) {
-  requireDatabase();
+async function ensureMembershipPlan(period: MembershipPeriod) {
+  const db = await getDb();
+  const preferredCode = period === 'yearly' ? 'on-iki-aylik' : 'aylik';
+  const fallbackCode = period === 'yearly' ? 'yillik' : 'aylik';
+  const existing = await db
+    .collection('uyelik_paketleri')
+    .getFirstListItem(`kod = "${preferredCode}" || kod = "${fallbackCode}"`)
+    .catch(() => null);
+  if (existing) {
+    return Number(existing.legacyId);
+  }
+
+  const mockPlan = MEMBERSHIP_PLANS.find((plan) => plan.kod === preferredCode) ?? MEMBERSHIP_PLANS[0];
+  const created = await db.collection('uyelik_paketleri').create({
+    legacyId: Date.now(),
+    kod: mockPlan.kod,
+    ad: mockPlan.ad,
+    aciklama: mockPlan.aciklama,
+    ucret: mockPlan.ucret,
+    periyot: mockPlan.periyot,
+    aktif: true,
+  });
+  return Number(created.legacyId);
+}
+
+async function ensureClubMembershipRow(clubId: number, period: MembershipPeriod) {
   const db = await getDb();
   const existing = await db
     .collection('kulup_uyelikleri')
     .getFirstListItem(`kulupLegacyId = ${clubId}`, { sort: '-legacyId' })
     .catch(() => null);
+  if (existing) return existing;
 
-  if (!existing) {
-    throw new Error('Kulup uyelik kaydi bulunamadi. Basvuru paket kaydini kontrol edin.');
-  }
+  const planId = await ensureMembershipPlan(period);
+  return db.collection('kulup_uyelikleri').create({
+    legacyId: Date.now() + 1,
+    kulupLegacyId: clubId,
+    paketLegacyId: planId,
+    odemeDurumu: 'pending',
+  });
+}
+
+export async function activateClubMembership(clubId: number, period: MembershipPeriod) {
+  requireDatabase();
+  const db = await getDb();
+  const existing = await ensureClubMembershipRow(clubId, period);
 
   const startAt = new Date();
   const endAt = addPeriod(startAt, period);

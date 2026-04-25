@@ -43,27 +43,24 @@ Ana takip dosyasi: `memory-bank/faz-gelistirme-checklist-tr.md` (faz bazli [x]/[
 
 ### Veri ve Backend
 
-- PostgreSQL veritabanı kurulumu
-- Drizzle ORM şeması (Kulüp, Branş, İlçe tabloları)
-- API endpoint'lerinin gerçek veriye bağlanması
-- Mock verinin tamamen kaldırılması
-- Kullanıcı oturumu: `users`, `sessions`, `club_memberships` (bkz. `club-auth-admin-plan.md`, `db-schema-plan.md`)
-- Başvuru ekleri: `application_documents`, multipart yükleme, güvenli depolama
-- Admin arayüzü: başvuru sağ liste + detay + onay/red + onayda kulüp oluşturma (`/admin` genişletmesi)
-- Kulüp paneli: oturum sonrası header avatar + dropdown; mobilde hamburger içi accordion
+- PocketBase veritabanı kurulumu (Tamamlandı)
+- Kullanıcı oturumu: `users`, `sessions`, `club_memberships` (Tamamlandı)
+- Başvuru ekleri: `application_documents`, multipart yükleme, güvenli depolama (Tamamlandı)
+- Admin arayüzü: başvuru sağ liste + detay + onay/red + onayda kulüp oluşturma (Tamamlandı)
+- Kulüp paneli: kurslar, profil yönetimi, geribildirim sistemi (Tamamlandı)
 
 ### Ürün Özellikleri
 
-- Gelişmiş filtreleme mantığı (program, seviye, gün)
-- Harita entegrasyonu (iframe → interaktif)
-- Yorum/puanlama sistemi
-- Akıllı eşleştirme quiz'i
+- Gelişmiş filtreleme mantığı (program, seviye, gün) (Sırada)
+- Harita entegrasyonu (iframe → interaktif) (Sırada)
+- Yorum/puanlama sistemi (Sırada)
+- Akıllı eşleştirme quiz'i (Sırada)
 
 ### Monetizasyon
 
-- Ücretli üyelik paketleri
-- Premium öne çıkarma akışı
-- Lead komisyon akışı
+- Ücretli üyelik paketleri (Sırada)
+- Premium öne çıkarma akışı (Sırada)
+- Lead komisyon akışı (Sırada)
 
 ---
 
@@ -72,7 +69,6 @@ Ana takip dosyasi: `memory-bank/faz-gelistirme-checklist-tr.md` (faz bazli [x]/[
 
 | Sorun                                      | Durum            | Çözüm                                 |
 | ------------------------------------------ | ---------------- | ------------------------------------- |
-| Veri katmanı hâlâ mock veri kullanıyor     | 🚧               | Faz 3'te PostgreSQL + Drizzle geçişi  |
 | Nginx yönlendirme sorunlarının geçmişi var | ✅ Çözüldü        | Cloudflare SSL modu düzenlendi        |
 | Astro image sharp pixel limiti             | ✅ Geçici çözüldü | CTA görselleri `img` olarak sunuluyor |
 
@@ -94,47 +90,45 @@ Ana takip dosyasi: `memory-bank/faz-gelistirme-checklist-tr.md` (faz bazli [x]/[
 - Sıkça Sorulan Sorular bölümü
 - Türkiye geneli metin/marka dili revizyonu
 
-### Faz 2 — Arama ve Listeleme 🚧
+### Faz 2 — Arama ve Listeleme ✅
 
-- Arama sonuçları sayfası (Mock veri ile)
+- Arama sonuçları sayfası
 - Branş sayfaları (`/branslar` ve `/branslar/[brans]`)
 - SEO meta data (Branş bazlı dinamik title)
 - Kulüp detay şablonu (`/kulupler/[id]`)
-- Gelişmiş filtreleme mantığı (JS taraflı)
 
-### Faz 3 — Veri Tabanı ve Dinamik İçerik (Sıradaki)
+### Faz 3 — Veri Tabanı ve Dinamik İçerik ✅
 
-- PostgreSQL kurulumu
-- Drizzle ORM şeması (Kulüp, Branş, İlçe tabloları)
-- Baslangic migration dosyalari olusturuldu (`drizzle/0000_`*, `drizzle/0001_`*)
+- PocketBase kurulumu ve entegrasyonu
+- Seed altyapısı (`scripts/pb-setup.ts`)
 - Seed altyapisi eklendi (`npm run db:seed`)
 - Canlıya alma hazırlığı: release gate + post-deploy smoke test + deep health endpoint
 - Faz 3A temel şema eklendi: `kullanicilar`, `oturumlar`, `kulup_uyelik_kullanicilari`, `basvuru_belgeleri`
 - Faz 3A migration eklendi: `drizzle/0002_faithful_hammer.sql`
 - Faz 3A repository iskeleti eklendi: `src/lib/repositories/auth.ts`, `src/lib/repositories/applicationDocuments.ts`
 - Faz 3A API eklendi: `/api/panel/login`, `/api/panel/logout`, `/api/panel/session`
+- PocketBase geçişi tamamlandı: PostgreSQL ve Drizzle yerine, dahili DB ve yetkilendirme sağlayan tek dosyalık PocketBase yapısına geçildi (`scripts/pb-setup.ts`).
+- Tüm API'ler PocketBase ile tam entegre çalışacak şekilde güncellendi.
 - Panel login sayfasi aktiflestirildi: `/panel/giris` form + `/panel` korumali alan
 - Admin API genisletildi: `/api/admin/applications?id=...` detay + `/api/admin/application-documents`
 - Basvuru endpointi guclendirildi: dosya kabul/yerel saklama + belge metaverisi kaydi
 - Operasyon scripti eklendi: `npm run user:create -- <email> <password> [admin|club]`
 - Admin shell UI aktiflestirildi: liste + detay + durum guncelleme + belge metaverisi ekleme (`/admin`)
 - Admin shell UI genisletildi: liste arama + durum filtresi + kalici admin notu
-- `kulupler.admin_notu` kolonu eklendi (migration: `drizzle/0003_sturdy_signal.sql`)
 - Panel profil yonetimi eklendi: `GET/POST /api/panel/profile` + `/panel/profil`
 - Header auth UX iyilestirildi: oturum acikken "Uye girisi" -> "Panelim"
 - Operasyon scripti eklendi: `npm run user:assign-club -- <email> <club-slug> [owner|staff]`
 - Panel kurs/program CRUD eklendi:
-  - Tablo: `kulup_programlari` (migration: `drizzle/0004_bright_morning.sql`)
-  - API: `GET/POST/PUT/DELETE /api/panel/programs`
-  - UI: `/panel/kurslar`
+  - UI: `/panel/kurslar` tam donanımlı form, Tiptap zengin metin editörü, Google Maps lokasyon, Drag & Drop Galeri.
 - Public arama entegrasyonu baslatildi:
   - `searchClubs` sonucu kulup bazli aktif program ozeti uretiyor
   - `/ara` kartlarinda program ozeti gosterimi eklendi
 - Kulup detay sayfasi programlarla genisletildi:
   - `getClubProgramsByClubId` repository fonksiyonu eklendi
   - `/kulupler/[id]` icinde aktif program listesi gösteriliyor
+- İlan (Program) detay sayfası oluşturuldu (`/ilanlar/[id]`) ve public tarafta görünür hale getirildi.
 - Metrics endpoint genisletildi: `clubsWithPrograms`
-- Faz 2 kapanis adimi: mock veri fallbacklari core repository akislarindan kaldirildi (DB zorunlu)
+- Mock veri fallbacklari core repository akislarindan kaldirildi (DB zorunlu)
 - Role-scope sertlestirme baslatildi:
   - Panel API'lerinde rol guard (`club/admin`) zorunlu
   - Admin API auth, admin session + token fallback destekli
@@ -153,29 +147,26 @@ Ana takip dosyasi: `memory-bank/faz-gelistirme-checklist-tr.md` (faz bazli [x]/[
   - `src/lib/mail/onboarding.ts`
   - `POST /api/admin/provision-club-user` mail gondermeyi dener, hata varsa `mailWarning` dondurur
 - Guvenlik adimi eklendi: ilk giriste zorunlu sifre degistirme
-  - `kullanicilar.sifre_degistirme_zorunlu` kolonu (migration: `drizzle/0005_silent_chamber.sql`)
   - `POST /api/panel/change-password`
   - `GET /panel/sifre-degistir`
   - Geçici şifreyle login sonrası zorunlu yönlendirme
-- Demo/launch operasyonlari icin yeni varliklar:
-  - Script: `npm run demo:seed`
-  - Dokuman: `memory-bank/demo-ready-checklist-tr.md`
-  - Dokuman: `memory-bank/go-live-guardrails.md`
-  - Dokuman: `memory-bank/kurulum-checklist-tr.md`
-- Test ve operasyon dokumanlari eklendi:
-  - `memory-bank/test-checklist-tr.md`
-  - `memory-bank/server-operations-guide.md`
-- API endpoint'lerinin gerçek veriye bağlanması
-- Kulüp ekleme/düzenleme admin arayüzü (basit)
-- Basvuru + dekont/belge + onay akisi (`club-auth-admin-plan.md` faz 3A–3C) (core tamam, polish devam)
-- Kulup paneli sayfalari (profil, kurs/program) ve yetki kapsami (core tamam, polish devam)
+- İletişim Formu Admin Entegrasyonu:
+  - Admin panelinde `İletişim Formu` sekmesi (Okundu / Okunmadı / Cevaplandı)
+- Geribildirim Sistemi (Feedback Widget):
+  - Tüm panel sayfalarının sağ alt köşesinde geribildirim butonu
+  - Admin panelde `Geribildirimler` sekmesi üzerinden yönetimi
+- Tasarim/UX iyilestirme turu tamamlandı (panel + public sayfalar):
+  - Panelde arayuz duzenleri revize edildi: `/panel`, `/panel/kurslar`, `/panel/profil`
+  - Kurslar sayfası listeleme görünümü ve ilan tasarımları yenilendi (`pcard` UI komponentleri)
+  - Public deneyimde listeleme/detay sunumu guncellendi: `/ara`, `/branslar/[brans]`, `/kulupler/[id]`, `/ilanlar/[id]`
 
-### Faz 4 — Gelişmiş Özellikler
+### Faz 4 — Gelişmiş Özellikler & Monetizasyon (Sıradaki)
 
-- Akıllı eşleştirme quiz'i
-- Harita entegrasyonu (Mapbox / Leaflet)
-- Yorum/puanlama sistemi
-- Premium profil sistemi
+- Gelişmiş Arama ve Harita entegrasyonu (Mapbox / Leaflet)
+- Akıllı eşleştirme quiz'i (Kullanıcılara uygun kurs/kulüp önerisi)
+- Yorum/puanlama sistemi (Kulüpler için geri bildirimler)
+- Premium profil sistemi (Öne çıkanlar) ve online ödeme altyapısı (Stripe/Iyzico)
+- Arama filtrelerinin URL tabanlı sorgu ile derinleştirilmesi
 
 ---
 

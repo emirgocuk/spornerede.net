@@ -16,6 +16,12 @@ const ALLOWED_MIME_TYPES = new Set([
   'application/zip',
   'application/x-zip-compressed',
 ]);
+const ALLOWED_RECEIPT_MIME_TYPES = new Set([
+  'application/pdf',
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+]);
 
 function sanitizeFilename(input: string) {
   return input.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 120) || 'dosya';
@@ -45,6 +51,8 @@ export const POST: APIRoute = async ({ request }) => {
     const yetkili = formData.get('yetkili')?.toString().trim() || '';
     const telefon = formData.get('telefon')?.toString().trim() || '';
     const email = formData.get('email')?.toString().trim() || '';
+    const odemeOnay = formData.get('odemeOnay')?.toString().trim() || '';
+    const dekontFile = formData.get('dekont');
 
     if (!kulupad || !il || !ilce || !brans || !paket || !yetkili || !telefon || !email) {
       return new Response(JSON.stringify({ success: false, error: 'Zorunlu alanlar eksik.' }), {
@@ -56,6 +64,32 @@ export const POST: APIRoute = async ({ request }) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return new Response(JSON.stringify({ success: false, error: 'Geçersiz e-posta adresi.' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (odemeOnay !== '1') {
+      return new Response(JSON.stringify({ success: false, error: 'Başvuru için ödeme onayı zorunludur.' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (!(dekontFile instanceof File) || !dekontFile.name || dekontFile.size === 0) {
+      return new Response(JSON.stringify({ success: false, error: 'Dekont dosyası zorunludur.' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+    if (dekontFile.size > MAX_FILE_SIZE) {
+      return new Response(JSON.stringify({ success: false, error: 'Dekont dosyası 10MB sınırını aşıyor.' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+    if (!ALLOWED_RECEIPT_MIME_TYPES.has(dekontFile.type)) {
+      return new Response(JSON.stringify({ success: false, error: 'Dekont için yalnızca PDF/JPG/PNG/WEBP kabul edilir.' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' },
       });
@@ -78,6 +112,20 @@ export const POST: APIRoute = async ({ request }) => {
 
     const uploadRoot = path.resolve(process.cwd(), 'uploads', 'applications', String(applicationResult.id));
     await fs.mkdir(uploadRoot, { recursive: true });
+
+    const dekontSafeName = sanitizeFilename(dekontFile.name);
+    const dekontDiskFilename = `${Date.now()}-${randomUUID()}-${dekontSafeName}`;
+    const dekontDiskPath = path.join(uploadRoot, dekontDiskFilename);
+    const dekontBytes = Buffer.from(await dekontFile.arrayBuffer());
+    await fs.writeFile(dekontDiskPath, dekontBytes);
+    await createApplicationDocument({
+      applicationId: applicationResult.id,
+      kind: 'dekont',
+      storageKey: `applications/${applicationResult.id}/${dekontDiskFilename}`,
+      originalFilename: dekontFile.name,
+      mimeType: dekontFile.type || 'application/octet-stream',
+      byteSize: dekontFile.size,
+    });
 
     const files = formData.getAll('documents').filter((value): value is File => value instanceof File);
     for (const file of files) {
@@ -123,6 +171,7 @@ export const POST: APIRoute = async ({ request }) => {
           <p><strong>Telefon:</strong> ${telefon}</p>
           <p><strong>E-posta:</strong> ${email}</p>
           <p><strong>Paket:</strong> ${paket}</p>
+          <p><strong>Ödeme Modeli:</strong> Havale/EFT (dekont yüklendi)</p>
           ${aciklama ? `<p><strong>Açıklama:</strong> ${aciklama}</p>` : ''}
         </div>
       </div>

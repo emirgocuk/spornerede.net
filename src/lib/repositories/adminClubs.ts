@@ -1,4 +1,5 @@
 import { getDb, hasDatabaseUrl } from '../../db/client';
+import { parseProgramContent, serializeProgramContent } from './programContent';
 
 function requireDatabase() {
   if (!hasDatabaseUrl()) {
@@ -63,16 +64,23 @@ export async function getApprovedAdminClubById(clubId: number) {
     yasAraligi: (row.yasAraligi as string) ?? '',
     fiyatBilgisi: (row.fiyatBilgisi as string) ?? '',
     updatedAt: row.updated,
-    programs: programs.map((program) => ({
-      id: Number(program.legacyId),
-      ad: (program.ad as string) ?? '',
-      aciklama: (program.aciklama as string) ?? '',
-      gunSaat: (program.gunSaat as string) ?? '',
-      seviye: (program.seviye as string) ?? '',
-      ucretBilgisi: (program.ucretBilgisi as string) ?? '',
-      aktif: Boolean(program.aktif),
-      updatedAt: program.updated,
-    })),
+    programs: programs.map((program) => {
+      const parsed = parseProgramContent((program.aciklama as string) ?? '');
+      return {
+        id: Number(program.legacyId),
+        ad: (program.ad as string) ?? '',
+        aciklama: parsed.content.summary || parsed.legacyText || '',
+        gunSaat: (program.gunSaat as string) ?? '',
+        seviye: (program.seviye as string) ?? '',
+        ucretBilgisi: (program.ucretBilgisi as string) ?? '',
+        aktif: Boolean(program.aktif),
+        eventDate: parsed.content.eventDate,
+        locationText: parsed.content.locationText,
+        gallery: parsed.content.gallery,
+        bodyJson: parsed.content.bodyJson,
+        updatedAt: program.updated,
+      };
+    }),
   };
 }
 
@@ -119,4 +127,78 @@ export async function updateApprovedAdminClub(clubId: number, input: UpdateAppro
     fiyatBilgisi: (updated.fiyatBilgisi as string) ?? '',
     updatedAt: updated.updated,
   };
+}
+
+export type UpdateAdminClubProgramInput = {
+  ad: string;
+  aciklama: string;
+  gunSaat: string;
+  seviye: string;
+  ucretBilgisi: string;
+  aktif: boolean;
+  eventDate?: string;
+  locationText?: string;
+  gallery?: string[];
+  bodyJson?: unknown | null;
+};
+
+export async function updateAdminClubProgram(clubId: number, programId: number, input: UpdateAdminClubProgramInput) {
+  requireDatabase();
+  const db = await getDb();
+
+  const program = await db
+    .collection('kulup_programlari')
+    .getFirstListItem(`legacyId = ${programId} && kulupLegacyId = ${clubId}`)
+    .catch(() => null);
+  if (!program) {
+    return null;
+  }
+
+  const currentParsed = parseProgramContent((program.aciklama as string) ?? '');
+  const updated = await db.collection('kulup_programlari').update(program.id, {
+    ad: input.ad.trim(),
+    aciklama: serializeProgramContent({
+      summary: input.aciklama.trim(),
+      eventDate: input.eventDate ?? currentParsed.content.eventDate,
+      locationText: input.locationText ?? currentParsed.content.locationText,
+      gallery: input.gallery ?? currentParsed.content.gallery,
+      bodyJson: input.bodyJson ?? currentParsed.content.bodyJson,
+    }),
+    gunSaat: input.gunSaat.trim(),
+    seviye: input.seviye.trim(),
+    ucretBilgisi: input.ucretBilgisi.trim(),
+    aktif: input.aktif,
+  });
+  const parsed = parseProgramContent((updated.aciklama as string) ?? '');
+
+  return {
+    id: Number(updated.legacyId),
+    ad: (updated.ad as string) ?? '',
+    aciklama: parsed.content.summary || parsed.legacyText || '',
+    gunSaat: (updated.gunSaat as string) ?? '',
+    seviye: (updated.seviye as string) ?? '',
+    ucretBilgisi: (updated.ucretBilgisi as string) ?? '',
+    aktif: Boolean(updated.aktif),
+    eventDate: parsed.content.eventDate,
+    locationText: parsed.content.locationText,
+    gallery: parsed.content.gallery,
+    bodyJson: parsed.content.bodyJson,
+    updatedAt: updated.updated,
+  };
+}
+
+export async function deleteAdminClubProgram(clubId: number, programId: number) {
+  requireDatabase();
+  const db = await getDb();
+
+  const program = await db
+    .collection('kulup_programlari')
+    .getFirstListItem(`legacyId = ${programId} && kulupLegacyId = ${clubId}`)
+    .catch(() => null);
+  if (!program) {
+    return false;
+  }
+
+  await db.collection('kulup_programlari').delete(program.id);
+  return true;
 }

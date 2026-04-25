@@ -1,0 +1,214 @@
+---
+const isPanel = Astro.url.pathname.startsWith('/panel');
+---
+
+{isPanel && (
+<div id="panel-feedback-wrapper" class="panel-feedback-wrapper">
+  <button id="panel-feedback-btn" class="panel-feedback-btn" type="button" aria-label="Geribildirim Gönder">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+    </svg>
+    <span>Geribildirim</span>
+  </button>
+
+  <div id="panel-feedback-box" class="panel-feedback-box" hidden>
+    <div class="feedback-head">
+      <h4>Bize Fikrinizi Söyleyin</h4>
+      <button id="close-feedback-btn" type="button" aria-label="Kapat">&times;</button>
+    </div>
+    <div class="feedback-body">
+      <textarea id="feedback-message" rows="4" placeholder="Panel hakkında ne düşünüyorsunuz? Öneri veya şikayetlerinizi buraya yazabilirsiniz..." required></textarea>
+      <div id="feedback-status" class="feedback-status"></div>
+      <button id="submit-feedback-btn" class="btn btn-primary btn-block" type="button">Gönder</button>
+    </div>
+  </div>
+</div>
+)}
+
+<style>
+  .panel-feedback-wrapper {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+  }
+
+  .panel-feedback-btn {
+    background: #0f172a;
+    color: white;
+    border: none;
+    border-radius: 999px;
+    padding: 10px 18px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(15,23,42,0.25);
+    transition: all 0.2s;
+  }
+  
+  .panel-feedback-btn:hover {
+    background: #1e293b;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(15,23,42,0.3);
+  }
+
+  .panel-feedback-box {
+    background: white;
+    border-radius: 12px;
+    width: 320px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+    border: 1px solid #e2e8f0;
+    margin-bottom: 12px;
+    overflow: hidden;
+    animation: feedbackSlideUp 0.3s ease-out;
+    transform-origin: bottom right;
+  }
+
+  .panel-feedback-box[hidden] {
+    display: none;
+  }
+
+  .feedback-head {
+    background: #f8fafc;
+    padding: 12px 16px;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .feedback-head h4 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #0f172a;
+  }
+
+  #close-feedback-btn {
+    background: transparent;
+    border: none;
+    font-size: 1.5rem;
+    line-height: 1;
+    color: #64748b;
+    cursor: pointer;
+    padding: 0;
+  }
+  
+  #close-feedback-btn:hover {
+    color: #0f172a;
+  }
+
+  .feedback-body {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  #feedback-message {
+    width: 100%;
+    resize: none;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 10px;
+    font-family: inherit;
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  #feedback-message:focus {
+    border-color: #3b82f6;
+  }
+
+  .feedback-status {
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+  .feedback-status.error { color: #dc2626; }
+  .feedback-status.success { color: #16a34a; }
+
+  @keyframes feedbackSlideUp {
+    from { opacity: 0; transform: scale(0.95) translateY(10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  
+  @media (max-width: 480px) {
+    .panel-feedback-wrapper {
+      bottom: 16px;
+      right: 16px;
+    }
+    .panel-feedback-box {
+      width: calc(100vw - 32px);
+    }
+  }
+</style>
+
+<script>
+  const toggleBtn = document.getElementById('panel-feedback-btn');
+  const closeBtn = document.getElementById('close-feedback-btn');
+  const feedbackBox = document.getElementById('panel-feedback-box');
+  const submitBtn = document.getElementById('submit-feedback-btn');
+  const messageInput = document.getElementById('feedback-message') as HTMLTextAreaElement;
+  const statusDiv = document.getElementById('feedback-status');
+
+  if (toggleBtn && closeBtn && feedbackBox && submitBtn && messageInput && statusDiv) {
+    toggleBtn.addEventListener('click', () => {
+      feedbackBox.hidden = !feedbackBox.hidden;
+      if (!feedbackBox.hidden) {
+        messageInput.focus();
+      }
+    });
+
+    closeBtn.addEventListener('click', () => {
+      feedbackBox.hidden = true;
+      statusDiv.textContent = '';
+      statusDiv.className = 'feedback-status';
+    });
+
+    submitBtn.addEventListener('click', async () => {
+      const mesaj = messageInput.value.trim();
+      if (!mesaj) {
+        statusDiv.textContent = 'Lütfen bir mesaj yazın.';
+        statusDiv.className = 'feedback-status error';
+        return;
+      }
+
+      statusDiv.textContent = 'Gönderiliyor...';
+      statusDiv.className = 'feedback-status';
+      submitBtn.setAttribute('disabled', 'true');
+
+      try {
+        const res = await fetch('/api/panel/feedback', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mesaj }),
+        });
+        
+        const data = await res.json();
+        if (res.ok) {
+          statusDiv.textContent = 'Geribildiriminiz için teşekkürler!';
+          statusDiv.className = 'feedback-status success';
+          messageInput.value = '';
+          setTimeout(() => {
+            feedbackBox.hidden = true;
+            statusDiv.textContent = '';
+          }, 3000);
+        } else {
+          throw new Error(data.error || 'Gönderilemedi');
+        }
+      } catch (err: any) {
+        statusDiv.textContent = err.message || 'Bir hata oluştu.';
+        statusDiv.className = 'feedback-status error';
+      } finally {
+        submitBtn.removeAttribute('disabled');
+      }
+    });
+  }
+</script>

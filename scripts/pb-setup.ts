@@ -1,4 +1,5 @@
 import PocketBase from 'pocketbase';
+import { existsSync, readFileSync } from 'node:fs';
 
 type SchemaField = {
   name: string;
@@ -19,6 +20,21 @@ function env(name: string) {
     throw new Error(`${name} tanimli degil.`);
   }
   return value;
+}
+
+function loadLocalEnv() {
+  if (!existsSync('.env')) return;
+  const lines = readFileSync('.env', 'utf8').split(/\r?\n/);
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const separatorIndex = trimmed.indexOf('=');
+    if (separatorIndex === -1) continue;
+    const key = trimmed.slice(0, separatorIndex).trim();
+    const rawValue = trimmed.slice(separatorIndex + 1).trim();
+    if (!key || process.env[key]) continue;
+    process.env[key] = rawValue.replace(/^["']|["']$/g, '');
+  }
 }
 
 const COLLECTIONS: CollectionDef[] = [
@@ -172,13 +188,53 @@ const COLLECTIONS: CollectionDef[] = [
       { name: 'islemYapanEmail', type: 'text' },
     ],
   },
+  {
+    name: 'iletisim_mesajlari',
+    fields: [
+      { name: 'legacyId', type: 'number', required: true, unique: true },
+      { name: 'adSoyad', type: 'text', required: true },
+      { name: 'telefon', type: 'text' },
+      { name: 'email', type: 'email', required: true },
+      { name: 'konu', type: 'text', required: true },
+      { name: 'mesaj', type: 'text', required: true },
+      { name: 'okundu', type: 'bool' },
+      { name: 'cevaplandi', type: 'bool' },
+    ],
+  },
+  {
+    name: 'panel_geribildirimleri',
+    fields: [
+      { name: 'legacyId', type: 'number', required: true, unique: true },
+      { name: 'kullaniciLegacyId', type: 'number', required: true },
+      { name: 'mesaj', type: 'text', required: true },
+      { name: 'durum', type: 'text' },
+    ],
+  },
 ];
 
 async function ensureCollection(pb: PocketBase, def: CollectionDef) {
   const existingList = await pb.collections.getList(1, 200, { filter: `name = "${def.name}"` });
   if (existingList.totalItems > 0) {
-    const existing = existingList.items[0] as { id: string; fields?: Array<{ name: string }> };
+    const existing = existingList.items[0] as { id: string; fields?: Array<SchemaField & { id?: string }> };
     const existingFields = existing.fields ?? [];
+    const existingFieldNames = new Set(existingFields.map((field) => field.name));
+    const missingFields = def.fields.filter((field) => !existingFieldNames.has(field.name));
+    if (missingFields.length > 0) {
+      await pb.collections.update(existing.id, {
+        fields: [
+          ...existingFields,
+          ...missingFields.map((field) => ({
+            name: field.name,
+            type: field.type,
+            required: field.required ?? false,
+            unique: field.unique ?? false,
+            options: field.options ?? {},
+          })),
+        ],
+      });
+      console.log(`~ ${def.name} eksik alanlar eklendi: ${missingFields.map((field) => field.name).join(', ')}`);
+      return;
+    }
     const hasCustomFields = existingFields.some((field) => !['id', 'created', 'updated'].includes(field.name));
     if (hasCustomFields) {
       console.log(`- ${def.name} mevcut`);
@@ -208,6 +264,7 @@ async function ensureCollection(pb: PocketBase, def: CollectionDef) {
 }
 
 async function main() {
+  loadLocalEnv();
   const pb = new PocketBase(env('POCKETBASE_URL'));
   await pb.collection('_superusers').authWithPassword(env('POCKETBASE_ADMIN_EMAIL'), env('POCKETBASE_ADMIN_PASSWORD'));
   for (const collection of COLLECTIONS) {

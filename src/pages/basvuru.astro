@@ -18,8 +18,8 @@ const bransListesi = [
 ];
 
 const ilceler = [
-  'Cankaya', 'Kecioren', 'Yenimahalle', 'Etimesgut', 'Sincan', 'Mamak', 'Golbasi',
-  'Altindag', 'Pursaklar', 'Cubuk', 'Polatli',
+  'Çankaya', 'Keçiören', 'Yenimahalle', 'Etimesgut', 'Sincan', 'Mamak', 'Gölbaşı',
+  'Altındağ', 'Pursaklar', 'Çubuk', 'Polatlı',
 ];
 
 const adimlar = [
@@ -27,6 +27,16 @@ const adimlar = [
   { num: '2', label: 'İletişim' },
   { num: '3', label: 'Paket' },
 ];
+
+const planDisplayMeta: Record<string, { ad: string; sure: string; aylikKarsilik?: string; oneCikan?: boolean; populer?: boolean }> = {
+  aylik: { ad: 'Aylık', sure: 'Esnek Plan', oneCikan: false },
+  'alti-aylik': { ad: '6 Aylık', sure: 'Avantajlı Plan', aylikKarsilik: '1.250 TL / ay', oneCikan: true, populer: true },
+  'on-iki-aylik': { ad: '12 Aylık', sure: 'En İyi Fiyat', aylikKarsilik: '1.000 TL / ay', oneCikan: false },
+};
+
+const iban = import.meta.env.PUBLIC_BANK_IBAN || 'TR00 0000 0000 0000 0000 0000 00';
+const accountName = import.meta.env.PUBLIC_BANK_ACCOUNT_NAME || 'SporNerede Teknoloji A.S.';
+const bankName = import.meta.env.PUBLIC_BANK_NAME || 'Banka Adi';
 ---
 
 <BaseLayout
@@ -44,22 +54,26 @@ const adimlar = [
         <div class="bh-orb bh-orb-2"></div>
       </div>
       <div class="container basvuru-hero-content">
-        <div class="basvuru-badge">🏆 Platforma Katıl</div>
-        <h1 class="basvuru-title">Kulübünüzü<br />Listeleyin</h1>
-        <p class="basvuru-desc">
-          Başvurunuz 24 saat içinde incelenir. Onaylandıktan sonra profiliniz yayına alınır.
-        </p>
-        <!-- Adım göstergesi -->
-        <div class="adimlar" aria-label="Form Adımları" role="list">
-          {adimlar.map((adim, i) => (
-            <div class="adim" role="listitem">
-              <div class={`adim-num ${i === 0 ? 'adim-aktif' : ''}`} aria-current={i === 0 ? 'step' : undefined}>
-                {adim.num}
+        <div class="hero-left-content">
+          <div class="basvuru-badge">🏆 Platforma Katıl</div>
+          <h1 class="basvuru-title">Kulübünüzü<br />Listeleyin</h1>
+          <p class="basvuru-desc">
+            Başvurunuz 24 saat içinde incelenir. Onaylandıktan sonra profiliniz yayına alınır.
+          </p>
+          <!-- Adım göstergesi -->
+          <div class="adimlar" aria-label="Form Adımları" role="list">
+            {adimlar.map((adim, i) => (
+              <div class="adim" role="listitem">
+                <div class={`adim-num ${i === 0 ? 'adim-aktif' : ''}`} aria-current={i === 0 ? 'step' : undefined}>
+                  {adim.num}
+                </div>
+                <span class="adim-label">{adim.label}</span>
               </div>
-              <span class="adim-label">{adim.label}</span>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
+
+        <div class="hero-right-content" aria-hidden="true"></div>
       </div>
     </div>
 
@@ -118,10 +132,10 @@ const adimlar = [
                   <div class="form-row form-row-2col">
                     <div class="form-group">
                       <label class="form-label" for="kulup-il">
-                        Il <span class="required" aria-label="zorunlu alan">*</span>
+                        İl <span class="required" aria-label="zorunlu alan">*</span>
                       </label>
                       <select id="kulup-il" name="il" class="form-select" required aria-required="true">
-                        <option value="">Il secin...</option>
+                        <option value="">İl seçin...</option>
                         {CITIES.map((il) => (
                           <option value={il}>{il}</option>
                         ))}
@@ -269,20 +283,105 @@ const adimlar = [
                 <div class="form-section">
                   <h2 class="form-section-title">
                     <span class="form-section-num" aria-hidden="true">3</span>
-                    Uyelik Paketi
+                    Üyelik Paketi
                   </h2>
-                  <div class="form-row">
-                    <div class="form-group">
-                      <label class="form-label" for="uyelik-paket">
-                        Paket <span class="required" aria-label="zorunlu alan">*</span>
-                      </label>
-                      <select id="uyelik-paket" name="paket" class="form-select" required aria-required="true">
-                        <option value="">Paket secin...</option>
-                        {MEMBERSHIP_PLANS.map((plan) => (
-                          <option value={plan.kod}>{plan.ad} - {plan.ucret} TL</option>
-                        ))}
-                      </select>
+                  <p class="paket-subtitle">Size en uygun planı seçin, kampanya fiyatlarıyla hemen başlayın.</p>
+                  <div class="membership-grid" role="radiogroup" aria-label="Üyelik Paketi">
+                    {MEMBERSHIP_PLANS.map((plan) => {
+                      const meta = planDisplayMeta[plan.kod] ?? { ad: plan.ad, sure: plan.ad };
+                      return (
+                        <label class={`membership-card ${meta.oneCikan ? 'membership-card--featured' : ''}`} for={`uyelik-${plan.kod}`}>
+                          <input id={`uyelik-${plan.kod}`} class="membership-radio" type="radio" name="paket" value={plan.kod} required />
+                          <div class="membership-card-content">
+                            {meta.populer && <div class="campaign-badge">✨ En Popüler</div>}
+                            
+                            <div class="membership-header">
+                              <h3 class="membership-name">{meta.ad}</h3>
+                              <span class="membership-period">{meta.sure}</span>
+                            </div>
+                            
+                            <div class="membership-price-area">
+                              <div class="membership-price">
+                                {new Intl.NumberFormat('tr-TR').format(plan.ucret)} <span class="currency">TL</span>
+                              </div>
+                              {meta.aylikKarsilik ? (
+                                <div class="membership-monthly">{meta.aylikKarsilik}</div>
+                              ) : (
+                                <div class="membership-monthly-placeholder">&nbsp;</div>
+                              )}
+                            </div>
+                            
+                            <div class="membership-divider"></div>
+                            
+                            <ul class="membership-features">
+                              <li>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="feature-icon"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                Sınırsız Branş Ekleme
+                              </li>
+                              <li>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="feature-icon"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                Gelişmiş Profil Paneli
+                              </li>
+                              <li>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="feature-icon"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                7/24 Öncelikli Destek
+                              </li>
+                            </ul>
+                            
+                            <div class="membership-select-btn">Planı Seç</div>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
+
+                  <div class="payment-box">
+                    <h3 class="payment-title">Banka Havalesi ile Ödeme</h3>
+                    <p class="payment-desc">Kısa vadede ödeme modelimiz havale/EFT + dekont onayı şeklindedir.</p>
+                    <div class="payment-grid">
+                      <div class="payment-item">
+                        <span class="payment-label">Banka</span>
+                        <strong>{bankName}</strong>
+                      </div>
+                      <div class="payment-item">
+                        <span class="payment-label">Hesap Adı</span>
+                        <strong>{accountName}</strong>
+                      </div>
+                      <div class="payment-item payment-item--iban">
+                        <span class="payment-label">IBAN</span>
+                        <strong>{iban}</strong>
+                      </div>
                     </div>
+                    <ol class="payment-steps">
+                      <li><strong id="dyn-payment-amount">Paket tutarını</strong> yukarıdaki IBAN hesabına gönderin.</li>
+                      <li>Açıklama alanına <strong id="dyn-payment-desc">kulüp adınızı</strong> yazın.</li>
+                      <li>Dekont dosyanızı yükleyip başvuruyu tamamlayın.</li>
+                    </ol>
+                    <div class="form-row">
+                      <div class="form-group">
+                        <label class="form-label" for="odeme-dekont">
+                          Dekont Yükle (PDF/JPG/PNG) <span class="required" aria-label="zorunlu alan">*</span>
+                        </label>
+                        <input
+                          type="file"
+                          id="odeme-dekont"
+                          name="dekont"
+                          class="form-input"
+                          accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp"
+                          required
+                          aria-required="true"
+                        />
+                      </div>
+                    </div>
+                    <label class="payment-confirm">
+                      <input type="checkbox" name="odemeOnay" value="1" class="sr-only-checkbox" required aria-required="true" />
+                      <div class="custom-checkbox">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="check-icon">
+                          <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                      </div>
+                      <span>Ödemeyi yaptım ve dekontun doğru olduğunu onaylıyorum.</span>
+                    </label>
                   </div>
                 </div>
 
@@ -299,42 +398,54 @@ const adimlar = [
                   </button>
                 </div>
 
+                <div class="form-contact-card">
+                  <h3 class="form-contact-title">Sorularınız mı var?</h3>
+                  <p class="form-contact-text">Başvuru süreciyle ilgili yardım için bize ulaşın:</p>
+                  <a href="mailto:info@spornerede.net" class="form-contact-email">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                      <polyline points="22,6 12,13 2,6"/>
+                    </svg>
+                    info@spornerede.net
+                  </a>
+                </div>
+
               </form>
             )}
           </main>
-
-          <!-- Sağ: Bilgi paneli -->
-          <aside class="basvuru-sidebar" aria-label="Başvuru Bilgileri">
-            <div class="sidebar-card">
-              <div class="sidebar-icon" aria-hidden="true">⚡</div>
-              <h3 class="sidebar-title">Neden SporNerede?</h3>
-              <ul class="sidebar-list" role="list">
-                <li><span aria-hidden="true">✅</span> Ücretli üyelik modeli</li>
-                <li><span aria-hidden="true">✅</span> 24 saat içinde onay</li>
-                <li><span aria-hidden="true">✅</span> Binlerce aileye ulaşın</li>
-                <li><span aria-hidden="true">✅</span> Başvuru iletişim bilgisi</li>
-                <li><span aria-hidden="true">✅</span> Premium öne çıkarma seçeneği</li>
-              </ul>
-            </div>
-
-            <div class="sidebar-card sidebar-iletisim">
-              <h3 class="sidebar-subtitle">Sorularınız mı var?</h3>
-              <p class="sidebar-contact-text">Başvuru süreciyle ilgili yardım için bize ulaşın:</p>
-              <a href="mailto:info@spornerede.net" class="sidebar-email">
-                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-                  <polyline points="22,6 12,13 2,6"/>
-                </svg>
-                info@spornerede.net
-              </a>
-            </div>
-          </aside>
 
         </div>
       </div>
     </div>
 
   </div>
+
+  <script is:inline>
+    // Dinamik odeme metinleri
+    const kulupInput = document.getElementById('kulup-ad');
+    const dynDesc = document.getElementById('dyn-payment-desc');
+    const dynAmount = document.getElementById('dyn-payment-amount');
+    const radios = document.querySelectorAll('input[name="paket"]');
+
+    // Kulup adini aciklamaya yansit
+    kulupInput?.addEventListener('input', (e) => {
+      const val = e.target.value.trim();
+      if (dynDesc) dynDesc.textContent = val ? '"' + val + '"' : 'kulüp adınızı';
+    });
+
+    // Secilen paketin tutarini yansit
+    radios.forEach((radio) => {
+      radio.addEventListener('change', (e) => {
+        // İlgili kartin icindeki fiyat elementini bul
+        const card = e.target.closest('.membership-card');
+        const priceEl = card?.querySelector('.membership-price');
+        if (priceEl && dynAmount) {
+          const priceText = priceEl.textContent.trim();
+          dynAmount.textContent = priceText + ' tutarını';
+        }
+      });
+    });
+  </script>
 
 </BaseLayout>
 
@@ -388,6 +499,67 @@ const adimlar = [
     display: flex;
     flex-direction: column;
     gap: 1rem;
+    max-width: 840px;
+  }
+
+  @media (min-width: 900px) {
+    .basvuru-hero-content {
+      display: flex;
+    }
+  }
+
+  .hero-left-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .hero-right-content {
+    display: flex;
+    justify-content: center;
+  }
+
+  @media (min-width: 900px) {
+    .hero-right-content {
+      justify-content: flex-end;
+    }
+  }
+
+  .hero-feature-card-glass {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 1.25rem;
+    padding: 2rem;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  }
+
+  .hero-feature-title {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #ffffff;
+    margin: 0 0 1.25rem 0;
+  }
+
+  .hero-feature-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+  }
+
+  .hero-feature-list li {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.95rem;
+    font-weight: 500;
   }
 
   .basvuru-badge {
@@ -471,14 +643,8 @@ const adimlar = [
   }
 
   .basvuru-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 2rem;
-    align-items: flex-start;
-  }
-
-  @media (min-width: 1024px) {
-    .basvuru-grid { grid-template-columns: 1fr 320px; }
+    display: flex;
+    justify-content: center;
   }
 
   /* ===== FORM KART ===== */
@@ -488,6 +654,8 @@ const adimlar = [
     border: 1px solid #E9ECEF;
     padding: 2.5rem;
     box-shadow: 0 4px 24px rgba(0,0,0,0.07);
+    width: 100%;
+    max-width: 840px;
   }
 
   /* ===== FORM SECTION ===== */
@@ -545,13 +713,446 @@ const adimlar = [
   .form-group {
     display: flex;
     flex-direction: column;
-    gap: 0.35rem;
+    gap: 0.45rem;
+    position: relative;
+    transition: all 0.3s ease;
+  }
+
+  .form-group:focus-within .form-label {
+    color: #E30A17;
+    transform: translateX(2px);
+  }
+
+  .form-label {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #495057;
+    transition: all 0.3s ease;
+    display: inline-block;
+  }
+
+  .form-input,
+  .form-select,
+  .form-textarea {
+    width: 100%;
+    padding: 0.85rem 1.1rem;
+    border: 2px solid #E9ECEF;
+    border-radius: 0.85rem;
+    background: #ffffff;
+    font-family: inherit;
+    font-size: 0.95rem;
+    color: #212529;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .form-input::placeholder,
+  .form-textarea::placeholder {
+    color: #ADB5BD;
+    transition: opacity 0.3s ease;
+  }
+
+  .form-input:focus,
+  .form-select:focus,
+  .form-textarea:focus {
+    outline: none;
+    border-color: #E30A17;
+    background: #fffafa;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(227, 10, 23, 0.08), 0 0 0 4px rgba(227, 10, 23, 0.1);
+  }
+
+  .form-input:focus::placeholder,
+  .form-textarea:focus::placeholder {
+    opacity: 0.5;
+  }
+
+  /* Icı dolu ama odakta degilken (valid) hafif vurgu */
+  .form-input:not(:placeholder-shown):not(:focus),
+  .form-textarea:not(:placeholder-shown):not(:focus) {
+    border-color: #cbd5e1;
+    background: #f8fafc;
   }
 
   .required {
     color: #E30A17;
     font-size: 1rem;
     line-height: 1;
+  }
+
+  .paket-subtitle {
+    margin: 0 0 1.5rem;
+    color: #495057;
+    font-size: 1.05rem;
+    font-weight: 500;
+  }
+
+  .membership-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+
+  @media (min-width: 768px) {
+    .membership-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  .membership-card {
+    position: relative;
+    cursor: pointer;
+    display: block;
+  }
+
+  .membership-radio {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .membership-card-content {
+    position: relative;
+    border: 2px solid #E9ECEF;
+    border-radius: 1.25rem;
+    padding: 1.75rem 1.5rem;
+    background: #ffffff;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+    z-index: 1;
+    overflow: hidden;
+  }
+
+  .membership-card:hover .membership-card-content {
+    transform: translateY(-4px);
+    border-color: #dee2e6;
+    box-shadow: 0 12px 24px rgba(0,0,0,0.06);
+  }
+
+  .membership-radio:checked + .membership-card-content {
+    border-color: #E30A17;
+    background: #ffffff;
+    box-shadow: 0 12px 30px rgba(227,10,23,0.15), 0 0 0 1px #E30A17;
+  }
+  
+  .membership-radio:checked + .membership-card-content::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: #E30A17;
+  }
+
+  .membership-card--featured .membership-card-content {
+    border-color: #E30A17;
+    background: linear-gradient(to bottom, #fff5f5 0%, #ffffff 100%);
+    box-shadow: 0 8px 24px rgba(227, 10, 23, 0.12);
+  }
+  
+  .membership-card--featured .membership-radio:checked + .membership-card-content {
+    border-color: #E30A17;
+    box-shadow: 0 12px 30px rgba(227, 10, 23, 0.25), 0 0 0 1px #E30A17;
+  }
+  
+  .membership-card--featured .membership-radio:checked + .membership-card-content::before {
+    background: #E30A17;
+  }
+
+  .campaign-badge {
+    position: absolute;
+    top: 0;
+    right: 1.5rem;
+    background: #E30A17;
+    color: #ffffff;
+    font-size: 0.75rem;
+    font-weight: 800;
+    padding: 0.35rem 0.75rem;
+    border-radius: 0 0 0.5rem 0.5rem;
+    box-shadow: 0 4px 10px rgba(227, 10, 23, 0.3);
+    z-index: 2;
+  }
+
+  .membership-header {
+    margin-bottom: 1.25rem;
+  }
+
+  .membership-name {
+    font-size: 1.25rem;
+    font-weight: 900;
+    color: #212529;
+    margin: 0 0 0.25rem;
+  }
+
+  .membership-period {
+    font-size: 0.85rem;
+    color: #6C757D;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  
+  .membership-price-area {
+    margin-bottom: 1.5rem;
+  }
+
+  .membership-price {
+    font-size: 2.25rem;
+    font-weight: 900;
+    color: #111827;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    display: flex;
+    align-items: baseline;
+    gap: 0.25rem;
+  }
+  
+  .membership-radio:checked + .membership-card-content .membership-price {
+    color: #E30A17;
+  }
+  
+  .membership-card--featured .membership-radio:checked + .membership-card-content .membership-price {
+    color: #E30A17;
+  }
+
+  .membership-price .currency {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #6C757D;
+  }
+
+  .membership-monthly {
+    font-size: 0.9rem;
+    color: #16A34A;
+    font-weight: 700;
+    margin-top: 0.5rem;
+    background: #DCFCE7;
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    border-radius: 0.35rem;
+  }
+  
+  .membership-monthly-placeholder {
+    height: 1.65rem;
+    margin-top: 0.5rem;
+  }
+  
+  .membership-divider {
+    height: 1px;
+    background: #E9ECEF;
+    margin: 0 0 1.5rem;
+  }
+  
+  .membership-features {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+    flex-grow: 1;
+  }
+  
+  .membership-features li {
+    font-size: 0.8rem;
+    color: #495057;
+    font-weight: 500;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.5rem;
+    line-height: 1.4;
+    text-align: left;
+  }
+  
+  .feature-icon {
+    color: #E30A17;
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    display: inline-block;
+  }
+  
+  .membership-select-btn {
+    width: 100%;
+    text-align: center;
+    padding: 0.75rem;
+    border-radius: 0.75rem;
+    font-weight: 700;
+    font-size: 0.95rem;
+    background: #F8F9FA;
+    color: #495057;
+    border: 1px solid #E9ECEF;
+    transition: all 0.2s ease;
+  }
+  
+  .membership-radio:checked + .membership-card-content .membership-select-btn {
+    background: #E30A17;
+    color: #ffffff;
+    border-color: #E30A17;
+  }
+  
+  .membership-card--featured .membership-radio:checked + .membership-card-content .membership-select-btn {
+    background: #E30A17;
+    border-color: #E30A17;
+    color: #ffffff;
+  }
+
+  .payment-box {
+    margin-top: 1.5rem;
+    padding: 1.25rem;
+    border: 1px solid #FECACA;
+    border-radius: 1rem;
+    background: linear-gradient(180deg, #fff7f7 0%, #ffffff 100%);
+    display: none;
+  }
+
+  .membership-grid:has(input[type="radio"]:checked) + .payment-box {
+    display: block;
+    animation: slideDownPayment 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  @keyframes slideDownPayment {
+    from {
+      opacity: 0;
+      transform: translateY(-15px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .payment-title {
+    margin: 0 0 0.35rem;
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #7f1d1d;
+  }
+
+  .payment-desc {
+    margin: 0 0 0.85rem;
+    font-size: 0.88rem;
+    color: #7f1d1d;
+  }
+
+  .payment-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.65rem;
+    margin-bottom: 0.9rem;
+  }
+
+  @media (min-width: 640px) {
+    .payment-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .payment-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding: 0.65rem 0.75rem;
+    border-radius: 0.6rem;
+    border: 1px solid #FEE2E2;
+    background: #ffffff;
+  }
+
+  .payment-item--iban {
+    grid-column: 1 / -1;
+  }
+
+  .payment-label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    color: #b91c1c;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+  }
+
+  .payment-item strong {
+    font-size: 0.92rem;
+    color: #111827;
+    word-break: break-word;
+  }
+
+  .payment-steps {
+    margin: 0 0 0.9rem;
+    padding-left: 1.1rem;
+    color: #374151;
+    font-size: 0.85rem;
+    line-height: 1.5;
+  }
+
+  .payment-confirm {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    font-size: 0.85rem;
+    color: #374151;
+    margin-top: 0.75rem;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .sr-only-checkbox {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
+  .custom-checkbox {
+    width: 20px;
+    height: 20px;
+    border-radius: 6px;
+    border: 2px solid #cbd5e1;
+    background: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 0.15rem;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .check-icon {
+    width: 12px;
+    height: 12px;
+    color: #ffffff;
+    opacity: 0;
+    transform: scale(0.5);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  .sr-only-checkbox:checked + .custom-checkbox {
+    background: #E30A17;
+    border-color: #E30A17;
+    animation: checkboxPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  .sr-only-checkbox:checked + .custom-checkbox .check-icon {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  .sr-only-checkbox:focus-visible + .custom-checkbox {
+    box-shadow: 0 0 0 3px rgba(227, 10, 23, 0.2);
+  }
+
+  @keyframes checkboxPop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+    100% { transform: scale(1); }
   }
 
   /* ===== SUBMIT ALANI ===== */
@@ -684,4 +1285,51 @@ const adimlar = [
   .sidebar-email:hover {
     opacity: 0.8;
   }
+  /* ===== CONTACT KART ===== */
+  .form-contact-card {
+    margin-top: 3.5rem;
+    padding-top: 2rem;
+    border-top: 1px dashed #E9ECEF;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: center;
+    text-align: center;
+  }
+
+  .form-contact-title {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #212529;
+    margin: 0;
+  }
+
+  .form-contact-text {
+    font-size: 0.95rem;
+    color: #6C757D;
+    margin: 0;
+  }
+
+  .form-contact-email {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #E30A17;
+    text-decoration: none;
+    margin-top: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: #fff5f5;
+    border-radius: 0.75rem;
+    border: 1px solid #fee2e2;
+    transition: all 0.2s ease;
+  }
+
+  .form-contact-email:hover {
+    background: #E30A17;
+    color: #ffffff;
+    border-color: #E30A17;
+  }
+
 </style>

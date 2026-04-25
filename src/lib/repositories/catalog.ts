@@ -160,7 +160,13 @@ export async function searchClubs(filters: SearchFilters) {
       ucretBilgisi: string;
       aktif: boolean;
       eventDate: string;
+      endDate: string;
+      isOngoing: boolean;
+      days: string[];
+      startTime: string;
+      endTime: string;
       locationText: string;
+      mapsUrl: string;
       aciklama: string;
     }>
   >();
@@ -176,7 +182,13 @@ export async function searchClubs(filters: SearchFilters) {
       ucretBilgisi: (row.ucretBilgisi as string) ?? '',
       aktif: Boolean(row.aktif),
       eventDate: parsed.content.eventDate,
+      endDate: parsed.content.endDate,
+      isOngoing: parsed.content.isOngoing,
+      days: parsed.content.days,
+      startTime: parsed.content.startTime,
+      endTime: parsed.content.endTime,
       locationText: parsed.content.locationText,
+      mapsUrl: parsed.content.mapsUrl,
       aciklama: parsed.content.summary || parsed.legacyText || '',
     });
     programsByClub.set(clubId, current);
@@ -253,7 +265,13 @@ export async function getClubProgramsByClubId(clubId: number) {
       ucretBilgisi: row.ucretBilgisi as string,
       aktif: Boolean(row.aktif),
       eventDate: parsed.content.eventDate,
+      endDate: parsed.content.endDate,
+      isOngoing: parsed.content.isOngoing,
+      days: parsed.content.days,
+      startTime: parsed.content.startTime,
+      endTime: parsed.content.endTime,
       locationText: parsed.content.locationText,
+      mapsUrl: parsed.content.mapsUrl,
       gallery: parsed.content.gallery,
       bodyJson: parsed.content.bodyJson,
     };
@@ -303,7 +321,13 @@ export async function getProgramListingById(programId: number) {
     ucretBilgisi: (program.ucretBilgisi as string) ?? '',
     aktif: Boolean(program.aktif),
     eventDate: parsed.content.eventDate,
+    endDate: parsed.content.endDate,
+    isOngoing: parsed.content.isOngoing,
+    days: parsed.content.days,
+    startTime: parsed.content.startTime,
+    endTime: parsed.content.endTime,
     locationText: parsed.content.locationText || ((district?.ad as string | undefined) ?? (city?.ad as string | undefined) ?? ''),
+    mapsUrl: parsed.content.mapsUrl,
     gallery: parsed.content.gallery,
     bodyJson: parsed.content.bodyJson,
     club: {

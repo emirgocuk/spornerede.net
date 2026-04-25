@@ -8,28 +8,85 @@ if (!listing) {
   return Astro.redirect('/ara');
 }
 
-function getBodySections(bodyJson: unknown) {
-  if (!bodyJson || typeof bodyJson !== 'object') return [];
+function escapeHtml(value: unknown) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function renderInlineContent(content: unknown) {
+  if (!Array.isArray(content)) return '';
+  return content
+    .map((child) => {
+      if (!child || typeof child !== 'object') return '';
+      const node = child as { text?: unknown; marks?: Array<{ type?: string }> };
+      let text = escapeHtml(node.text ?? '');
+      if (!text) return '';
+      if (node.marks?.some((mark) => mark.type === 'bold')) text = `<strong>${text}</strong>`;
+      if (node.marks?.some((mark) => mark.type === 'italic')) text = `<em>${text}</em>`;
+      return text;
+    })
+    .join('');
+}
+
+function renderRichTextHtml(bodyJson: unknown) {
+  if (!bodyJson || typeof bodyJson !== 'object') return '';
   const content = (bodyJson as { content?: unknown }).content;
-  if (!Array.isArray(content)) return [];
+  if (!Array.isArray(content)) return '';
   return content
     .map((node) => {
       if (!node || typeof node !== 'object') return '';
-      const typedNode = node as { type?: string; content?: unknown };
-      const children = Array.isArray(typedNode.content) ? typedNode.content : [];
-      const text = children
-        .map((child) =>
-          child && typeof child === 'object' && typeof (child as { text?: unknown }).text === 'string'
-            ? String((child as { text?: unknown }).text)
-            : ''
-        )
-        .join(' ')
-        .trim();
-      if (!text) return '';
-      return typedNode.type === 'heading' ? `# ${text}` : text;
+      const typedNode = node as { type?: string; content?: unknown; attrs?: { level?: number } };
+      if (typedNode.type === 'heading') {
+        const level = typedNode.attrs?.level === 2 ? 2 : 3;
+        return `<h${level}>${renderInlineContent(typedNode.content)}</h${level}>`;
+      }
+      if (typedNode.type === 'bulletList' || typedNode.type === 'orderedList') {
+        const tag = typedNode.type === 'orderedList' ? 'ol' : 'ul';
+        const items = Array.isArray(typedNode.content)
+          ? typedNode.content
+              .map((item) => {
+                const paragraph = Array.isArray((item as { content?: unknown }).content)
+                  ? ((item as { content?: unknown }).content as unknown[]).find(
+                      (child) => child && typeof child === 'object' && (child as { type?: string }).type === 'paragraph'
+                    )
+                  : null;
+                return `<li>${renderInlineContent((paragraph as { content?: unknown } | null)?.content)}</li>`;
+              })
+              .join('')
+          : '';
+        return `<${tag}>${items}</${tag}>`;
+      }
+      return `<p>${renderInlineContent(typedNode.content)}</p>`;
     })
-    .filter(Boolean);
+    .join('');
 }
+
+function formatDateTr(value: string) {
+  if (!value) return '';
+  const date = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }).format(date);
+}
+
+function dateRangeText() {
+  if (listing.isOngoing) return 'Sürekli devam ediyor';
+  const start = formatDateTr(listing.eventDate);
+  const end = formatDateTr(listing.endDate);
+  if (start && end) return `${start} - ${end}`;
+  return start || 'Tarih belirtilmedi';
+}
+
+function scheduleText() {
+  const days = Array.isArray(listing.days) && listing.days.length ? listing.days.join(', ') : '';
+  const time = listing.startTime && listing.endTime ? `${listing.startTime} - ${listing.endTime}` : listing.gunSaat;
+  return [days, time].filter(Boolean).join(' / ') || 'Saat belirtilmedi';
+}
+
+const bodyHtml = renderRichTextHtml(listing.bodyJson);
 ---
 
 <BaseLayout
@@ -63,8 +120,8 @@ function getBodySections(bodyJson: unknown) {
             </p>
             <h1 class="listing-title">{listing.ad}</h1>
             <div class="hero-badges-inline">
-              <span class="badge-modern"><i class="badge-icon">📍</i>{listing.club.ilce || listing.club.il}</span>
-              <span class="badge-modern"><i class="badge-icon">👥</i>{listing.club.yasAraligi ? `${listing.club.yasAraligi} yaş` : 'Tüm yaş grupları'}</span>
+              <span class="badge-modern"><i class="badge-icon">📅</i>{dateRangeText()}</span>
+              <span class="badge-modern"><i class="badge-icon">⏰</i>{scheduleText()}</span>
               <span class="badge-modern"><i class="badge-icon">⭐</i>{listing.seviye || 'Genel seviye'}</span>
               <span class="badge-modern badge-highlight"><i class="badge-icon">💳</i>{listing.ucretBilgisi || 'Fiyat sorunuz'}</span>
             </div>
@@ -93,15 +150,15 @@ function getBodySections(bodyJson: unknown) {
               <li class="meta-item">
                 <div class="meta-icon">📅</div>
                 <div class="meta-info">
-                  <span class="meta-label">Tarih</span>
-                  <strong class="meta-value">{listing.eventDate || 'Belirtilmedi'}</strong>
+                  <span class="meta-label">Tarih Aralığı</span>
+                  <strong class="meta-value">{dateRangeText()}</strong>
                 </div>
               </li>
               <li class="meta-item">
                 <div class="meta-icon">⏰</div>
                 <div class="meta-info">
-                  <span class="meta-label">Saat</span>
-                  <strong class="meta-value">{listing.gunSaat || 'Belirtilmedi'}</strong>
+                  <span class="meta-label">Gün / Saat</span>
+                  <strong class="meta-value">{scheduleText()}</strong>
                 </div>
               </li>
               <li class="meta-item">
@@ -109,6 +166,9 @@ function getBodySections(bodyJson: unknown) {
                 <div class="meta-info">
                   <span class="meta-label">Konum</span>
                   <strong class="meta-value">{listing.locationText || listing.club.ilce || listing.club.il}</strong>
+                  {listing.mapsUrl && (
+                    <a class="maps-link" href={listing.mapsUrl} target="_blank" rel="noreferrer">Google Maps'te Aç</a>
+                  )}
                 </div>
               </li>
               <li class="meta-item location-item">
@@ -126,13 +186,7 @@ function getBodySections(bodyJson: unknown) {
               </div>
             )}
             
-            {getBodySections(listing.bodyJson).length > 0 && (
-              <div class="body-content">
-                {getBodySections(listing.bodyJson).map((line) => (
-                  <p>{line}</p>
-                ))}
-              </div>
-            )}
+            {bodyHtml && <div class="body-content" set:html={bodyHtml} />}
           </article>
 
           <article class="content-card card-glass">
@@ -547,6 +601,18 @@ function getBodySections(bodyJson: unknown) {
     font-weight: 800;
     color: var(--color-brand-gray-900);
   }
+
+  .maps-link {
+    width: fit-content;
+    margin-top: 0.45rem;
+    padding: 0.35rem 0.65rem;
+    border-radius: 999px;
+    background: #111827;
+    color: white;
+    text-decoration: none;
+    font-size: 0.78rem;
+    font-weight: 800;
+  }
   
   .text-brand-red { color: var(--color-brand-red); }
   
@@ -567,11 +633,43 @@ function getBodySections(bodyJson: unknown) {
     line-height: 1.6;
   }
   
+  .body-content {
+    padding: 1.25rem;
+    border: 1px solid var(--color-brand-gray-100);
+    border-radius: 1.1rem;
+    background: linear-gradient(180deg, #ffffff 0%, #fbfcfd 100%);
+  }
+
+  .body-content h2,
+  .body-content h3 {
+    color: var(--color-brand-gray-900);
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    margin: 1.1rem 0 0.6rem;
+  }
+
+  .body-content h2:first-child,
+  .body-content h3:first-child {
+    margin-top: 0;
+  }
+
   .body-content p {
     color: var(--color-brand-gray-700);
     line-height: 1.8;
     margin-bottom: 1.2rem;
     font-size: 1.05rem;
+  }
+
+  .body-content ul,
+  .body-content ol {
+    margin: 0 0 1.2rem;
+    padding-left: 1.35rem;
+    color: var(--color-brand-gray-700);
+    line-height: 1.8;
+  }
+
+  .body-content li {
+    margin-bottom: 0.35rem;
   }
   
   /* Gallery Grid */

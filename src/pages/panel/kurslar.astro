@@ -28,9 +28,31 @@ if (!membership || membership.clubStatus !== 'approved') {
         <p class="page-lead">Yeni bir kurs ilanı yayınlayın, mevcut ilanlarınızı güncelleyin veya yayından kaldırın.</p>
       </header>
 
-      <div class="program-layout animate-fade-in-up delay-100">
-        <!-- Sol Form Alanı -->
-        <div class="form-column">
+      <div id="program-list-view" class="program-list-view animate-fade-in-up delay-100">
+        <div class="program-list-box card-glass">
+          <div class="list-header">
+            <div>
+              <h2>İlan Listesi</h2>
+              <p>Yayınladığınız ilanları buradan açıp düzenleyebilir veya yeni ilan oluşturabilirsiniz.</p>
+            </div>
+            <div class="list-header-actions">
+              <span class="badge-modern bg-gray" id="program-count">0 İlan</span>
+              <button id="new-program-btn" class="btn-primary-gradient btn-compact" type="button">+ Yeni İlan</button>
+            </div>
+          </div>
+          <ul id="program-list" class="modern-program-list">
+            <li class="empty-state">
+              <div class="spinner-small"></div>
+              <p>İlanlar yükleniyor...</p>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <div id="program-editor-view" class="program-editor-view is-hidden animate-fade-in-up delay-100">
+        <button id="back-to-list" class="back-link editor-back" type="button">← İlanlara geri dön</button>
+        <div class="program-layout">
+          <div class="form-column">
           <form id="program-form" class="program-form card-glass">
             <div class="form-header">
               <h2 class="form-title">İlan Detayları</h2>
@@ -39,62 +61,141 @@ if (!membership || membership.clubStatus !== 'approved') {
             
             <input id="program-id" type="hidden" />
             
-            <div class="form-group">
-              <label for="program-ad">Program Adı <span class="text-red">*</span></label>
-              <input id="program-ad" class="modern-input" required placeholder="Örn: Hafta Sonu Yüzme Eğitimi" />
-            </div>
-
-            <div class="form-row-2">
-              <div class="form-group">
-                <label for="program-gunsaat">Gün / Saat</label>
-                <input id="program-gunsaat" class="modern-input" placeholder="Pzt-Çrş-Cuma 18:00" />
+            <section class="form-section">
+              <div class="section-heading">
+                <span class="section-step">1</span>
+                <div>
+                  <h3>Temel Bilgiler</h3>
+                  <p>İlanın ailelere görünecek kısa ve net adını yazın.</p>
+                </div>
               </div>
               <div class="form-group">
-                <label for="program-event-date">Başlangıç Tarihi</label>
-                <input id="program-event-date" type="date" class="modern-input" />
+                <label for="program-ad">Program Adı <span class="text-red">*</span></label>
+                <input id="program-ad" class="modern-input" required placeholder="Örn: Çocuklar için temel yüzme eğitimi" />
               </div>
-            </div>
+              <div class="form-row-2">
+                <div class="form-group">
+                  <label for="program-seviye">Seviye</label>
+                  <select id="program-seviye" class="modern-input" required>
+                    <option value="">Seviye seçin</option>
+                    <option value="Başlangıç">Başlangıç</option>
+                    <option value="Orta">Orta</option>
+                    <option value="İleri">İleri</option>
+                    <option value="Tüm seviyeler">Tüm seviyeler</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="program-ucret">Ücret Bilgisi</label>
+                  <input id="program-ucret" class="modern-input" required placeholder="Örn: Aylık 1500 TL" />
+                </div>
+              </div>
+            </section>
 
-            <div class="form-row-2">
+            <section class="form-section">
+              <div class="section-heading">
+                <span class="section-step">2</span>
+                <div>
+                  <h3>Takvim</h3>
+                  <p>Günleri seçin, saat aralığını belirleyin. Sürekli ilanlarda bitiş tarihi zorunlu değildir.</p>
+                </div>
+              </div>
+              <div class="day-picker" aria-label="Program günleri">
+                {['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'].map((day) => (
+                  <label class="day-chip">
+                    <input type="checkbox" name="program-day" value={day} />
+                    <span>{day}</span>
+                  </label>
+                ))}
+              </div>
+              <div class="form-row-2">
+                <div class="form-group">
+                  <label for="program-start-time">Başlangıç Saati</label>
+                  <input id="program-start-time" type="time" class="modern-input" required />
+                </div>
+                <div class="form-group">
+                  <label for="program-end-time">Bitiş Saati</label>
+                  <input id="program-end-time" type="time" class="modern-input" required />
+                </div>
+              </div>
+              <div class="form-row-2">
+                <div class="form-group">
+                  <label for="program-event-date">Başlangıç Tarihi</label>
+                  <input id="program-event-date" type="date" class="modern-input" required />
+                </div>
+                <div class="form-group">
+                  <label for="program-end-date">Bitiş Tarihi</label>
+                  <input id="program-end-date" type="date" class="modern-input" required />
+                </div>
+              </div>
+              <label class="inline-check">
+                <input id="program-ongoing" type="checkbox" />
+                <span>Bu ilan sürekli devam ediyor</span>
+              </label>
+            </section>
+
+            <section class="form-section">
+              <div class="section-heading">
+                <span class="section-step">3</span>
+                <div>
+                  <h3>Konum</h3>
+                  <p>Şube/adres bilgisini yazın, Google Maps paylaşım bağlantısını ekleyin.</p>
+                </div>
+              </div>
               <div class="form-group">
                 <label for="program-location">Konum / Şube</label>
-                <input id="program-location" class="modern-input" placeholder="Kadıköy Merkez Şube" />
+                <input id="program-location" class="modern-input" required placeholder="Örn: Kadıköy Merkez Şube, Caferağa" />
+              </div>
+              <div class="maps-input-row">
+                <input id="program-maps-url" class="modern-input" type="url" required placeholder="Google Maps bağlantısı yapıştırın" />
+                <a class="btn-map" href="https://www.google.com/maps" target="_blank" rel="noreferrer">Maps'i Aç</a>
+              </div>
+            </section>
+
+            <section class="form-section">
+              <div class="section-heading">
+                <span class="section-step">4</span>
+                <div>
+                  <h3>İlan Metni</h3>
+                  <p>Kısa özet kartlarda görünür; geniş metin detay sayfasında zengin içerik olarak yayınlanır.</p>
+                </div>
               </div>
               <div class="form-group">
-                <label for="program-seviye">Seviye</label>
-                <input id="program-seviye" class="modern-input" placeholder="Başlangıç / İleri" />
+                <label for="program-aciklama">Kısa Özet</label>
+                <textarea id="program-aciklama" class="modern-textarea" rows="2" required placeholder="Kursun temel amacını 1-2 cümleyle özetleyin..."></textarea>
               </div>
-            </div>
-
-            <div class="form-group">
-              <label for="program-ucret">Ücret Bilgisi</label>
-              <input id="program-ucret" class="modern-input" placeholder="Aylık 1500 TL" />
-            </div>
-
-            <div class="form-group">
-              <label for="program-aciklama">Kısa Özet (Arama Kartlarında Görünür)</label>
-              <textarea id="program-aciklama" class="modern-textarea" rows="2" placeholder="Kursun temel amacını özetleyin..."></textarea>
-            </div>
-
-            <div class="form-group">
-              <label>Geniş Tanıtım Metni</label>
-              <div class="editor-toolbar">
-                <button type="button" class="toolbar-btn" data-editor-action="bold" title="Kalın">B</button>
-                <button type="button" class="toolbar-btn italic" data-editor-action="italic" title="İtalik">I</button>
-                <button type="button" class="toolbar-btn" data-editor-action="bullet" title="Madde İşareti">•</button>
-                <button type="button" class="toolbar-btn" data-editor-action="h2" title="Başlık">H</button>
+              <div class="form-group">
+                <label>Geniş Tanıtım Metni</label>
+                <div class="editor-shell">
+                  <div class="editor-toolbar">
+                    <button type="button" class="toolbar-btn" data-editor-action="bold" title="Kalın">B</button>
+                    <button type="button" class="toolbar-btn italic" data-editor-action="italic" title="İtalik">I</button>
+                    <button type="button" class="toolbar-btn" data-editor-action="bullet" title="Madde İşareti">•</button>
+                    <button type="button" class="toolbar-btn" data-editor-action="ordered" title="Numaralı Liste">1.</button>
+                    <button type="button" class="toolbar-btn wide" data-editor-action="h2" title="Başlık">Başlık</button>
+                  </div>
+                  <div id="program-editor" class="program-editor"></div>
+                </div>
               </div>
-              <div id="program-editor" class="program-editor"></div>
-            </div>
+            </section>
 
-            <div class="form-group">
-              <label>Galeri Görselleri</label>
-              <div class="gallery-upload-box">
+            <section class="form-section">
+              <div class="section-heading">
+                <span class="section-step">5</span>
+                <div>
+                  <h3>Galeri Görselleri</h3>
+                  <p>Görselleri alana sürükleyip bırakın veya tıklayarak seçin. Yüklenen görseller sonradan kaldırılabilir.</p>
+                </div>
+              </div>
+              <div id="gallery-dropzone" class="gallery-dropzone">
                 <input id="gallery-file" type="file" accept="image/*" class="modern-file-input" />
-                <button id="gallery-upload-btn" type="button" class="btn-outline-sm">Buluta Yükle</button>
+                <div class="dropzone-copy">
+                  <strong>Görseli buraya bırakın</strong>
+                  <span>veya tıklayıp dosya seçin</span>
+                </div>
+                <button id="gallery-upload-btn" type="button" class="btn-outline-sm">Yükle</button>
               </div>
               <ul id="gallery-list" class="gallery-list"></ul>
-            </div>
+            </section>
 
             <div class="form-group checkbox-wrapper">
               <label class="toggle-label">
@@ -109,21 +210,6 @@ if (!membership || membership.clubStatus !== 'approved') {
               <button id="form-reset" type="button" class="btn-white w-full mt-2">🔄 Formu Temizle</button>
             </div>
           </form>
-        </div>
-
-        <!-- Sağ Liste Alanı -->
-        <div class="list-column">
-          <div class="program-list-box card-glass">
-            <div class="list-header">
-              <h2>Mevcut İlanlar</h2>
-              <span class="badge-modern bg-gray" id="program-count">0 İlan</span>
-            </div>
-            <ul id="program-list" class="modern-program-list">
-              <li class="empty-state">
-                <div class="spinner-small"></div>
-                <p>İlanlar yükleniyor...</p>
-              </li>
-            </ul>
           </div>
         </div>
       </div>
@@ -139,18 +225,28 @@ if (!membership || membership.clubStatus !== 'approved') {
     const resetBtn = document.getElementById('form-reset');
     const idEl = document.getElementById('program-id');
     const adEl = document.getElementById('program-ad');
-    const gunSaatEl = document.getElementById('program-gunsaat');
     const eventDateEl = document.getElementById('program-event-date');
+    const endDateEl = document.getElementById('program-end-date');
+    const ongoingEl = document.getElementById('program-ongoing');
+    const dayInputs = Array.from(document.querySelectorAll('input[name="program-day"]'));
+    const startTimeEl = document.getElementById('program-start-time');
+    const endTimeEl = document.getElementById('program-end-time');
     const locationEl = document.getElementById('program-location');
+    const mapsUrlEl = document.getElementById('program-maps-url');
     const seviyeEl = document.getElementById('program-seviye');
     const ucretEl = document.getElementById('program-ucret');
     const aciklamaEl = document.getElementById('program-aciklama');
     const aktifEl = document.getElementById('program-aktif');
     const galleryFileEl = document.getElementById('gallery-file');
     const galleryUploadBtn = document.getElementById('gallery-upload-btn');
+    const galleryDropzone = document.getElementById('gallery-dropzone');
     const galleryListEl = document.getElementById('gallery-list');
     const editorRoot = document.getElementById('program-editor');
     const countBadge = document.getElementById('program-count');
+    const listView = document.getElementById('program-list-view');
+    const editorView = document.getElementById('program-editor-view');
+    const newProgramBtn = document.getElementById('new-program-btn');
+    const backToListBtn = document.getElementById('back-to-list');
 
     let programs = [];
     let gallery = [];
@@ -158,11 +254,27 @@ if (!membership || membership.clubStatus !== 'approved') {
     const editor = new Editor({
       element: editorRoot,
       extensions: [StarterKit],
-      content: '<p>Program tanıtım detaylarını buraya yazın...</p>',
+      content: '',
     });
 
     function resetEditorContent() {
-      editor.commands.setContent('<p>Program tanıtım detaylarını buraya yazın...</p>');
+      editor.commands.clearContent();
+    }
+
+    function showListView() {
+      listView.classList.remove('is-hidden');
+      editorView.classList.add('is-hidden');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function showEditorView() {
+      listView.classList.add('is-hidden');
+      editorView.classList.remove('is-hidden');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function editorPlainText() {
+      return editor.getText().trim();
     }
 
     function setEditorFromJson(bodyJson) {
@@ -176,9 +288,17 @@ if (!membership || membership.clubStatus !== 'approved') {
     function clearForm() {
       idEl.value = '';
       adEl.value = '';
-      gunSaatEl.value = '';
       eventDateEl.value = '';
+      endDateEl.value = '';
+      ongoingEl.checked = false;
+      endDateEl.disabled = false;
+      dayInputs.forEach((input) => {
+        input.checked = false;
+      });
+      startTimeEl.value = '';
+      endTimeEl.value = '';
       locationEl.value = '';
+      mapsUrlEl.value = '';
       seviyeEl.value = '';
       ucretEl.value = '';
       aciklamaEl.value = '';
@@ -188,15 +308,23 @@ if (!membership || membership.clubStatus !== 'approved') {
       renderGallery();
       resetEditorContent();
       document.querySelector('.form-header .badge-modern').textContent = 'Yeni Kayıt';
-      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     function fillForm(program) {
       idEl.value = String(program.id);
       adEl.value = program.ad || '';
-      gunSaatEl.value = program.gunSaat || '';
       eventDateEl.value = program.eventDate || '';
+      endDateEl.value = program.endDate || '';
+      ongoingEl.checked = Boolean(program.isOngoing);
+      endDateEl.disabled = Boolean(program.isOngoing);
+      const selectedDays = Array.isArray(program.days) ? program.days : [];
+      dayInputs.forEach((input) => {
+        input.checked = selectedDays.includes(input.value);
+      });
+      startTimeEl.value = program.startTime || '';
+      endTimeEl.value = program.endTime || '';
       locationEl.value = program.locationText || '';
+      mapsUrlEl.value = program.mapsUrl || '';
       seviyeEl.value = program.seviye || '';
       ucretEl.value = program.ucretBilgisi || '';
       aciklamaEl.value = program.aciklama || '';
@@ -206,13 +334,13 @@ if (!membership || membership.clubStatus !== 'approved') {
       setEditorFromJson(program.bodyJson);
       
       document.querySelector('.form-header .badge-modern').textContent = 'Düzenleniyor';
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      showEditorView();
       adEl.focus();
     }
 
     function renderGallery() {
       if (!gallery.length) {
-        galleryListEl.innerHTML = '<li class="empty-gallery">Görsel seçilmedi.</li>';
+        galleryListEl.innerHTML = '';
         return;
       }
       galleryListEl.innerHTML = gallery
@@ -225,6 +353,32 @@ if (!membership || membership.clubStatus !== 'approved') {
           `
         )
         .join('');
+    }
+
+    function getSelectedDays() {
+      return dayInputs.filter((input) => input.checked).map((input) => input.value);
+    }
+
+    function buildScheduleText(days, startTime, endTime) {
+      const dayText = days.length ? days.join(', ') : '';
+      const timeText = startTime && endTime ? `${startTime} - ${endTime}` : startTime || endTime || '';
+      return [dayText, timeText].filter(Boolean).join(' / ');
+    }
+
+    function validatePayload(payload) {
+      if (!payload.ad) return 'Program adı zorunlu.';
+      if (!payload.seviye) return 'Seviye seçimi zorunlu.';
+      if (!payload.ucretBilgisi) return 'Ücret bilgisi zorunlu.';
+      if (!payload.days.length) return 'En az bir gün seçmelisiniz.';
+      if (!payload.startTime || !payload.endTime) return 'Başlangıç ve bitiş saati zorunlu.';
+      if (!payload.eventDate) return 'Başlangıç tarihi zorunlu.';
+      if (!payload.isOngoing && !payload.endDate) return 'Bitiş tarihi zorunlu. Sürekli ilan ise ilgili seçeneği işaretleyin.';
+      if (!payload.locationText) return 'Konum / şube bilgisi zorunlu.';
+      if (!payload.mapsUrl) return 'Google Maps bağlantısı zorunlu.';
+      if (!payload.aciklama) return 'Kısa özet zorunlu.';
+      if (!editorPlainText()) return 'Geniş tanıtım metni zorunlu.';
+      if (payload.gallery.length < 3) return 'En az 3 galeri görseli yüklemelisiniz.';
+      return '';
     }
 
     function renderList() {
@@ -241,28 +395,64 @@ if (!membership || membership.clubStatus !== 'approved') {
       }
       
       list.innerHTML = programs
-        .map(
-          (p) => `
-            <li class="list-item">
-              <div class="item-status-strip ${p.aktif ? 'bg-green' : 'bg-red'}"></div>
-              <div class="item-content">
-                <div class="item-header">
-                  <strong class="item-title">${p.ad}</strong>
-                  <span class="badge-mini ${p.aktif ? 'bg-green-light text-green' : 'bg-red-light text-red'}">${p.aktif ? 'Aktif' : 'Pasif'}</span>
+        .map((p) => {
+          const firstImg = Array.isArray(p.gallery) && p.gallery[0] ? p.gallery[0] : '';
+          const galCount = Array.isArray(p.gallery) ? p.gallery.length : 0;
+          const dateRange = p.isOngoing
+            ? '♾️ Sürekli ilan'
+            : p.eventDate
+              ? `📅 ${p.eventDate}${p.endDate ? ' – ' + p.endDate : ''}`
+              : '';
+          const liveClass = p.aktif ? 'pcard--live' : 'pcard--draft';
+          const liveDot = p.aktif
+            ? '<span class="pcard-dot dot-live"></span>Yayında'
+            : '<span class="pcard-dot dot-draft"></span>Taslak';
+          return `
+            <li class="pcard ${liveClass}">
+              <div class="pcard-thumb">
+                ${firstImg
+                  ? `<img src="${firstImg}" alt="${p.ad}" />`
+                  : `<div class="pcard-thumb-placeholder">SN</div>`}
+                <div class="pcard-thumb-overlay">
+                  <span class="pcard-status-pill">${liveDot}</span>
                 </div>
-                <div class="item-details">
-                  ${p.gunSaat ? `<span><i class="icon">⏰</i>${p.gunSaat}</span>` : ''}
-                  ${p.locationText ? `<span><i class="icon">📍</i>${p.locationText}</span>` : ''}
-                  ${p.ucretBilgisi ? `<span><i class="icon">💳</i>${p.ucretBilgisi}</span>` : ''}
+              </div>
+
+              <div class="pcard-body">
+                <header class="pcard-head">
+                  <div class="pcard-title-area">
+                    <strong class="pcard-title">${p.ad}</strong>
+                    ${p.seviye ? `<span class="pcard-badge">${p.seviye}</span>` : ''}
+                  </div>
+                  ${p.ucretBilgisi ? `<span class="pcard-price">${p.ucretBilgisi}</span>` : ''}
+                </header>
+
+                <p class="pcard-summary">${p.aciklama || ''}</p>
+
+                <div class="pcard-meta">
+                  ${p.gunSaat ? `<span class="pcard-chip">⏰ ${p.gunSaat}</span>` : ''}
+                  ${dateRange ? `<span class="pcard-chip">${dateRange}</span>` : ''}
+                  ${p.locationText ? `<span class="pcard-chip">📍 ${p.locationText}</span>` : ''}
                 </div>
-                <div class="item-actions">
-                  <button class="btn-sm btn-edit" data-action="edit" data-id="${p.id}" type="button">✏️ Düzenle</button>
-                  <button class="btn-sm btn-delete" data-action="delete" data-id="${p.id}" type="button">🗑️ Sil</button>
+              </div>
+
+              <div class="pcard-aside">
+                <div class="pcard-stat ${p.aktif ? 'pcard-stat--live' : 'pcard-stat--draft'}">
+                  <span class="pcard-stat-value">${liveDot}</span>
+                  <span class="pcard-stat-hint">${p.aktif ? 'Vitrine çıktı' : 'Yayında değil'}</span>
+                </div>
+                <div class="pcard-stat">
+                  <span class="pcard-stat-value">🖼 ${galCount}</span>
+                  <span class="pcard-stat-hint">Galeri görseli</span>
+                </div>
+                <div class="pcard-actions">
+                  <button class="pcard-btn-main" data-action="edit" data-id="${p.id}" type="button">İlana Gir</button>
+                  <button class="pcard-btn-danger" data-action="delete" data-id="${p.id}" type="button">Sil</button>
                 </div>
               </div>
             </li>
-          `
-        )
+          `;
+        })
         .join('');
     }
 
@@ -280,12 +470,21 @@ if (!membership || membership.clubStatus !== 'approved') {
 
     async function saveProgram(event) {
       event.preventDefault();
+      const days = getSelectedDays();
+      const startTime = startTimeEl.value.trim();
+      const endTime = endTimeEl.value.trim();
       const payload = {
         id: Number(idEl.value || '0'),
         ad: adEl.value.trim(),
-        gunSaat: gunSaatEl.value.trim(),
+        gunSaat: buildScheduleText(days, startTime, endTime),
         eventDate: eventDateEl.value.trim(),
+        endDate: ongoingEl.checked ? '' : endDateEl.value.trim(),
+        isOngoing: ongoingEl.checked,
+        days,
+        startTime,
+        endTime,
         locationText: locationEl.value.trim(),
+        mapsUrl: mapsUrlEl.value.trim(),
         seviye: seviyeEl.value.trim(),
         ucretBilgisi: ucretEl.value.trim(),
         aciklama: aciklamaEl.value.trim(),
@@ -293,7 +492,11 @@ if (!membership || membership.clubStatus !== 'approved') {
         gallery,
         aktif: aktifEl.checked,
       };
-      if (!payload.ad) return;
+      const validationMessage = validatePayload(payload);
+      if (validationMessage) {
+        alert(validationMessage);
+        return;
+      }
 
       const submitBtn = event.target.querySelector('button[type="submit"]');
       const originalText = submitBtn.innerHTML;
@@ -308,10 +511,11 @@ if (!membership || membership.clubStatus !== 'approved') {
           body: JSON.stringify(payload),
         });
         
-        if (!response.ok) throw new Error('Kayıt işlemi başarısız oldu.');
+        const responsePayload = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(responsePayload?.error || 'Kayıt işlemi başarısız oldu.');
         
-        clearForm();
         await loadPrograms();
+        showListView();
       } catch (err) {
         alert(err.message);
       } finally {
@@ -320,8 +524,8 @@ if (!membership || membership.clubStatus !== 'approved') {
       }
     }
 
-    async function uploadGalleryImage() {
-      const file = galleryFileEl.files?.[0];
+    async function uploadGalleryImage(selectedFile) {
+      const file = selectedFile || galleryFileEl.files?.[0];
       if (!file) {
         alert('Lütfen bir görsel seçin.');
         return;
@@ -352,8 +556,13 @@ if (!membership || membership.clubStatus !== 'approved') {
         alert(err.message);
       } finally {
         galleryUploadBtn.disabled = false;
-        galleryUploadBtn.textContent = 'Buluta Yükle';
+        galleryUploadBtn.textContent = 'Yükle';
       }
+    }
+
+    function handleGalleryFileSelection(fileList) {
+      if (!fileList?.length) return;
+      uploadGalleryImage(fileList[0]);
     }
 
     async function removeProgram(id) {
@@ -417,6 +626,7 @@ if (!membership || membership.clubStatus !== 'approved') {
         if (action === 'bold') editor.chain().focus().toggleBold().run();
         if (action === 'italic') editor.chain().focus().toggleItalic().run();
         if (action === 'bullet') editor.chain().focus().toggleBulletList().run();
+        if (action === 'ordered') editor.chain().focus().toggleOrderedList().run();
         if (action === 'h2') editor.chain().focus().toggleHeading({ level: 2 }).run();
         
         // Active state
@@ -427,11 +637,42 @@ if (!membership || membership.clubStatus !== 'approved') {
 
     form.addEventListener('submit', saveProgram);
     resetBtn.addEventListener('click', clearForm);
-    galleryUploadBtn.addEventListener('click', uploadGalleryImage);
+    newProgramBtn.addEventListener('click', () => {
+      clearForm();
+      showEditorView();
+      adEl.focus();
+    });
+    backToListBtn.addEventListener('click', showListView);
+    galleryUploadBtn.addEventListener('click', (event) => {
+      event.stopPropagation();
+      galleryFileEl.click();
+    });
+    galleryDropzone.addEventListener('click', (event) => {
+      if (event.target === galleryUploadBtn) return;
+      galleryFileEl.click();
+    });
+    galleryFileEl.addEventListener('change', () => uploadGalleryImage());
+    galleryDropzone.addEventListener('dragover', (event) => {
+      event.preventDefault();
+      galleryDropzone.classList.add('is-dragging');
+    });
+    galleryDropzone.addEventListener('dragleave', () => {
+      galleryDropzone.classList.remove('is-dragging');
+    });
+    galleryDropzone.addEventListener('drop', (event) => {
+      event.preventDefault();
+      galleryDropzone.classList.remove('is-dragging');
+      handleGalleryFileSelection(event.dataTransfer?.files);
+    });
+    ongoingEl.addEventListener('change', () => {
+      endDateEl.disabled = ongoingEl.checked;
+      if (ongoingEl.checked) endDateEl.value = '';
+    });
     
     // Init
     loadPrograms();
     renderGallery();
+    showListView();
   </script>
 
   <style>
@@ -450,7 +691,7 @@ if (!membership || membership.clubStatus !== 'approved') {
       padding-bottom: 4rem;
     }
     
-    .container--wide { max-width: 1200px; }
+     .container--wide { max-width: 1280px; }
 
     /* Shared Glass Card */
     .card-glass {
@@ -489,15 +730,29 @@ if (!membership || membership.clubStatus !== 'approved') {
     .page-lead { margin: 0; color: var(--color-brand-gray-600); font-size: 1.05rem; }
 
     /* Layout Grid */
-    .program-layout {
-      display: grid;
-      gap: 2rem;
-      grid-template-columns: 1fr;
-    }
-    
-    @media (min-width: 1024px) {
-      .program-layout { grid-template-columns: 1fr 400px; align-items: start; }
-    }
+     .program-layout {
+       display: block;
+     }
+
+     .program-list-view {
+       /* inherits container width, no margin override needed */
+     }
+
+     .program-editor-view {
+       /* inherits container width */
+     }
+
+     .program-editor-view.is-hidden,
+     .program-list-view.is-hidden {
+       display: none;
+     }
+
+     .editor-back {
+       border: 0;
+       background: transparent;
+       cursor: pointer;
+       margin-bottom: 1rem;
+     }
 
     /* Form Container */
     .program-form {
@@ -529,6 +784,53 @@ if (!membership || membership.clubStatus !== 'approved') {
 
     /* Inputs */
     .form-group { display: flex; flex-direction: column; gap: 0.4rem; }
+
+    .form-section {
+      padding: 1.15rem;
+      border: 1px solid var(--color-brand-gray-200);
+      border-radius: 1.1rem;
+      background: linear-gradient(180deg, #ffffff 0%, #fbfcfd 100%);
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.03);
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .section-heading {
+      display: flex;
+      gap: 0.8rem;
+      align-items: flex-start;
+      padding-bottom: 0.85rem;
+      border-bottom: 1px dashed var(--color-brand-gray-200);
+    }
+
+    .section-step {
+      width: 2rem;
+      height: 2rem;
+      border-radius: 0.7rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--color-brand-red);
+      color: #ffffff;
+      font-weight: 900;
+      flex-shrink: 0;
+      box-shadow: 0 8px 18px rgba(227, 10, 23, 0.18);
+    }
+
+    .section-heading h3 {
+      margin: 0 0 0.2rem;
+      color: var(--color-brand-gray-900);
+      font-size: 1rem;
+      font-weight: 900;
+    }
+
+    .section-heading p {
+      margin: 0;
+      color: var(--color-brand-gray-500);
+      font-size: 0.88rem;
+      line-height: 1.5;
+    }
     
     .form-row-2 {
       display: grid;
@@ -552,6 +854,14 @@ if (!membership || membership.clubStatus !== 'approved') {
       background: white;
     }
 
+    select.modern-input {
+      appearance: none;
+      background-image: linear-gradient(45deg, transparent 50%, var(--color-brand-gray-500) 50%), linear-gradient(135deg, var(--color-brand-gray-500) 50%, transparent 50%);
+      background-position: calc(100% - 18px) calc(50% - 3px), calc(100% - 12px) calc(50% - 3px);
+      background-size: 6px 6px, 6px 6px;
+      background-repeat: no-repeat;
+    }
+
     .modern-input:focus, .modern-textarea:focus {
       outline: none;
       border-color: var(--color-brand-red);
@@ -560,15 +870,102 @@ if (!membership || membership.clubStatus !== 'approved') {
 
     .modern-textarea { resize: vertical; min-height: 80px; }
 
+    .day-picker {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+      gap: 0.55rem;
+    }
+
+    .day-chip input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .day-chip span {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 42px;
+      padding: 0.65rem 0.75rem;
+      border: 1px solid var(--color-brand-gray-200);
+      border-radius: 999px;
+      background: white;
+      color: var(--color-brand-gray-700);
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .day-chip input:checked + span {
+      border-color: var(--color-brand-red);
+      background: var(--color-brand-red-50);
+      color: var(--color-brand-red);
+      box-shadow: 0 8px 18px rgba(227, 10, 23, 0.1);
+    }
+
+    .inline-check {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.55rem;
+      width: fit-content;
+      padding: 0.7rem 0.9rem;
+      border-radius: 999px;
+      background: #f8fafc;
+      border: 1px solid var(--color-brand-gray-200);
+      cursor: pointer;
+    }
+
+    .inline-check input {
+      width: 1rem;
+      height: 1rem;
+      accent-color: var(--color-brand-red);
+    }
+
+    .maps-input-row {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.7rem;
+    }
+
+    @media (min-width: 640px) {
+      .maps-input-row { grid-template-columns: 1fr auto; }
+    }
+
+    .btn-map {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.75rem 1rem;
+      border-radius: 0.75rem;
+      background: #111827;
+      color: white;
+      font-weight: 800;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
     /* Editor */
+    .editor-shell {
+      border: 1px solid var(--color-brand-gray-300);
+      border-radius: 1rem;
+      overflow: hidden;
+      background: white;
+      transition: box-shadow 0.2s, border-color 0.2s;
+    }
+
+    .editor-shell:focus-within {
+      border-color: var(--color-brand-red);
+      box-shadow: 0 0 0 3px rgba(227, 10, 23, 0.1);
+    }
+
     .editor-toolbar {
       display: flex;
+      flex-wrap: wrap;
       gap: 0.4rem;
-      background: var(--color-brand-gray-50);
-      padding: 0.4rem;
-      border: 1px solid var(--color-brand-gray-300);
-      border-bottom: none;
-      border-radius: 0.75rem 0.75rem 0 0;
+      background: #f8fafc;
+      padding: 0.55rem;
+      border-bottom: 1px solid var(--color-brand-gray-200);
     }
 
     .toolbar-btn {
@@ -584,29 +981,40 @@ if (!membership || membership.clubStatus !== 'approved') {
       transition: all 0.15s;
     }
 
+    .toolbar-btn.wide { width: auto; padding: 0 0.75rem; }
+
     .toolbar-btn.italic { font-style: italic; }
     .toolbar-btn:hover { background: var(--color-brand-gray-100); }
     .toolbar-btn.is-active { background: var(--color-brand-red-50); color: var(--color-brand-red); border-color: var(--color-brand-red-100); }
 
     .program-editor {
-      border: 1px solid var(--color-brand-gray-300);
-      border-radius: 0 0 0.75rem 0.75rem;
       min-height: 200px;
-      padding: 1rem;
+      padding: 1.15rem;
       background: white;
       font-size: 0.95rem;
       line-height: 1.6;
     }
 
-    .program-editor:focus-within {
-      border-color: var(--color-brand-red);
-      box-shadow: 0 0 0 3px rgba(227, 10, 23, 0.1);
+    .program-editor .ProseMirror {
+      min-height: 170px;
       outline: none;
+      border: 0;
+    }
+
+    .program-editor .ProseMirror:focus {
+      outline: none;
+    }
+
+    .program-editor .ProseMirror:empty::before {
+      content: 'Programın kimler için uygun olduğunu, eğitim yaklaşımınızı ve ailelerin bilmesi gereken detayları yazın...';
+      color: var(--color-brand-gray-400);
+      pointer-events: none;
     }
 
     .program-editor p { margin: 0 0 0.5rem; }
     .program-editor h2 { margin: 1rem 0 0.5rem; font-size: 1.2rem; font-weight: 800; }
     .program-editor ul { padding-left: 1.5rem; margin: 0 0 0.5rem; }
+    .program-editor ol { padding-left: 1.5rem; margin: 0 0 0.5rem; }
 
     /* Custom Toggle Switch */
     .checkbox-wrapper { margin-top: 0.5rem; }
@@ -644,19 +1052,53 @@ if (!membership || membership.clubStatus !== 'approved') {
     .toggle-text { font-size: 0.95rem; font-weight: 700; color: var(--color-brand-gray-800); }
 
     /* Gallery */
-    .gallery-upload-box {
+    .gallery-dropzone {
+      position: relative;
+      min-height: 150px;
+      border: 1.5px dashed var(--color-brand-gray-300);
+      border-radius: 1rem;
+      background:
+        radial-gradient(circle at 15% 20%, rgba(227, 10, 23, 0.08), transparent 26%),
+        #ffffff;
       display: flex;
-      gap: 0.5rem;
+      flex-direction: column;
       align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      padding: 1.25rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .gallery-dropzone:hover,
+    .gallery-dropzone.is-dragging {
+      border-color: var(--color-brand-red);
+      background:
+        radial-gradient(circle at 15% 20%, rgba(227, 10, 23, 0.12), transparent 28%),
+        #fff7f7;
+      transform: translateY(-1px);
     }
 
     .modern-file-input {
-      flex: 1;
-      padding: 0.5rem;
-      border: 1px dashed var(--color-brand-gray-300);
-      border-radius: 0.75rem;
-      background: var(--color-brand-gray-50);
-      font-size: 0.85rem;
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+      width: 1px;
+      height: 1px;
+    }
+
+    .dropzone-copy {
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+      color: var(--color-brand-gray-600);
+    }
+
+    .dropzone-copy strong {
+      color: var(--color-brand-gray-900);
+      font-size: 1.05rem;
+      font-weight: 900;
     }
 
     .btn-outline-sm {
@@ -673,17 +1115,20 @@ if (!membership || membership.clubStatus !== 'approved') {
 
     .gallery-list {
       list-style: none; padding: 0; margin: 0.5rem 0 0;
-      display: flex; gap: 0.5rem; flex-wrap: wrap;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      gap: 0.75rem;
     }
 
     .empty-gallery { font-size: 0.85rem; color: var(--color-brand-gray-500); }
 
     .gallery-item {
       position: relative;
-      width: 80px; height: 60px;
-      border-radius: 0.5rem;
+      aspect-ratio: 4 / 3;
+      border-radius: 0.75rem;
       overflow: hidden;
       border: 1px solid var(--color-brand-gray-200);
+      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
     }
 
     .gallery-item img { width: 100%; height: 100%; object-fit: cover; }
@@ -727,6 +1172,13 @@ if (!membership || membership.clubStatus !== 'approved') {
     }
     .btn-primary-gradient:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(227, 10, 23, 0.3); }
 
+    .btn-compact {
+      width: auto;
+      padding: 0.65rem 1rem;
+      font-size: 0.9rem;
+      white-space: nowrap;
+    }
+
     .btn-white {
       display: flex; justify-content: center; align-items: center;
       padding: 0.8rem;
@@ -741,37 +1193,37 @@ if (!membership || membership.clubStatus !== 'approved') {
     }
     .btn-white:hover { background: var(--color-brand-gray-50); color: var(--color-brand-gray-900); }
 
-    /* Right Sidebar List */
+    /* Program List */
     .program-list-box {
       padding: 1.5rem;
-      position: sticky;
-      top: 85px;
     }
 
     .list-header {
       display: flex;
       justify-content: space-between;
-      align-items: center;
+      align-items: flex-start;
+      gap: 1rem;
       margin-bottom: 1.25rem;
       padding-bottom: 0.75rem;
       border-bottom: 1px dashed var(--color-brand-gray-200);
     }
 
     .list-header h2 { margin: 0; font-size: 1.2rem; font-weight: 800; color: var(--color-brand-gray-900); }
+    .list-header p { margin: 0.25rem 0 0; color: var(--color-brand-gray-500); line-height: 1.5; }
+    .list-header-actions { display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap; justify-content: flex-end; }
     .bg-gray { background: var(--color-brand-gray-100); }
 
     .modern-program-list {
       list-style: none; margin: 0; padding: 0;
       display: flex; flex-direction: column; gap: 1rem;
-      max-height: 65vh;
-      overflow-y: auto;
       padding-right: 0.5rem;
     }
 
     .modern-program-list::-webkit-scrollbar { width: 4px; }
     .modern-program-list::-webkit-scrollbar-track { background: transparent; }
     .modern-program-list::-webkit-scrollbar-thumb { background: var(--color-brand-gray-300); border-radius: 4px; }
-
+  </style>
+  <style is:global>
     .empty-state {
       text-align: center;
       padding: 2rem 1rem;
@@ -780,65 +1232,270 @@ if (!membership || membership.clubStatus !== 'approved') {
     }
     .empty-icon { font-size: 2rem; opacity: 0.5; }
 
-    .list-item {
-      display: flex;
-      background: white;
-      border: 1px solid var(--color-brand-gray-200);
-      border-radius: 0.85rem;
-      overflow: hidden;
-      transition: border-color 0.2s, transform 0.2s;
-    }
-    .list-item:hover {
-      border-color: var(--color-brand-gray-300);
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.03);
-    }
-
-    .item-status-strip { width: 6px; flex-shrink: 0; }
     .bg-green { background: #10b981; }
     .bg-red { background: #ef4444; }
-
-    .item-content { padding: 1rem; flex: 1; display: flex; flex-direction: column; gap: 0.75rem; }
-    
-    .item-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; }
-    .item-title { font-size: 0.95rem; font-weight: 800; color: var(--color-brand-gray-900); line-height: 1.3; }
-    
-    .badge-mini {
-      padding: 0.15rem 0.4rem;
-      border-radius: 4px;
-      font-size: 0.7rem;
-      font-weight: 800;
-      text-transform: uppercase;
-    }
     .bg-green-light { background: #dcfce7; } .text-green { color: #166534; }
     .bg-red-light { background: #fee2e2; } .text-red { color: #991b1b; }
 
-    .item-details { display: flex; flex-direction: column; gap: 0.25rem; }
-    .item-details span { font-size: 0.8rem; color: var(--color-brand-gray-600); display: flex; align-items: center; gap: 0.35rem; }
-    .icon { font-style: normal; font-size: 0.8rem; opacity: 0.7; }
-
-    .item-actions {
+    /* ── Program Card ─────────────────────────────────────── */
+    .pcard {
+      list-style: none;
       display: flex;
-      gap: 0.5rem;
-      margin-top: 0.25rem;
+      flex-direction: row;
+      align-items: stretch;
+      background: #ffffff;
+      border-radius: 1.25rem;
+      border: 1.5px solid #e2e8f0;
+      overflow: hidden;
+      transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s;
     }
 
-    .btn-sm {
-      flex: 1;
-      padding: 0.4rem;
-      border-radius: 0.5rem;
+    .pcard:hover {
+      box-shadow: 0 16px 40px rgba(15, 23, 42, 0.09);
+      transform: translateY(-3px);
+      border-color: #fca5a5;
+    }
+
+    .pcard--live { border-left: 5px solid #10b981; }
+    .pcard--draft { border-left: 5px solid #cbd5e1; }
+
+    /* Thumb */
+    .pcard-thumb {
+      position: relative;
+      flex: 0 0 220px;
+      background: linear-gradient(135deg, #fef2f2 0%, #f1f5f9 100%);
+      overflow: hidden;
+    }
+
+    .pcard-thumb img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .pcard-thumb-placeholder {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+      min-height: 190px;
+      font-size: 2.4rem;
+      font-weight: 900;
+      letter-spacing: -0.06em;
+      color: var(--color-brand-red);
+      opacity: 0.25;
+    }
+
+    .pcard-thumb-overlay {
+      position: absolute;
+      bottom: 0.65rem;
+      left: 0.65rem;
+    }
+
+    .pcard-status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.3rem 0.65rem;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(6px);
       font-size: 0.75rem;
+      font-weight: 800;
+      color: #1e293b;
+      border: 1px solid rgba(255,255,255,0.6);
+      box-shadow: 0 2px 8px rgba(15,23,42,0.1);
+    }
+
+    .pcard-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .dot-live { background: #10b981; }
+    .dot-draft { background: #94a3b8; }
+
+    /* Body */
+    .pcard-body {
+      flex: 1 1 0%;
+      min-width: 0;
+      padding: 1.4rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+      justify-content: center;
+      border-right: 1px solid #f1f5f9;
+    }
+
+    .pcard-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .pcard-title-area {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+      min-width: 0;
+    }
+
+    .pcard-title {
+      font-size: 1.2rem;
+      font-weight: 900;
+      color: #0f172a;
+      line-height: 1.2;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 340px;
+    }
+
+    .pcard-badge {
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      background: #f1f5f9;
+      color: #475569;
+      border: 1px solid #e2e8f0;
+      white-space: nowrap;
+    }
+
+    .pcard-price {
+      font-size: 1.05rem;
+      font-weight: 900;
+      color: #166534;
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      padding: 0.25rem 0.7rem;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+
+    .pcard-summary {
+      margin: 0;
+      font-size: 0.9rem;
+      color: #64748b;
+      line-height: 1.55;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .pcard-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+
+    .pcard-chip {
+      padding: 0.3rem 0.65rem;
+      border-radius: 999px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      font-size: 0.78rem;
+      color: #475569;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 260px;
+    }
+
+    /* Aside */
+    .pcard-aside {
+      flex: 0 0 190px;
+      padding: 1.15rem;
+      background: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      justify-content: center;
+    }
+
+    .pcard-stat {
+      padding: 0.65rem 0.8rem;
+      border-radius: 0.85rem;
+      background: white;
+      border: 1px solid #e2e8f0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.18rem;
+    }
+
+    .pcard-stat--live { border-color: #bbf7d0; background: #f0fdf4; }
+    .pcard-stat--draft { border-color: #e2e8f0; }
+
+    .pcard-stat-value {
+      font-size: 0.85rem;
+      font-weight: 800;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .pcard-stat--live .pcard-stat-value { color: #166534; }
+
+    .pcard-stat-hint {
+      font-size: 0.7rem;
+      color: #94a3b8;
+      font-weight: 600;
+    }
+
+    .pcard-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      margin-top: 0.2rem;
+    }
+
+    .pcard-btn-main,
+    .pcard-btn-danger {
+      width: 100%;
+      padding: 0.6rem 0.8rem;
+      border-radius: 0.65rem;
+      font-size: 0.82rem;
       font-weight: 700;
       cursor: pointer;
       border: 1px solid transparent;
-      display: flex; justify-content: center; align-items: center; gap: 0.25rem;
+      transition: all 0.15s;
+      font-family: inherit;
     }
 
-    .btn-edit { background: var(--color-brand-gray-50); color: var(--color-brand-gray-700); border-color: var(--color-brand-gray-200); }
-    .btn-edit:hover { background: white; border-color: var(--color-brand-gray-400); color: var(--color-brand-gray-900); }
+    .pcard-btn-main {
+      background: #0f172a;
+      color: white;
+      border-color: #0f172a;
+    }
+    .pcard-btn-main:hover { background: #1e293b; }
 
-    .btn-delete { background: #fff5f5; color: #dc2626; border-color: #fecaca; }
-    .btn-delete:hover { background: #fee2e2; border-color: #fca5a5; }
+    .pcard-btn-danger { background: #fff5f5; color: #dc2626; border-color: #fecaca; }
+    .pcard-btn-danger:hover { background: #fee2e2; }
+
+    /* backwards compat for existing delete/edit event delegation */
+    .btn-sm { display: none; }
+
+    @media (max-width: 900px) {
+      .pcard-aside { flex: 0 0 160px; }
+    }
+
+    @media (max-width: 680px) {
+      .pcard { flex-direction: column; }
+      .pcard-thumb { flex: 0 0 auto; min-height: 180px; }
+      .pcard-aside { flex: 0 0 auto; flex-direction: row; flex-wrap: wrap; gap: 0.5rem; }
+      .pcard-stat { flex: 1 1 120px; }
+      .pcard-actions { flex: 1 1 100%; flex-direction: row; }
+      .pcard-btn-main, .pcard-btn-danger { flex: 1; }
+    }
 
     .spinner-small {
       display: inline-block;

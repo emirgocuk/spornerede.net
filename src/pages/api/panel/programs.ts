@@ -9,6 +9,23 @@ import {
 
 export const prerender = false;
 
+function validateProgramPayload(body: Record<string, unknown> | null, ad: string) {
+  const days = Array.isArray(body?.days) ? body.days : [];
+  const gallery = Array.isArray(body?.gallery) ? body.gallery : [];
+  if (!ad.trim()) return 'Program adi zorunlu';
+  if (!body?.seviye?.toString?.().trim()) return 'Seviye zorunlu';
+  if (!body?.ucretBilgisi?.toString?.().trim()) return 'Ucret bilgisi zorunlu';
+  if (!days.length) return 'En az bir gun secilmelidir';
+  if (!body?.startTime?.toString?.().trim() || !body?.endTime?.toString?.().trim()) return 'Saat araligi zorunlu';
+  if (!body?.eventDate?.toString?.().trim()) return 'Baslangic tarihi zorunlu';
+  if (!body?.isOngoing && !body?.endDate?.toString?.().trim()) return 'Bitis tarihi zorunlu';
+  if (!body?.locationText?.toString?.().trim()) return 'Konum bilgisi zorunlu';
+  if (!body?.mapsUrl?.toString?.().trim()) return 'Google Maps baglantisi zorunlu';
+  if (!body?.aciklama?.toString?.().trim()) return 'Kisa ozet zorunlu';
+  if (gallery.length < 3) return 'En az 3 galeri gorseli zorunlu';
+  return '';
+}
+
 export const GET: APIRoute = async ({ request }) => {
   const guard = await requirePanelClubAccess(request);
   if (!guard.ok) {
@@ -28,8 +45,9 @@ export const POST: APIRoute = async ({ request }) => {
 
   const body = await request.json().catch(() => null);
   const ad = body?.ad?.toString() ?? '';
-  if (!ad.trim()) {
-    return new Response(JSON.stringify({ error: 'Program adi zorunlu' }), { status: 400 });
+  const validationError = validateProgramPayload(body, ad);
+  if (validationError) {
+    return new Response(JSON.stringify({ error: validationError }), { status: 400 });
   }
 
   const row = await createPanelProgram(guard.session.userId, {
@@ -40,7 +58,13 @@ export const POST: APIRoute = async ({ request }) => {
     ucretBilgisi: body?.ucretBilgisi?.toString() ?? '',
     aktif: Boolean(body?.aktif ?? true),
     eventDate: body?.eventDate?.toString() ?? '',
+    endDate: body?.endDate?.toString() ?? '',
+    isOngoing: Boolean(body?.isOngoing),
+    days: Array.isArray(body?.days) ? body.days.map((item: unknown) => String(item)) : [],
+    startTime: body?.startTime?.toString() ?? '',
+    endTime: body?.endTime?.toString() ?? '',
     locationText: body?.locationText?.toString() ?? '',
+    mapsUrl: body?.mapsUrl?.toString() ?? '',
     gallery: Array.isArray(body?.gallery) ? body.gallery.map((item: unknown) => String(item)) : [],
     bodyJson: body?.bodyJson ?? null,
   });
@@ -59,7 +83,8 @@ export const PUT: APIRoute = async ({ request }) => {
   const body = await request.json().catch(() => null);
   const id = Number(body?.id);
   const ad = body?.ad?.toString() ?? '';
-  if (!id || !ad.trim()) {
+  const validationError = validateProgramPayload(body, ad);
+  if (!id || validationError) {
     return new Response(JSON.stringify({ error: 'Invalid payload' }), { status: 400 });
   }
 
@@ -71,7 +96,13 @@ export const PUT: APIRoute = async ({ request }) => {
     ucretBilgisi: body?.ucretBilgisi?.toString() ?? '',
     aktif: Boolean(body?.aktif ?? true),
     eventDate: body?.eventDate?.toString() ?? '',
+    endDate: body?.endDate?.toString() ?? '',
+    isOngoing: Boolean(body?.isOngoing),
+    days: Array.isArray(body?.days) ? body.days.map((item: unknown) => String(item)) : [],
+    startTime: body?.startTime?.toString() ?? '',
+    endTime: body?.endTime?.toString() ?? '',
     locationText: body?.locationText?.toString() ?? '',
+    mapsUrl: body?.mapsUrl?.toString() ?? '',
     gallery: Array.isArray(body?.gallery) ? body.gallery.map((item: unknown) => String(item)) : [],
     bodyJson: body?.bodyJson ?? null,
   });

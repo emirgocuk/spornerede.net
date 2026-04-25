@@ -2,10 +2,10 @@
 
 ## Şimdiki Çalışma Odağı
 
-**Faz 2–3: Veritabanı işlevselliği + kulüp paneli / yönetim planı**
+**Faz 3-4: Veritabanı işlevselliği, panel UX, yönetim akışları ve kullanıcı bildirimleri**
 
-Mevcut durum: Landing, `/ara`, `/basvuru`, temel DB migration/seed ve `/admin` + `/api/admin/applications` iskeleti var.
-Aktif hedef: Mock’tan kalıcı veriye geçiş; başvurulara belge/dekont, onay sonrası kulüp profili; kulüp temsilcisi `/panel/`* ve yönetimde sağ liste + detay akışı. Ürün/teknik çerçeve: `**club-auth-admin-plan.md`**.
+Mevcut durum: Landing, `/ara`, `/basvuru`, PocketBase veritabanı altyapısı, admin paneli (başvurular, kulüpler, iletişim, geribildirimler) ve kulüp paneli (kurs yönetimi, profil) aktif çalışıyor.
+Aktif hedef: Gelişmiş filtreler, harita görünümü, ödeme/üyelik altyapısı (monetizasyon), akıllı eşleştirme quiz'i ve kullanıcılar için daha zengin public detay sayfası. Ürün/teknik çerçeve: `**club-auth-admin-plan.md`**.
 
 ## Güncel Görevler (Öncelik Sırasıyla)
 
@@ -27,8 +27,9 @@ Aktif hedef: Mock’tan kalıcı veriye geçiş; başvurulara belge/dekont, onay
 - Hero autocomplete davranışını klavye (yukarı/aşağı/enter) ile tamamlamak
 - CTA sağ medya geçişini son dokunuşlarla finalize etmek
 - **Faz 11: Deploy** — Build testi ve server transferi
-- **Faz 2** — Veriyi veritabani katmanina tasima (mock -> PostgreSQL)
+- **Faz 2** — Veriyi veritabani katmanina tasima (mock -> PocketBase)
 - **Faz 3** — `club-auth-admin-plan.md`: kullanıcılar/oturum, başvuru dosyaları, admin liste+detay+onay, `/panel` giriş ve header oturum UI
+- **Faz 4** — Harita ve gelişmiş filtreleme entegrasyonları, akıllı eşleştirme quiz'i.
 
 ### 🆕 Son Tamamlanan (UI Revizyon Paketi)
 
@@ -145,47 +146,34 @@ Aktif hedef: Mock’tan kalıcı veriye geçiş; başvurulara belge/dekont, onay
   - `/panel/sifre-degistir`
   - Geçici şifreli hesaplar panel alanlarına gitmeden önce şifre yeniler
 
-### 🆕 Planlama + küçük UI (kulüp girişi yolu)
+### 🆕 Son Tamamlanan (Tasarim revizyonu turu)
 
-- `memory-bank/club-auth-admin-plan.md` — kulüp paneli, admin shell, başvuru+belge, faz sırası
-- `db-schema-plan.md` — users, sessions, memberships, application_documents ve genişletilmiş başvuru
-- Header: CTA’nın solunda **Üye girişi** (`/panel/giris`); mobil menüde ayrı satır
-- Placeholder sayfa: `/panel/giris`
+- Panel tarafinda duzen/polisaj guncellemeleri yapildi:
+  - `/panel`, `/panel/kurslar`, `/panel/profil`
+- Admin ve panel akisinda medya/program yonetimi genisletildi (drag-drop galeri, tiptap editör, gün/saat takvim girişleri).
+- Public deneyimde kart/detay sunumu guncellendi (ilan tasarımının public tarafa yansıması).
+- Panel genelinde "Geribildirim" sistemi eklendi (sağ alt köşe widget).
+  - Admin panelde "Geribildirimler" tabı eklendi.
+- İletişim formu mesajlarına admin panelden "Cevaplandı" özelliği eklendi.
+- PostgreSQL / Drizzle ORM'den daha hızlı ve entegre bir çözüm olan **PocketBase** altyapısına geçiş yapıldı.
+  - Kurulum scriptleri (`pb-setup.ts`), db seed işlemleri uyumlu hale getirildi.
 
-### 📋 Sıradaki
+### 📋 Sıradaki (Faz 4 ve İyileştirmeler)
 
-1. Faz 3B: panel yetki scope denetimini genisletme (route/edge-case sertlestirme)
-2. Faz 3C: admin shell (ek aksiyonlar: not gecmisi, assignment, belge indirme/presigned url)
-3. Arama filtrelerinin URL + veri sorgu katmanını optimize etme (performans + index)
-4. Kulup liste/veri kaynaklarının API ile birlestirilmesi ve landing bloklarına yansitma
-
-## Basit Plan Güncellemesi (Bilgilendirme)
-
-MVP'yi sade tutmak için aşağıdaki kısa dokumanlar eklendi:
-
-- `memory-bank/db-schema-plan.md`
-- `memory-bank/club-auth-admin-plan.md` (panel + admin + başvuru dosyaları)
-- `memory-bank/deploy-runbook.md`
-- `memory-bank/github-auto-deploy-checklist.md` (English, checkbox-based active deploy guide)
-- `memory-bank/server-operations-guide.md` (English, server-side operational baseline)
-- `memory-bank/test-checklist-tr.md` (Turkish, evening batch test checklist)
-- `memory-bank/demo-ready-checklist-tr.md` (Turkish, demo preparation checklist)
-- `memory-bank/kurulum-checklist-tr.md` (Turkish, installation checklist)
-- `memory-bank/faz-gelistirme-checklist-tr.md` (Turkish, phase-by-phase master progress checklist)
-- `memory-bank/go-live-guardrails.md` (English, release safety guardrails)
-- `memory-bank/mvp-metrics.md`
-- `memory-bank/security-privacy.md`
-
-Bu dokumanlar "detaydan çok uygulama netligi" hedefiyle kısa tutuldu.
+1. **Arama ve Filtreleme:** Arama filtrelerinin URL + veri sorgu katmanını optimize etme, harita entegrasyonu (örn. Mapbox veya Leaflet ile ilanları haritada gösterme).
+2. **Monetizasyon (Gelir Modeli):** Ücretli üyelik paketleri, premium ilan öne çıkarma, online ödeme/tahsilat akışları (örn. Iyzico/Stripe entegrasyonu).
+3. **Akıllı Eşleştirme:** Kullanıcıların beklentilerine göre kurs/kulüp eşleştirme testi (Quiz akışı).
+4. **UX İyileştirmeleri:** Puanlama ve yorum sistemleri.
+5. Kulüp liste/veri kaynaklarının API ile birleştirilmesi ve landing bloklarına yansıtılması.
 
 ## Faz Sırasına Göre Uygulama Akışı
 
-1. **Faz 2.1 (ilk adım):** `db-schema-plan.md` temelinde Drizzle + PostgreSQL şema/migration
-2. **Faz 2.2:** `/ara` filtrelerinin gerçek veri sorgusuna taşınması
-3. **Faz 2.3:** Mock verinin kaldırılması ve seed/gerçek veri doğrulaması
-4. **Faz 11:** `deploy-runbook.md` ile production deploy + hızlı sağlık kontrolleri
-5. **Operasyonel takip:** `mvp-metrics.md` haftalık/aylık izleme
-6. **Temel koruma:** `security-privacy.md` checklist maddelerinin uygulanması
+1. **Faz 2.1 (ilk adım):** PocketBase geçişi, şema/migration kurulumları (Tamamlandı)
+2. **Faz 2.2:** `/ara` filtrelerinin gerçek veri sorgusuna taşınması (Tamamlandı)
+3. **Faz 3:** Admin Paneli, Kulüp Yetki Yönetimi, Belge Yüklemeleri, Geribildirimler (Büyük oranda tamamlandı)
+4. **Faz 4:** Harita görünümü, ödeme/üyelik altyapıları, puanlama ve akıllı quiz (Sırada)
+5. **Faz 11:** `deploy-runbook.md` ile production deploy + hızlı sağlık kontrolleri
+6. **Operasyonel takip:** `mvp-metrics.md` haftalık/aylık izleme
 
 ## Son Kararlar
 

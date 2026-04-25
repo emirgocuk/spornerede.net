@@ -60,6 +60,8 @@ const kategoriRenkler: Record<string, string> = {
   orange: 'badge-orange',
   purple: 'badge-purple',
 };
+
+const [oneCikanHaber, ...digerHaberler] = haberler;
 ---
 
 <section class="newsbar-section section" aria-labelledby="haberler-baslik">
@@ -76,9 +78,27 @@ const kategoriRenkler: Record<string, string> = {
       </a>
     </div>
 
-    <!-- Haberler listesi -->
-    <div class="haberler-grid" role="list">
-      {haberler.map((haber, index) => (
+    <div class="news-showcase">
+      <article class="featured-news animate-fade-in-up">
+        <div class="featured-glow" aria-hidden="true"></div>
+        <div class="featured-topline">
+          <span class={`haber-kategori ${kategoriRenkler[oneCikanHaber.kategoriRenk] ?? 'badge-gray'}`}>
+            {oneCikanHaber.kategori}
+          </span>
+          <time class="haber-tarih" datetime={oneCikanHaber.tarih}>{oneCikanHaber.tarih}</time>
+        </div>
+        <h3 class="featured-title">
+          <a href={oneCikanHaber.link}>{oneCikanHaber.baslik}</a>
+        </h3>
+        <p class="featured-summary">{oneCikanHaber.ozet}</p>
+        <a href={oneCikanHaber.link} class="featured-link" aria-label={`${oneCikanHaber.baslik} haberini oku`}>
+          Haberi İncele
+          <span aria-hidden="true">→</span>
+        </a>
+      </article>
+
+      <div class="haberler-grid" role="list">
+      {digerHaberler.map((haber, index) => (
         <article
           class={`haber-kart animate-fade-in-up`}
           style={`animation-delay: ${index * 0.08}s`}
@@ -118,6 +138,7 @@ const kategoriRenkler: Record<string, string> = {
           </a>
         </article>
       ))}
+      </div>
     </div>
   </div>
 </section>
@@ -126,9 +147,9 @@ const kategoriRenkler: Record<string, string> = {
   /* ===== SECTION ===== */
   .newsbar-section {
     background:
-      radial-gradient(circle at 20% 0%, rgba(227, 10, 23, 0.08), transparent 42%),
-      radial-gradient(circle at 80% 100%, rgba(227, 10, 23, 0.06), transparent 38%),
-      #FFF8F8;
+      radial-gradient(circle at 16% 0%, rgba(227, 10, 23, 0.12), transparent 36%),
+      radial-gradient(circle at 80% 100%, rgba(17, 24, 39, 0.06), transparent 34%),
+      linear-gradient(180deg, #FFF8F8 0%, #FFFFFF 100%);
     border-top: 1px solid #F7DFE1;
     border-bottom: 1px solid #F7DFE1;
   }
@@ -143,6 +164,105 @@ const kategoriRenkler: Record<string, string> = {
     flex-wrap: wrap;
   }
 
+  .news-showcase {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+    align-items: stretch;
+  }
+
+  @media (min-width: 1024px) {
+    .news-showcase {
+      grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr);
+      gap: 1.5rem;
+    }
+  }
+
+  .featured-news {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    border-radius: 1.4rem;
+    padding: clamp(1.4rem, 3vw, 2rem);
+    min-height: 100%;
+    background:
+      linear-gradient(135deg, rgba(227, 10, 23, 0.96) 0%, rgba(90, 4, 10, 0.96) 62%, rgba(17, 24, 39, 0.98) 100%);
+    color: #ffffff;
+    box-shadow: 0 18px 48px rgba(127, 29, 29, 0.22);
+  }
+
+  .featured-glow {
+    position: absolute;
+    width: 220px;
+    height: 220px;
+    right: -70px;
+    top: -70px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.14);
+    filter: blur(8px);
+    z-index: -1;
+  }
+
+  .featured-topline {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.4rem;
+  }
+
+  .featured-news .haber-kategori {
+    background: rgba(255, 255, 255, 0.16);
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.24);
+  }
+
+  .featured-news .haber-tarih {
+    color: rgba(255, 255, 255, 0.78);
+  }
+
+  .featured-title {
+    max-width: 680px;
+    font-size: clamp(1.55rem, 3vw, 2.35rem);
+    line-height: 1.08;
+    letter-spacing: -0.035em;
+    font-weight: 900;
+    margin: 0 0 1rem;
+  }
+
+  .featured-title a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .featured-summary {
+    max-width: 620px;
+    color: rgba(255, 255, 255, 0.78);
+    line-height: 1.65;
+    font-size: 0.98rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .featured-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: fit-content;
+    padding: 0.75rem 1rem;
+    border-radius: 999px;
+    background: #ffffff;
+    color: #E30A17;
+    font-weight: 800;
+    text-decoration: none;
+    transition: transform 0.18s ease, gap 0.18s ease;
+  }
+
+  .featured-link:hover {
+    gap: 0.8rem;
+    transform: translateY(-2px);
+  }
+
   /* ===== HABER GRİD ===== */
   .haberler-grid {
     display: grid;
@@ -150,20 +270,16 @@ const kategoriRenkler: Record<string, string> = {
     gap: 1rem;
   }
 
-  @media (min-width: 640px) {
+  @media (min-width: 640px) and (max-width: 1023px) {
     .haberler-grid { grid-template-columns: repeat(2, 1fr); }
-  }
-
-  @media (min-width: 1024px) {
-    .haberler-grid { grid-template-columns: repeat(3, 1fr); }
   }
 
   /* ===== HABER KART ===== */
   .haber-kart {
     background: rgba(255, 255, 255, 0.94);
     border: 1px solid #F0DCDD;
-    border-radius: 1rem;
-    padding: 1.5rem;
+    border-radius: 1.1rem;
+    padding: 1.15rem;
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
@@ -187,7 +303,7 @@ const kategoriRenkler: Record<string, string> = {
 
   .haber-kart:hover {
     border-color: #E30A17;
-    box-shadow: 0 8px 32px rgba(227, 10, 23, 0.1);
+    box-shadow: 0 12px 34px rgba(227, 10, 23, 0.12);
     transform: translateY(-3px);
   }
 

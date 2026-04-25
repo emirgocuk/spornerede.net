@@ -68,9 +68,18 @@ const summary = await getAdminClubSummary();
           <div class="admin-tabs" role="tablist" aria-label="Admin sekmeleri">
             <button type="button" class="admin-tab is-active" data-tab-target="applications">
               <span class="tab-icon">📥</span> Başvurular
+              <span id="applications-tab-badge" class="tab-badge">{summary.pending}</span>
             </button>
             <button type="button" class="admin-tab" data-tab-target="clubs">
               <span class="tab-icon">🏢</span> Onaylı Kulüpler
+            </button>
+            <button type="button" class="admin-tab" data-tab-target="contact">
+              <span class="tab-icon">✉️</span> İletişim Formu
+              <span id="contact-tab-badge" class="tab-badge is-hidden">0</span>
+            </button>
+            <button type="button" class="admin-tab" data-tab-target="feedback">
+              <span class="tab-icon">💬</span> Geribildirimler
+              <span id="feedback-tab-badge" class="tab-badge is-hidden">0</span>
             </button>
           </div>
         </div>
@@ -144,6 +153,83 @@ const summary = await getAdminClubSummary();
             </article>
           </div>
         </section>
+
+        <!-- Contact Messages Tab Panel -->
+        <section class="admin-shell is-hidden" data-tab-panel="contact">
+          <div class="admin-toolbar">
+            <div class="search-box">
+              <span class="search-icon">🔍</span>
+              <input id="contact-search" type="text" placeholder="Ad soyad, e-posta, konu ile ara..." />
+            </div>
+            <div class="filter-box">
+              <select id="contact-filter" class="modern-select">
+                <option value="all">Tüm Mesajlar</option>
+                <option value="unread">Okunmamış</option>
+                <option value="read">Okunmuş</option>
+              </select>
+            </div>
+            <button id="load-contact-messages" class="btn btn-primary shadow-sm" type="button">🔄 Yenile</button>
+          </div>
+
+          <div class="admin-columns">
+            <aside class="admin-list-container">
+              <div class="list-header">
+                <h2>İletişim Mesajları</h2>
+                <span class="badge badge-gray">Form kayıtları</span>
+              </div>
+              <ul id="contact-messages-list" class="admin-list custom-scrollbar"></ul>
+            </aside>
+
+            <article class="admin-detail-container">
+              <div id="contact-message-detail" class="detail-content">
+                <div class="empty-state">
+                  <div class="empty-icon">✉️</div>
+                  <h3>Mesaj Seçin</h3>
+                  <p>İletişim formundan gelen mesajları görüntülemek için soldan bir kayıt seçin.</p>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- Feedbacks Tab Panel -->
+        <section class="admin-shell is-hidden" data-tab-panel="feedback">
+          <div class="admin-toolbar">
+            <div class="search-box">
+              <span class="search-icon">🔍</span>
+              <input id="feedback-search" type="text" placeholder="Mesaj veya kullanıcı ile ara..." />
+            </div>
+            <div class="filter-box">
+              <select id="feedback-filter" class="modern-select">
+                <option value="all">Tüm Geribildirimler</option>
+                <option value="yeni">Yeni</option>
+                <option value="incelendi">İncelendi</option>
+                <option value="kapandi">Kapandı</option>
+              </select>
+            </div>
+            <button id="load-feedbacks" class="btn btn-primary shadow-sm" type="button">🔄 Yenile</button>
+          </div>
+
+          <div class="admin-columns">
+            <aside class="admin-list-container">
+              <div class="list-header">
+                <h2>Geribildirimler</h2>
+                <span class="badge badge-gray">Panel yorumları</span>
+              </div>
+              <ul id="feedbacks-list" class="admin-list custom-scrollbar"></ul>
+            </aside>
+
+            <article class="admin-detail-container">
+              <div id="feedback-detail" class="detail-content">
+                <div class="empty-state">
+                  <div class="empty-icon">💬</div>
+                  <h3>Geribildirim Seçin</h3>
+                  <p>Kullanıcıların panel hakkındaki düşüncelerini okumak için soldan bir kayıt seçin.</p>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
       </div>
     </main>
   </div>
@@ -158,6 +244,19 @@ const summary = await getAdminClubSummary();
     const clubsListEl = document.getElementById('clubs-list');
     const clubDetailEl = document.getElementById('club-detail');
     const loadClubsButton = document.getElementById('load-clubs');
+    const contactSearchInput = document.getElementById('contact-search');
+    const contactFilter = document.getElementById('contact-filter');
+    const contactListEl = document.getElementById('contact-messages-list');
+    const contactDetailEl = document.getElementById('contact-message-detail');
+    const loadContactButton = document.getElementById('load-contact-messages');
+    const feedbacksListEl = document.getElementById('feedbacks-list');
+    const feedbackDetailEl = document.getElementById('feedback-detail');
+    const loadFeedbacksButton = document.getElementById('load-feedbacks');
+    const feedbackSearch = document.getElementById('feedback-search');
+    const feedbackFilter = document.getElementById('feedback-filter');
+    const applicationsTabBadge = document.getElementById('applications-tab-badge');
+    const contactTabBadge = document.getElementById('contact-tab-badge');
+    const feedbackTabBadge = document.getElementById('feedback-tab-badge');
     const tabButtons = Array.from(document.querySelectorAll('.admin-tab'));
     const tabPanels = Array.from(document.querySelectorAll('[data-tab-panel]'));
 
@@ -165,6 +264,10 @@ const summary = await getAdminClubSummary();
     let selectedAppId = 0;
     let cachedClubs = [];
     let selectedClubId = 0;
+    let cachedContactMessages = [];
+    let selectedContactMessageId = 0;
+    let cachedFeedbacks = [];
+    let selectedFeedbackId = 0;
     const draftProvisionPasswords = new Map();
 
     function adminDownloadUrl(documentId) {
@@ -193,6 +296,33 @@ const summary = await getAdminClubSummary();
       }
       const payload = await response.json();
       return payload.data;
+    }
+
+    async function apiPut(path, body) {
+      const response = await fetch(path, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.error || `Request failed (${response.status})`);
+      }
+      const payload = await response.json();
+      return payload.data;
+    }
+
+    async function apiDelete(path, body) {
+      const response = await fetch(path, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.error || `Request failed (${response.status})`);
+      }
+      return response.json().catch(() => ({}));
     }
 
     function formatDate(value) {
@@ -318,6 +448,171 @@ const summary = await getAdminClubSummary();
     function renderDetailError(message) {
       if (!detailEl) return;
       detailEl.innerHTML = `<div class="error-state">⚠️ <p>${message}</p></div>`;
+    }
+
+    function updateNotificationBadges() {
+      const pendingApps = cachedApps.filter((item) => item.durum === 'pending').length;
+      if (applicationsTabBadge) {
+        applicationsTabBadge.textContent = String(pendingApps);
+        applicationsTabBadge.classList.toggle('is-hidden', pendingApps === 0);
+      }
+
+      const unreadMessages = cachedContactMessages.filter((item) => !item.okundu).length;
+      if (contactTabBadge) {
+        contactTabBadge.textContent = String(unreadMessages);
+        contactTabBadge.classList.toggle('is-hidden', unreadMessages === 0);
+      }
+
+      const unreadFeedbacks = cachedFeedbacks.filter((item) => item.durum === 'yeni').length;
+      if (feedbackTabBadge) {
+        feedbackTabBadge.textContent = String(unreadFeedbacks);
+        feedbackTabBadge.classList.toggle('is-hidden', unreadFeedbacks === 0);
+      }
+    }
+
+    function getFilteredContactMessages() {
+      const query = contactSearchInput?.value?.trim()?.toLowerCase() || '';
+      const filter = contactFilter?.value || 'all';
+      return cachedContactMessages.filter((item) => {
+        if (filter === 'unread' && item.okundu) return false;
+        if (filter === 'read' && !item.okundu) return false;
+        if (!query) return true;
+        const haystack = `${item.adSoyad || ''} ${item.email || ''} ${item.konu || ''}`.toLowerCase();
+        return haystack.includes(query);
+      });
+    }
+
+    function renderContactMessagesList() {
+      if (!contactListEl) return;
+      const filtered = getFilteredContactMessages();
+      if (!filtered.length) {
+        contactListEl.innerHTML = '<li class="empty-list">Mesaj bulunamadı.</li>';
+        return;
+      }
+
+      contactListEl.innerHTML = filtered
+        .map((message) => {
+          const activeClass = message.id === selectedContactMessageId ? 'is-active' : '';
+          const unreadClass = message.okundu ? '' : 'is-unread';
+          const answeredBadge = message.cevaplandi ? '<span class="status-badge status-approved">Cevaplandı</span>' : '';
+          return `<li>
+            <button class="list-item contact-list-item ${activeClass} ${unreadClass}" data-contact-id="${message.id}">
+              <div class="item-main">
+                <span class="item-title">${escapeHtml(message.adSoyad)}</span>
+                <span class="item-meta">${escapeHtml(message.konu || '-')} · ${formatDate(message.createdAt)}</span>
+              </div>
+              <div class="item-side">
+                ${answeredBadge || (message.okundu ? '<span class="status-badge status-approved">Okundu</span>' : '<span class="status-badge status-pending">Yeni</span>')}
+              </div>
+            </button>
+          </li>`;
+        })
+        .join('');
+    }
+
+    function renderContactDetailLoading() {
+      if (!contactDetailEl) return;
+      contactDetailEl.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Mesaj yükleniyor...</p></div>';
+    }
+
+    async function renderContactMessageDetail(messageId) {
+      selectedContactMessageId = messageId;
+      renderContactMessagesList();
+      renderContactDetailLoading();
+      try {
+        const message = await apiGet(`/api/admin/contact-messages?id=${messageId}`);
+        if (!message.okundu) {
+          await apiPost('/api/admin/contact-messages', { id: messageId, okundu: true });
+          const cached = cachedContactMessages.find((item) => item.id === messageId);
+          if (cached) cached.okundu = true;
+          updateNotificationBadges();
+          renderContactMessagesList();
+          message.okundu = true;
+        }
+
+        if (!contactDetailEl) return;
+        contactDetailEl.innerHTML = `
+          <div class="detail-header">
+            <div class="detail-title-area">
+              <span class="kicker">İLETİŞİM MESAJI #${message.id}</span>
+              <h2>${escapeHtml(message.adSoyad)}</h2>
+            </div>
+            <div class="detail-status">
+              ${
+                message.cevaplandi
+                  ? '<span class="status-badge status-approved">Cevaplandı</span>'
+                  : '<span class="status-badge status-pending">Takipte</span>'
+              }
+            </div>
+          </div>
+
+          <div class="detail-grid detail-grid--single">
+            <section class="card-section">
+              <div class="section-head">
+                <span class="icon">✉️</span>
+                <h3>Mesaj İçeriği</h3>
+              </div>
+              <div class="info-list">
+                <div class="info-item">
+                  <span class="label">Konu</span>
+                  <span class="value">${escapeHtml(message.konu || '-')}</span>
+                </div>
+                <div class="info-item">
+                  <span class="label">Gönderim Tarihi</span>
+                  <span class="value">${formatDate(message.createdAt)}</span>
+                </div>
+                <div class="info-item">
+                  <span class="label">Mesaj</span>
+                  <span class="value text-box">${escapeHtml(message.mesaj || '-')}</span>
+                </div>
+              </div>
+            </section>
+
+            <section class="card-section">
+              <div class="section-head">
+                <span class="icon">📞</span>
+                <h3>Gönderen Bilgileri</h3>
+              </div>
+              <div class="info-grid">
+                <div class="info-item">
+                  <span class="label">E-posta</span>
+                  <span class="value"><a href="mailto:${escapeHtml(message.email)}">${escapeHtml(message.email || '-')}</a></span>
+                </div>
+                <div class="info-item">
+                  <span class="label">Telefon</span>
+                  <span class="value">${escapeHtml(message.telefon || '-')}</span>
+                </div>
+              </div>
+              <div class="contact-actions">
+                <button id="toggle-contact-answered" class="btn btn-primary" type="button">
+                  ${message.cevaplandi ? 'Cevaplandı Etiketini Kaldır' : 'Cevaplandı Olarak İşaretle'}
+                </button>
+                <button id="mark-contact-unread" class="btn btn-outline" type="button">Okunmadı Yap</button>
+              </div>
+            </section>
+          </div>
+        `;
+
+        document.getElementById('toggle-contact-answered')?.addEventListener('click', async () => {
+          const nextAnswered = !message.cevaplandi;
+          await apiPost('/api/admin/contact-messages', { id: messageId, cevaplandi: nextAnswered });
+          const cached = cachedContactMessages.find((item) => item.id === messageId);
+          if (cached) cached.cevaplandi = nextAnswered;
+          await renderContactMessageDetail(messageId);
+        });
+
+        document.getElementById('mark-contact-unread')?.addEventListener('click', async () => {
+          await apiPost('/api/admin/contact-messages', { id: messageId, okundu: false });
+          const cached = cachedContactMessages.find((item) => item.id === messageId);
+          if (cached) cached.okundu = false;
+          updateNotificationBadges();
+          renderContactMessagesList();
+        });
+      } catch (error) {
+        if (contactDetailEl) {
+          contactDetailEl.innerHTML = `<div class="error-state">${error.message}</div>`;
+        }
+      }
     }
 
     function switchTab(tabKey) {
@@ -674,6 +969,7 @@ const summary = await getAdminClubSummary();
       try {
         const rows = await apiGet('/api/admin/applications');
         cachedApps = rows || [];
+        updateNotificationBadges();
         if (!selectedAppId && cachedApps.length) {
           selectedAppId = cachedApps[0].id;
         }
@@ -685,6 +981,172 @@ const summary = await getAdminClubSummary();
         listEl.innerHTML = `<li class="error-state">${error.message}</li>`;
         if (detailEl) {
           detailEl.innerHTML = '<div class="error-state">Başvuru listesi yüklenemedi.</div>';
+        }
+      }
+    }
+
+    async function loadContactMessages() {
+      if (!contactListEl) return;
+      contactListEl.innerHTML = '<li class="loading-state"><div class="spinner-small"></div> Yükleniyor...</li>';
+      try {
+        const rows = await apiGet('/api/admin/contact-messages');
+        cachedContactMessages = rows || [];
+        updateNotificationBadges();
+        if (selectedContactMessageId && !cachedContactMessages.some((message) => message.id === selectedContactMessageId)) {
+          selectedContactMessageId = 0;
+        }
+        renderContactMessagesList();
+        if (selectedContactMessageId) {
+          await renderContactMessageDetail(selectedContactMessageId);
+        }
+      } catch (error) {
+        contactListEl.innerHTML = `<li class="error-state">${error.message}</li>`;
+        if (contactDetailEl) {
+          contactDetailEl.innerHTML = '<div class="error-state">İletişim mesajları yüklenemedi.</div>';
+        }
+      }
+    }
+
+    function getFilteredFeedbacks() {
+      const query = feedbackSearch?.value?.trim()?.toLowerCase() || '';
+      const filter = feedbackFilter?.value || 'all';
+      return cachedFeedbacks.filter((item) => {
+        if (filter !== 'all' && item.durum !== filter) return false;
+        if (!query) return true;
+        const haystack = `${item.mesaj || ''} ${item.kullaniciLegacyId || ''}`.toLowerCase();
+        return haystack.includes(query);
+      });
+    }
+
+    function renderFeedbacksList() {
+      if (!feedbacksListEl) return;
+      const filtered = getFilteredFeedbacks();
+      if (!filtered.length) {
+        feedbacksListEl.innerHTML = '<li class="empty-list">Geribildirim bulunamadı.</li>';
+        return;
+      }
+
+      feedbacksListEl.innerHTML = filtered
+        .map((feedback) => {
+          const activeClass = feedback.id === selectedFeedbackId ? 'is-active' : '';
+          const unreadClass = feedback.durum === 'yeni' ? 'is-unread' : '';
+          
+          let badgeHtml = '';
+          if (feedback.durum === 'yeni') badgeHtml = '<span class="status-badge status-pending">Yeni</span>';
+          else if (feedback.durum === 'incelendi') badgeHtml = '<span class="status-badge status-approved" style="background:#e0f2fe;color:#1e40af;border-color:#bae6fd;">İncelendi</span>';
+          else badgeHtml = '<span class="status-badge status-rejected">Kapandı</span>';
+
+          return `<li>
+            <button class="list-item contact-list-item ${activeClass} ${unreadClass}" data-feedback-id="${feedback.id}">
+              <div class="item-main">
+                <span class="item-title">Kullanıcı: #${feedback.kullaniciLegacyId}</span>
+                <span class="item-meta">${formatDate(feedback.createdAt)}</span>
+              </div>
+              <div class="item-side">${badgeHtml}</div>
+            </button>
+          </li>`;
+        })
+        .join('');
+    }
+
+    function renderFeedbackDetailLoading() {
+      if (!feedbackDetailEl) return;
+      feedbackDetailEl.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Geribildirim yükleniyor...</p></div>';
+    }
+
+    async function renderFeedbackDetail(feedbackId) {
+      selectedFeedbackId = feedbackId;
+      renderFeedbacksList();
+      renderFeedbackDetailLoading();
+      try {
+        const feedback = cachedFeedbacks.find((f) => f.id === feedbackId);
+        if (!feedback) throw new Error('Bulunamadı');
+
+        if (feedback.durum === 'yeni') {
+          await apiPost('/api/admin/feedbacks', { id: feedbackId, durum: 'incelendi' });
+          feedback.durum = 'incelendi';
+          updateNotificationBadges();
+          renderFeedbacksList();
+        }
+
+        if (!feedbackDetailEl) return;
+        
+        const isKapandi = feedback.durum === 'kapandi';
+
+        feedbackDetailEl.innerHTML = `
+          <div class="detail-header">
+            <div class="detail-title-area">
+              <span class="kicker">GERİBİLDİRİM #${feedback.id}</span>
+              <h2>Kullanıcı #${feedback.kullaniciLegacyId}</h2>
+            </div>
+            <div class="detail-status">
+              ${isKapandi ? '<span class="status-badge status-rejected">Kapandı</span>' : '<span class="status-badge status-approved" style="background:#e0f2fe;color:#1e40af;border-color:#bae6fd;">İncelendi</span>'}
+            </div>
+          </div>
+
+          <div class="detail-grid detail-grid--single">
+            <section class="card-section">
+              <div class="section-head">
+                <span class="icon">💬</span>
+                <h3>Geribildirim İçeriği</h3>
+              </div>
+              <div class="info-list">
+                <div class="info-item">
+                  <span class="label">Gönderim Tarihi</span>
+                  <span class="value">${formatDate(feedback.createdAt)}</span>
+                </div>
+                <div class="info-item">
+                  <span class="label">Mesaj</span>
+                  <span class="value text-box">${escapeHtml(feedback.mesaj || '-')}</span>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <div class="contact-actions" style="margin-top:2rem;">
+            ${!isKapandi 
+              ? `<button id="close-feedback-btn" class="btn btn-outline" type="button">Kapatıldı Olarak İşaretle</button>` 
+              : `<button id="reopen-feedback-btn" class="btn btn-outline" type="button">Yeniden Aç (İncelendi)</button>`}
+          </div>
+        `;
+
+        document.getElementById('close-feedback-btn')?.addEventListener('click', async () => {
+          await apiPost('/api/admin/feedbacks', { id: feedbackId, durum: 'kapandi' });
+          feedback.durum = 'kapandi';
+          updateNotificationBadges();
+          renderFeedbackDetail(feedbackId);
+        });
+
+        document.getElementById('reopen-feedback-btn')?.addEventListener('click', async () => {
+          await apiPost('/api/admin/feedbacks', { id: feedbackId, durum: 'incelendi' });
+          feedback.durum = 'incelendi';
+          updateNotificationBadges();
+          renderFeedbackDetail(feedbackId);
+        });
+
+      } catch (error) {
+        renderDetailError(error.message);
+      }
+    }
+
+    async function loadFeedbacks() {
+      if (!feedbacksListEl) return;
+      feedbacksListEl.innerHTML = '<li class="loading-state"><div class="spinner-small"></div> Yükleniyor...</li>';
+      try {
+        const rows = await apiGet('/api/admin/feedbacks');
+        cachedFeedbacks = rows || [];
+        updateNotificationBadges();
+        if (selectedFeedbackId && !cachedFeedbacks.some((f) => f.id === selectedFeedbackId)) {
+          selectedFeedbackId = 0;
+        }
+        renderFeedbacksList();
+        if (selectedFeedbackId) {
+          await renderFeedbackDetail(selectedFeedbackId);
+        }
+      } catch (error) {
+        feedbacksListEl.innerHTML = `<li class="error-state">${error.message}</li>`;
+        if (feedbackDetailEl) {
+          feedbackDetailEl.innerHTML = '<div class="error-state">Geribildirimler yüklenemedi.</div>';
         }
       }
     }
@@ -727,22 +1189,54 @@ const summary = await getAdminClubSummary();
 
     function renderClubPrograms(programs) {
       if (!programs.length) {
-        return '<div class="empty-hint">Kulübe ait aktif ilan/program bulunmuyor.</div>';
+        return '<div class="empty-hint">Kulübe ait ilan/program bulunmuyor.</div>';
       }
-      return `<div class="program-grid">
+      return `<div class="admin-program-editor-list">
         ${programs
           .map(
-            (program) => `<div class="program-card">
-              <div class="program-head">
-                <strong>${program.ad || '-'}</strong>
+            (program) => `<article class="admin-program-editor" data-program-editor="${program.id}">
+              <div class="program-editor-head">
+                <div>
+                  <span class="kicker">PROGRAM #${program.id}</span>
+                  <strong>${escapeHtml(program.ad || '-')}</strong>
+                </div>
                 ${program.aktif ? '<span class="status-badge status-approved">Aktif</span>' : '<span class="status-badge status-rejected">Pasif</span>'}
               </div>
-              <ul class="program-meta">
-                ${program.gunSaat ? `<li>⏰ ${program.gunSaat}</li>` : ''}
-                ${program.seviye ? `<li>⭐ ${program.seviye}</li>` : ''}
-                ${program.ucretBilgisi ? `<li>💳 ${program.ucretBilgisi}</li>` : ''}
-              </ul>
-            </div>`
+              <div class="form-layout">
+                <div class="form-group">
+                  <label>Program / Kurs Adı</label>
+                  <input class="modern-input" data-program-field="ad" type="text" value="${escapeHtml(program.ad || '')}" />
+                </div>
+                <div class="form-row-2">
+                  <div class="form-group">
+                    <label>Gün / Saat</label>
+                    <input class="modern-input" data-program-field="gunSaat" type="text" value="${escapeHtml(program.gunSaat || '')}" />
+                  </div>
+                  <div class="form-group">
+                    <label>Seviye</label>
+                    <input class="modern-input" data-program-field="seviye" type="text" value="${escapeHtml(program.seviye || '')}" />
+                  </div>
+                </div>
+                <div class="form-row-2">
+                  <div class="form-group">
+                    <label>Ücret Bilgisi</label>
+                    <input class="modern-input" data-program-field="ucretBilgisi" type="text" value="${escapeHtml(program.ucretBilgisi || '')}" />
+                  </div>
+                  <label class="program-active-toggle">
+                    <input data-program-field="aktif" type="checkbox" ${program.aktif ? 'checked' : ''} />
+                    <span>Yayında / Aktif</span>
+                  </label>
+                </div>
+                <div class="form-group">
+                  <label>Açıklama</label>
+                  <textarea class="modern-textarea" data-program-field="aciklama" rows="3">${escapeHtml(program.aciklama || '')}</textarea>
+                </div>
+                <div class="program-editor-actions">
+                  <button class="btn btn-primary save-program-btn" data-program-id="${program.id}" type="button">Programı Kaydet</button>
+                  <button class="btn btn-danger delete-program-btn" data-program-id="${program.id}" type="button">Programı Sil</button>
+                </div>
+              </div>
+            </article>`
           )
           .join('')}
       </div>`;
@@ -845,6 +1339,50 @@ const summary = await getAdminClubSummary();
             alert(error.message);
           }
         });
+
+        clubDetailEl.querySelectorAll('.save-program-btn').forEach((button) => {
+          button.addEventListener('click', async () => {
+            const programId = Number(button.getAttribute('data-program-id'));
+            const editor = button.closest('[data-program-editor]');
+            if (!programId || !(editor instanceof HTMLElement)) return;
+            const fieldValue = (name) => editor.querySelector(`[data-program-field="${name}"]`)?.value || '';
+            const activeInput = editor.querySelector('[data-program-field="aktif"]');
+            try {
+              button.textContent = 'Kaydediliyor...';
+              await apiPut('/api/admin/clubs', {
+                clubId,
+                programId,
+                ad: fieldValue('ad'),
+                gunSaat: fieldValue('gunSaat'),
+                seviye: fieldValue('seviye'),
+                ucretBilgisi: fieldValue('ucretBilgisi'),
+                aciklama: fieldValue('aciklama'),
+                aktif: activeInput instanceof HTMLInputElement ? activeInput.checked : true,
+              });
+              await renderClubDetail(clubId);
+            } catch (error) {
+              button.textContent = 'Programı Kaydet';
+              alert(error.message);
+            }
+          });
+        });
+
+        clubDetailEl.querySelectorAll('.delete-program-btn').forEach((button) => {
+          button.addEventListener('click', async () => {
+            const programId = Number(button.getAttribute('data-program-id'));
+            if (!programId) return;
+            const confirmed = confirm('Bu programı kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz.');
+            if (!confirmed) return;
+            try {
+              button.textContent = 'Siliniyor...';
+              await apiDelete('/api/admin/clubs', { clubId, programId });
+              await renderClubDetail(clubId);
+            } catch (error) {
+              button.textContent = 'Programı Sil';
+              alert(error.message);
+            }
+          });
+        });
       } catch (error) {
         renderDetailError(error.message);
       }
@@ -891,12 +1429,38 @@ const summary = await getAdminClubSummary();
       await renderClubDetail(id);
     });
 
+    contactListEl?.addEventListener('click', async (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      const button = target.closest('button[data-contact-id]');
+      if (!button) return;
+      const id = Number(button.getAttribute('data-contact-id'));
+      if (!id) return;
+      await renderContactMessageDetail(id);
+    });
+
+    feedbacksListEl?.addEventListener('click', async (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      const button = target.closest('button[data-feedback-id]');
+      if (!button) return;
+      const id = Number(button.getAttribute('data-feedback-id'));
+      if (!id) return;
+      await renderFeedbackDetail(id);
+    });
+
     tabButtons.forEach((button) => {
       button.addEventListener('click', async () => {
         const tabKey = button.getAttribute('data-tab-target') || 'applications';
         switchTab(tabKey);
         if (tabKey === 'clubs' && !cachedClubs.length) {
           await loadClubs();
+        }
+        if (tabKey === 'contact' && !cachedContactMessages.length) {
+          await loadContactMessages();
+        }
+        if (tabKey === 'feedback' && !cachedFeedbacks.length) {
+          await loadFeedbacks();
         }
       });
     });
@@ -909,6 +1473,14 @@ const summary = await getAdminClubSummary();
       await loadClubs();
     });
 
+    loadContactButton?.addEventListener('click', async () => {
+      await loadContactMessages();
+    });
+
+    loadFeedbacksButton?.addEventListener('click', async () => {
+      await loadFeedbacks();
+    });
+
     searchInput?.addEventListener('input', () => {
       renderList();
     });
@@ -917,8 +1489,24 @@ const summary = await getAdminClubSummary();
       renderClubsList();
     });
 
+    contactSearchInput?.addEventListener('input', () => {
+      renderContactMessagesList();
+    });
+
+    feedbackSearch?.addEventListener('input', () => {
+      renderFeedbacksList();
+    });
+
     statusFilter?.addEventListener('change', () => {
       renderList();
+    });
+
+    contactFilter?.addEventListener('change', () => {
+      renderContactMessagesList();
+    });
+
+    feedbackFilter?.addEventListener('change', () => {
+      renderFeedbacksList();
     });
 
     // Init
@@ -928,6 +1516,8 @@ const summary = await getAdminClubSummary();
         listEl.innerHTML = `<li class="error-state">${error?.message || 'Başvurular yüklenemedi.'}</li>`;
       }
     });
+    loadContactMessages().catch(() => undefined);
+    loadFeedbacks().catch(() => undefined);
   </script>
 
   <style is:global>
@@ -1135,6 +1725,26 @@ const summary = await getAdminClubSummary();
       color: var(--admin-primary);
     }
 
+    .tab-badge {
+      min-width: 1.35rem;
+      height: 1.35rem;
+      padding: 0 0.4rem;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--admin-primary);
+      color: #ffffff;
+      font-size: 0.72rem;
+      font-weight: 900;
+      line-height: 1;
+      box-shadow: 0 8px 18px rgba(227, 10, 23, 0.22);
+    }
+
+    .tab-badge.is-hidden {
+      display: none;
+    }
+
     .admin-shell.is-hidden { display: none; }
 
     /* Toolbar */
@@ -1274,6 +1884,23 @@ const summary = await getAdminClubSummary();
       box-shadow: 0 0 0 1px var(--admin-primary);
     }
 
+    .contact-list-item.is-unread {
+      border-color: #fecaca;
+      background: #fff7f7;
+    }
+
+    .contact-list-item.is-unread .item-title::after {
+      content: 'Yeni';
+      margin-left: 0.5rem;
+      padding: 0.16rem 0.45rem;
+      border-radius: 999px;
+      background: var(--admin-primary);
+      color: #ffffff;
+      font-size: 0.65rem;
+      font-weight: 900;
+      vertical-align: middle;
+    }
+
     .item-main {
       display: flex;
       flex-direction: column;
@@ -1376,6 +2003,10 @@ const summary = await getAdminClubSummary();
       .detail-grid { grid-template-columns: 1fr 1fr; }
     }
 
+    .detail-grid--single {
+      grid-template-columns: 1fr;
+    }
+
     .detail-column {
       display: flex;
       flex-direction: column;
@@ -1459,6 +2090,13 @@ const summary = await getAdminClubSummary();
       line-height: 1.5;
     }
 
+    .contact-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-top: 1rem;
+    }
+
     /* Forms & Inputs */
     .form-group {
       margin-bottom: 1rem;
@@ -1522,6 +2160,9 @@ const summary = await getAdminClubSummary();
     
     .btn-success { background: #22c55e; color: white; }
     .btn-success:hover { background: #16a34a; }
+
+    .btn-danger { background: #dc2626; color: white; }
+    .btn-danger:hover { background: #b91c1c; transform: translateY(-1px); }
     
     .btn-outline { background: white; border-color: #cbd5e1; color: var(--admin-text-main); }
     .btn-outline:hover { background: #f8fafc; border-color: #94a3b8; }
@@ -1692,24 +2333,72 @@ const summary = await getAdminClubSummary();
     .timeline-actor { font-size: 0.8rem; color: #3b82f6; font-weight: 600; margin-bottom: 0.4rem; }
     .timeline-note { font-size: 0.85rem; color: var(--admin-text-main); background: #f8fafc; padding: 0.5rem; border-radius: 6px; }
 
-    /* Program Cards */
-    .program-grid {
-      display: grid;
-      grid-template-columns: 1fr;
+    /* Program Editors */
+    .admin-program-editor-list {
+      display: flex;
+      flex-direction: column;
       gap: 1rem;
     }
-    .program-card {
+
+    .admin-program-editor {
       background: white;
       border: 1px solid var(--admin-border);
-      border-radius: 10px;
+      border-radius: 14px;
       padding: 1rem;
       transition: all 0.2s;
     }
-    .program-card:hover { border-color: #cbd5e1; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
-    .program-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem; }
-    .program-head strong { font-size: 1rem; color: var(--admin-text-main); }
-    .program-meta { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.35rem; }
-    .program-meta li { font-size: 0.85rem; color: var(--admin-text-muted); display: flex; align-items: center; gap: 0.4rem; }
+
+    .admin-program-editor:hover {
+      border-color: #cbd5e1;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+    }
+
+    .program-editor-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .program-editor-head strong {
+      display: block;
+      margin-top: 0.25rem;
+      font-size: 1rem;
+      color: var(--admin-text-main);
+    }
+
+    .program-active-toggle {
+      min-height: 44px;
+      padding: 0.65rem 0.85rem;
+      border: 1px solid var(--admin-border);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      background: #f8fafc;
+      font-weight: 800;
+      color: var(--admin-text-main);
+      cursor: pointer;
+    }
+
+    .program-active-toggle input {
+      width: 1.05rem;
+      height: 1.05rem;
+      accent-color: var(--admin-primary);
+    }
+
+    .program-editor-actions {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.75rem;
+    }
+
+    @media (min-width: 640px) {
+      .program-editor-actions {
+        grid-template-columns: 1fr auto;
+      }
+    }
 
     /* Utils */
     .empty-list, .empty-hint { color: var(--admin-text-muted); font-size: 0.9rem; text-align: center; padding: 1rem; }

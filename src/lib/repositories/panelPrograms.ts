@@ -10,7 +10,13 @@ export type ProgramPayload = {
   ucretBilgisi?: string;
   aktif?: boolean;
   eventDate?: string;
+  endDate?: string;
+  isOngoing?: boolean;
+  days?: string[];
+  startTime?: string;
+  endTime?: string;
   locationText?: string;
+  mapsUrl?: string;
   gallery?: string[];
   bodyJson?: unknown | null;
 };
@@ -47,7 +53,13 @@ export async function listPanelPrograms(userId: number) {
       ucretBilgisi: (row.ucretBilgisi as string) ?? '',
       aktif: Boolean(row.aktif),
       eventDate: parsed.content.eventDate,
+      endDate: parsed.content.endDate,
+      isOngoing: parsed.content.isOngoing,
+      days: parsed.content.days,
+      startTime: parsed.content.startTime,
+      endTime: parsed.content.endTime,
       locationText: parsed.content.locationText,
+      mapsUrl: parsed.content.mapsUrl,
       gallery: parsed.content.gallery,
       bodyJson: parsed.content.bodyJson,
       createdAt: row.created,
@@ -69,7 +81,13 @@ export async function createPanelProgram(userId: number, payload: ProgramPayload
     aciklama: serializeProgramContent({
       summary: payload.aciklama?.trim() ?? '',
       eventDate: payload.eventDate ?? '',
+      endDate: payload.endDate ?? '',
+      isOngoing: payload.isOngoing ?? false,
+      days: payload.days ?? [],
+      startTime: payload.startTime ?? '',
+      endTime: payload.endTime ?? '',
       locationText: payload.locationText ?? '',
+      mapsUrl: payload.mapsUrl ?? '',
       gallery: payload.gallery ?? [],
       bodyJson: payload.bodyJson ?? null,
     }),
@@ -87,7 +105,13 @@ export async function createPanelProgram(userId: number, payload: ProgramPayload
     ucretBilgisi: (row.ucretBilgisi as string) ?? '',
     aktif: Boolean(row.aktif),
     eventDate: payload.eventDate?.trim() ?? '',
+    endDate: payload.endDate?.trim() ?? '',
+    isOngoing: payload.isOngoing ?? false,
+    days: payload.days ?? [],
+    startTime: payload.startTime?.trim() ?? '',
+    endTime: payload.endTime?.trim() ?? '',
     locationText: payload.locationText?.trim() ?? '',
+    mapsUrl: payload.mapsUrl?.trim() ?? '',
     gallery: payload.gallery ?? [],
     bodyJson: payload.bodyJson ?? null,
   };
@@ -109,7 +133,13 @@ export async function updatePanelProgram(userId: number, programId: number, payl
     aciklama: serializeProgramContent({
       summary: payload.aciklama?.trim() ?? '',
       eventDate: payload.eventDate ?? '',
+      endDate: payload.endDate ?? '',
+      isOngoing: payload.isOngoing ?? false,
+      days: payload.days ?? [],
+      startTime: payload.startTime ?? '',
+      endTime: payload.endTime ?? '',
       locationText: payload.locationText ?? '',
+      mapsUrl: payload.mapsUrl ?? '',
       gallery: payload.gallery ?? [],
       bodyJson: payload.bodyJson ?? null,
     }),
@@ -127,7 +157,13 @@ export async function updatePanelProgram(userId: number, programId: number, payl
     ucretBilgisi: (row.ucretBilgisi as string) ?? '',
     aktif: Boolean(row.aktif),
     eventDate: payload.eventDate?.trim() ?? '',
+    endDate: payload.endDate?.trim() ?? '',
+    isOngoing: payload.isOngoing ?? false,
+    days: payload.days ?? [],
+    startTime: payload.startTime?.trim() ?? '',
+    endTime: payload.endTime?.trim() ?? '',
     locationText: payload.locationText?.trim() ?? '',
+    mapsUrl: payload.mapsUrl?.trim() ?? '',
     gallery: payload.gallery ?? [],
     bodyJson: payload.bodyJson ?? null,
   };
