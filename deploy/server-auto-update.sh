@@ -3,20 +3,17 @@ set -euo pipefail
 
 # Sunucu tarafinda periyodik calisir:
 # - GitHub'dan yeni commit var mi kontrol eder
-# - Varsa pull + build + release + systemd restart yapar
-#
-# Varsayilanlar:
-#   APP_REPO_DIR=/opt/spornerede/repo
-#   APP_BASE=/opt/spornerede
-#   APP_BRANCH=main
-#   APP_REMOTE=origin
-#   SYSTEMD_UNIT=spornerede
+# - Varsa pull + build + PocketBase schema sync + release + systemd restart yapar
 
 APP_REPO_DIR="${APP_REPO_DIR:-/opt/spornerede/repo}"
 APP_BASE="${APP_BASE:-/opt/spornerede}"
 APP_BRANCH="${APP_BRANCH:-main}"
 APP_REMOTE="${APP_REMOTE:-origin}"
 SYSTEMD_UNIT="${SYSTEMD_UNIT:-spornerede}"
+ENV_FILE="${ENV_FILE:-${APP_BASE}/.env}"
+RUN_RELEASE_GATE="${RUN_RELEASE_GATE:-1}"
+RUN_PB_SETUP="${RUN_PB_SETUP:-1}"
+RUN_SMOKE_CHECK="${RUN_SMOKE_CHECK:-1}"
 
 RELEASES_DIR="${APP_BASE}/releases"
 CURRENT_LINK="${APP_BASE}/current"
@@ -34,10 +31,39 @@ require_cmd() {
   }
 }
 
+load_env_file() {
+  local line key value
+  if [[ ! -f "${ENV_FILE}" ]]; then
+    log "UYARI: env dosyasi bulunamadi: ${ENV_FILE}"
+    return 0
+  fi
+
+  while IFS= read -r line || [[ -n "${line}" ]]; do
+    line="${line%$'\n'}"
+    [[ -z "${line}" || "${line}" =~ ^[[:space:]]*# ]] && continue
+    [[ "${line}" != *=* ]] && continue
+    key="${line%%=*}"
+    value="${line#*=}"
+    key="$(printf "%s" "${key}" | xargs)"
+    value="${value#"${value%%[![:space:]]*}"}"
+    value="${value%"${value##*[![:space:]]}"}"
+    value="${value%\"}"
+    value="${value#\"}"
+    value="${value%\'}"
+    value="${value#\'}"
+    if [[ "${key}" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
+      export "${key}=${value}"
+    fi
+  done < "${ENV_FILE}"
+}
+
 require_cmd git
 require_cmd npm
 require_cmd rsync
 require_cmd date
+require_cmd xargs
+
+load_env_file
 
 if [[ ! -d "${APP_REPO_DIR}/.git" ]]; then
   log "HATA: repo bulunamadi: ${APP_REPO_DIR}"
@@ -77,7 +103,15 @@ else
   npm install
 fi
 
+if [[ "${RUN_RELEASE_GATE}" == "1" ]]; then
+  npm run release:gate
+fi
+
 npm run build
+
+if [[ "${RUN_PB_SETUP}" == "1" ]]; then
+  npm run pb:setup
+fi
 
 if [[ ! -d dist ]]; then
   log "HATA: dist/ bulunamadi, build basarisiz olabilir."
@@ -96,6 +130,12 @@ if [[ -L "${CURRENT_LINK}" || -e "${CURRENT_LINK}" ]]; then
 fi
 
 rsync -a --delete "${APP_REPO_DIR}/dist/" "${NEW_RELEASE}/"
+cp "${APP_REPO_DIR}/package.json" "${NEW_RELEASE}/package.json"
+if [[ -f "${APP_REPO_DIR}/package-lock.json" ]]; then
+  cp "${APP_REPO_DIR}/package-lock.json" "${NEW_RELEASE}/package-lock.json"
+fi
+(cd "${NEW_RELEASE}" && npm ci --omit=dev)
+
 ln -sfn "${NEW_RELEASE}" "${CURRENT_LINK}"
 log "Release aktif: ${NEW_RELEASE}"
 
@@ -104,6 +144,10 @@ if systemctl list-unit-files | grep -q "^${SYSTEMD_UNIT}\.service"; then
   log "Servis restart: ${SYSTEMD_UNIT}"
 else
   log "UYARI: ${SYSTEMD_UNIT}.service bulunamadi, restart atlandi."
+fi
+
+if [[ "${RUN_SMOKE_CHECK}" == "1" ]]; then
+  npm run smoke:check
 fi
 
 log "Tamamlandi."

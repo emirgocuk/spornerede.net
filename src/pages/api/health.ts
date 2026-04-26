@@ -12,16 +12,20 @@ type CheckResult = {
 
 const DEFAULT_TIMEOUT_MS = 2500;
 
+function env(name: string) {
+  return process.env[name] ?? import.meta.env[name];
+}
+
 async function checkDatabaseConnectivity(): Promise<CheckResult> {
-  const pocketbaseUrl = import.meta.env.POCKETBASE_URL;
+  const pocketbaseUrl = env('POCKETBASE_URL');
   if (!pocketbaseUrl) {
     return { ok: false, configured: false, message: 'POCKETBASE_URL missing' };
   }
 
   try {
     const pb = new PocketBase(pocketbaseUrl);
-    const adminEmail = import.meta.env.POCKETBASE_ADMIN_EMAIL;
-    const adminPassword = import.meta.env.POCKETBASE_ADMIN_PASSWORD;
+    const adminEmail = env('POCKETBASE_ADMIN_EMAIL');
+    const adminPassword = env('POCKETBASE_ADMIN_PASSWORD');
     if (!adminEmail || !adminPassword) {
       return { ok: false, configured: false, message: 'PocketBase admin credentials missing' };
     }
@@ -35,11 +39,11 @@ async function checkDatabaseConnectivity(): Promise<CheckResult> {
 }
 
 async function checkSmtpConnectivity(): Promise<CheckResult> {
-  const host = import.meta.env.SMTP_HOST;
-  const portRaw = import.meta.env.SMTP_PORT;
-  const user = import.meta.env.SMTP_USER;
-  const pass = import.meta.env.SMTP_PASS;
-  const mailTo = import.meta.env.MAIL_TO;
+  const host = env('SMTP_HOST');
+  const portRaw = env('SMTP_PORT');
+  const user = env('SMTP_USER');
+  const pass = env('SMTP_PASS');
+  const mailTo = env('MAIL_TO');
 
   const configured = Boolean(host && user && pass && mailTo);
   if (!configured) {
@@ -74,12 +78,12 @@ async function checkSmtpConnectivity(): Promise<CheckResult> {
 
 export const GET: APIRoute = async ({ url }) => {
   const deep = url.searchParams.get('deep') === '1';
-  const hasDb = Boolean(import.meta.env.POCKETBASE_URL);
+  const hasDb = Boolean(env('POCKETBASE_URL'));
   const hasSmtpConfig = Boolean(
-    import.meta.env.SMTP_HOST &&
-      import.meta.env.SMTP_USER &&
-      import.meta.env.SMTP_PASS &&
-      import.meta.env.MAIL_TO
+    env('SMTP_HOST') &&
+      env('SMTP_USER') &&
+      env('SMTP_PASS') &&
+      env('MAIL_TO')
   );
 
   let dbCheck: CheckResult | null = null;

@@ -12,6 +12,10 @@ export type CreateUserInput = {
   forcePasswordChange?: boolean;
 };
 
+function escapeFilterValue(value: string) {
+  return value.replace(/"/g, '\\"');
+}
+
 export async function createUser(input: CreateUserInput) {
   if (!hasDatabaseUrl()) {
     throw new Error('POCKETBASE_URL is not configured.');
@@ -53,7 +57,7 @@ export async function findUserByEmail(email: string) {
   const db = await getDb();
   const row = await db
     .collection('kullanicilar')
-    .getFirstListItem(`email = "${email.toLowerCase().trim().replace(/"/g, '\\"')}"`)
+    .getFirstListItem(`email = "${escapeFilterValue(email.toLowerCase().trim())}"`)
     .catch(() => null);
   if (!row) return null;
   return {
@@ -124,6 +128,54 @@ export async function deleteSession(token: string) {
   const tokenHash = hashToken(token);
   const matches = await db.collection('oturumlar').getFullList({ filter: `tokenHash = "${tokenHash}"` });
   await Promise.all(matches.map((item) => db.collection('oturumlar').delete(item.id)));
+}
+
+export async function deleteAllSessionsForUser(userId: number) {
+  if (!hasDatabaseUrl()) {
+    return;
+  }
+  const db = await getDb();
+  const matches = await db.collection('oturumlar').getFullList({ filter: `kullaniciLegacyId = ${userId}` });
+  await Promise.all(matches.map((item) => db.collection('oturumlar').delete(item.id)));
+}
+
+export async function createPasswordResetToken(userId: number, ttlMinutes = 15) {
+  if (!hasDatabaseUrl()) {
+    throw new Error('POCKETBASE_URL is not configured.');
+  }
+  const db = await getDb();
+  const token = crypto.randomBytes(32).toString('hex');
+  const tokenHash = hashToken(token);
+  const expiresAt = new Date(Date.now() + ttlMinutes * 60 * 1000);
+
+  await db.collection('sifre_sifirlama_tokenlari').create({
+    legacyId: Date.now(),
+    kullaniciLegacyId: userId,
+    tokenHash,
+    expiresAt: expiresAt.toISOString(),
+  });
+
+  return { token, expiresAt };
+}
+
+export async function consumePasswordResetToken(rawToken: string) {
+  if (!hasDatabaseUrl()) {
+    return null;
+  }
+  const db = await getDb();
+  const tokenHash = hashToken(rawToken);
+  const nowIso = new Date().toISOString();
+  const tokenRow = await db
+    .collection('sifre_sifirlama_tokenlari')
+    .getFirstListItem(`tokenHash = "${escapeFilterValue(tokenHash)}" && expiresAt > "${nowIso}"`)
+    .catch(() => null);
+
+  if (!tokenRow || tokenRow.usedAt) {
+    return null;
+  }
+
+  await db.collection('sifre_sifirlama_tokenlari').update(tokenRow.id, { usedAt: nowIso });
+  return { userId: Number(tokenRow.kullaniciLegacyId) };
 }
 
 export async function assignUserToClub(userId: number, clubId: number, role: ClubMembershipRole = 'staff') {

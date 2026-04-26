@@ -7,6 +7,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Hero from '../components/Hero.astro';
 import NewsBar from '../components/NewsBar.astro';
+import BranslarGrid from '../components/BranslarGrid.astro';
 import FAQSection from '../components/FAQSection.astro';
 import ClubCTA from '../components/ClubCTA.astro';
 ---
@@ -22,9 +23,12 @@ import ClubCTA from '../components/ClubCTA.astro';
   <!-- 2) HABERLER & DUYURULAR -->
   <NewsBar />
 
-  <!-- 3) SIKÇA SORULAN SORULAR -->
+  <!-- 3) BRANŞLAR GRID -->
+  <BranslarGrid />
+
+  <!-- 4) SIKÇA SORULAN SORULAR -->
   <FAQSection />
 
-  <!-- 4) KULÜP BAŞVURU CTA -->
+  <!-- 5) KULÜP BAŞVURU CTA -->
   <ClubCTA />
 </BaseLayout>

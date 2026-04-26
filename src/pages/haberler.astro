@@ -1,50 +1,24 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { getActiveNews } from '../lib/repositories/news';
 
-const haberler = [
-  {
-    kategori: 'Etkinlik',
-    tarih: '18 Nisan 2026',
-    baslik: 'Bahar Maratonu Başvuruları Açıldı',
-    ozet: '2026 Bahar Maratonu için başvurular başladı. 5K, 10K ve yarı maraton kategorileri mevcut.',
-    gorsel: 'visual-marathon',
-  },
-  {
-    kategori: 'Duyuru',
-    tarih: '15 Nisan 2026',
-    baslik: 'Kulüp Lisans Yenileme Süreci Başladı',
-    ozet: '2026-27 sezonu için lisans yenileme başvuruları açıldı. Son başvuru tarihleri il bazında duyuruluyor.',
-    gorsel: 'visual-license',
-  },
-  {
-    kategori: 'Başarı',
-    tarih: '12 Nisan 2026',
-    baslik: 'Genç Sporcu Milli Takım Kadrosuna Alındı',
-    ozet: 'U16 kategorisinde başarılı performans gösteren sporcular milli takım kampına davet edildi.',
-    gorsel: 'visual-success',
-  },
-  {
-    kategori: 'Kurs',
-    tarih: '10 Nisan 2026',
-    baslik: 'Yaz Spor Okulları İçin Ön Kayıt Dönemi',
-    ozet: 'Birçok şehirde yaz dönemi kursları için ön kayıtlar başladı. Branş kontenjanları hızla doluyor.',
-    gorsel: 'visual-course',
-  },
-  {
-    kategori: 'Bilgilendirme',
-    tarih: '8 Nisan 2026',
-    baslik: 'Aileler İçin Spor Kulübü Seçim Rehberi',
-    ozet: 'Kulüp seçerken dikkat edilmesi gereken temel başlıklar: antrenör kadrosu, güvenlik, iletişim ve planlama.',
-    gorsel: 'visual-guide',
-  },
-];
+const rawHaberler = await getActiveNews();
+
+// Fallback visuals in case we don't have a real image yet
+const defaultVisuals = ['visual-marathon', 'visual-license', 'visual-success', 'visual-course', 'visual-guide'];
+
+const haberler = rawHaberler.map((haber, index) => ({
+  ...haber,
+  gorsel: defaultVisuals[index % defaultVisuals.length]
+}));
 
 const kategoriStilleri: Record<string, string> = {
-  Etkinlik: 'badge-red',
-  Duyuru: 'badge-blue',
-  Başarı: 'badge-green',
-  Kurs: 'badge-orange',
-  Bilgilendirme: 'badge-purple',
+  red: 'badge-red',
+  blue: 'badge-blue',
+  green: 'badge-green',
+  orange: 'badge-orange',
+  purple: 'badge-purple',
+  gray: 'badge-gray',
 };
 
 const listeHaberleri = haberler.slice(1);
@@ -78,12 +52,12 @@ const listeHaberleri = haberler.slice(1);
           <article class={`news-featured-slide ${index === 0 ? 'is-active' : ''}`} data-featured-slide>
             <div class="featured-copy">
               <div class="news-meta">
-                <span class={`news-badge ${kategoriStilleri[haber.kategori] ?? 'badge-gray'}`}>{haber.kategori}</span>
+                <span class={`news-badge ${kategoriStilleri[haber.kategoriRenk] ?? 'badge-gray'}`}>{haber.kategori}</span>
                 <span class="news-date">{haber.tarih}</span>
               </div>
               <h2>{haber.baslik}</h2>
-              <p>{haber.ozet}</p>
-              <a href="#" class="featured-link">Öne çıkan haberi oku →</a>
+              <div class="news-summary" set:html={haber.ozet}></div>
+              <a href={`/haberler/${haber.slug}`} class="featured-link">Öne çıkan haberi oku →</a>
             </div>
             <div class={`featured-visual ${haber.gorsel}`} aria-hidden="true">
               <div class="visual-overlay">
@@ -112,12 +86,12 @@ const listeHaberleri = haberler.slice(1);
             </div>
             <div class="news-card-body">
               <div class="news-meta">
-                <span class={`news-badge ${kategoriStilleri[haber.kategori] ?? 'badge-gray'}`}>{haber.kategori}</span>
+                <span class={`news-badge ${kategoriStilleri[haber.kategoriRenk] ?? 'badge-gray'}`}>{haber.kategori}</span>
                 <span class="news-date">{haber.tarih}</span>
               </div>
               <h2>{haber.baslik}</h2>
-              <p>{haber.ozet}</p>
-              <a href="#" class="news-link">Detayı Gör →</a>
+              <div class="news-summary" set:html={haber.ozet}></div>
+              <a href={`/haberler/${haber.slug}`} class="news-link">Detayı Gör →</a>
             </div>
           </article>
         ))}
@@ -252,6 +226,9 @@ const listeHaberleri = haberler.slice(1);
 
   .featured-copy {
     padding: clamp(1.35rem, 3vw, 2.25rem);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
   }
 
   .news-featured-slide h2 {
@@ -269,9 +246,30 @@ const listeHaberleri = haberler.slice(1);
     line-height: 1.65;
   }
 
+  .news-featured-slide .news-summary {
+    max-width: 680px;
+    color: rgba(255, 255, 255, 0.8);
+    line-height: 1.65;
+    max-height: 9.6rem;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .news-featured-slide .news-summary::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 3rem;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(120, 8, 14, 0.88) 100%);
+    pointer-events: none;
+  }
+
   .featured-link {
     display: inline-flex;
-    margin-top: 1.35rem;
+    margin-top: auto;
+    align-self: flex-start;
     padding: 0.75rem 1rem;
     border-radius: 999px;
     background: #ffffff;

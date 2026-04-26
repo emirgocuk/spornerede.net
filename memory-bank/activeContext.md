@@ -2,10 +2,10 @@
 
 ## Şimdiki Çalışma Odağı
 
-**Faz 3-4: Veritabanı işlevselliği, panel UX, yönetim akışları ve kullanıcı bildirimleri**
+**Faz 11: Canlıya alma, self-host operasyon ve sürdürülebilir güncelleme akışı**
 
-Mevcut durum: Landing, `/ara`, `/basvuru`, PocketBase veritabanı altyapısı, admin paneli (başvurular, kulüpler, iletişim, geribildirimler) ve kulüp paneli (kurs yönetimi, profil) aktif çalışıyor.
-Aktif hedef: Gelişmiş filtreler, harita görünümü, ödeme/üyelik altyapısı (monetizasyon), akıllı eşleştirme quiz'i ve kullanıcılar için daha zengin public detay sayfası. Ürün/teknik çerçeve: `**club-auth-admin-plan.md`**.
+Mevcut durum: Landing, `/ara`, `/basvuru`, PocketBase veritabanı altyapısı, admin paneli (başvurular, haberler, kulüpler, iletişim, geribildirimler) ve kulüp paneli (kurs yönetimi, profil) canlı sunucuda çalışacak seviyeye getirildi.
+Aktif hedef: Canlı operasyonu tamamlamak; sunucu pull modeli, canlı SMTP ve admin panelden manuel backup indirme doğrulandı. Ürün/teknik çerçeve: `memory-bank/deploy-runbook.md`.
 
 ## Güncel Görevler (Öncelik Sırasıyla)
 
@@ -158,13 +158,74 @@ Aktif hedef: Gelişmiş filtreler, harita görünümü, ödeme/üyelik altyapıs
 - PostgreSQL / Drizzle ORM'den daha hızlı ve entegre bir çözüm olan **PocketBase** altyapısına geçiş yapıldı.
   - Kurulum scriptleri (`pb-setup.ts`), db seed işlemleri uyumlu hale getirildi.
 
+### 🆕 Son Tamamlanan (Faz 3D — Mail Altyapısı & Şifremi Unuttum)
+
+- Self-hosted mail kuyruğu altyapısı kuruldu (`mail_kuyrugu` tablosu).
+- Şifre sıfırlama token sistemi eklendi (`sifre_sifirlama_tokenlari` tablosu).
+- `/api/panel/forgot-password` ve `/api/panel/reset-password` endpointleri eklendi.
+- `/panel/sifremi-unuttum` ve `/panel/sifre-sifirla` sayfaları oluşturuldu.
+- Kulüp başvuru form bildirimi asenkron mail kuyruğuna bağlandı.
+- Local testler için Mailpit entegrasyonu (Docker Compose) eklendi.
+
+### 🆕 Son Tamamlanan (Haberler & Mock Veri Temizliği)
+
+- `haberler` tablosu eklendi ve admin paneli üzerinden Haberler & Duyurular yönetimi sağlandı.
+- Landing page (`index.astro`) `NewsBar` componenti, admin'den girilen gerçek veriyi çekecek şekilde bağlandı.
+- `BranslarGrid` landing'e tekrar eklendi ve DB'den (`getAllBranches()`) beslenmesi sağlandı.
+- `mockData.ts` kullanımı sistemden temizlendi; `basvuru.astro` ve XML sitemap'leri (`cities.xml.ts`, `districts.xml.ts`) tamamen veritabanından çalışacak hale getirildi.
+
+### 🆕 Son Tamamlanan (Canlıya Alma Operasyonu — 2026-04-26)
+
+- Sunucu erişimi doğrulandı: `root@45.155.19.82`.
+- Sunucuda Node `v22.22.2`, `git`, `rsync`, Nginx ve systemd çalışma modeli hazırlandı.
+- PocketBase binary/systemd modeliyle kuruldu:
+  - Service: `spornerede-pocketbase`
+  - Data: `/opt/spornerede/pocketbase/pb_data`
+  - Public/uploads: `/opt/spornerede/pocketbase/pb_public`
+  - Local URL: `http://127.0.0.1:8090`
+- Production env oluşturuldu: `/opt/spornerede/.env`.
+  - Üretilen canlı admin/token bilgileri sunucuda root-only dosyada tutulur: `/opt/spornerede/production-credentials.txt`.
+  - Bu dosya veya içeriği repoya yazılmamalı.
+- PocketBase schema canlıda çalıştırıldı (`npm run pb:setup` eşdeğeri).
+- İlk canlı release elle yüklendi ve app servisi aktif hale getirildi:
+  - App service: `spornerede`
+  - Current symlink: `/opt/spornerede/current`
+  - Releases: `/opt/spornerede/releases/<timestamp>`
+- Smoke check geçti:
+  - `/`
+  - `/ara`
+  - `/basvuru`
+  - `/api/health?deep=1`
+- `api/health?deep=1` Brevo SMTP ayarları sonrası `ok` döndü.
+- Backup altyapısı eklendi:
+  - Script: `deploy/server-backup.sh`
+  - Service/timer örnekleri: `deploy/spornerede-backup.*`
+  - Sunucuda aktif timer: `spornerede-backup.timer`
+  - İlk lokal backup alındı: `/opt/spornerede/backups/spornerede-backup-*.tar.gz`
+  - Admin panelde `Yedekler` sekmesi eklendi; `pb_data` + `pb_public` içeren manuel `.tar.gz` indirilebilir.
+  - Admin indirilebilir backup içine `.env` ve secret dosyaları konmaz.
+- Deploy scriptleri düzeltildi:
+  - Astro SSR release sadece `dist/` ile çalışmadığı için release içine `package.json`, `package-lock.json` ve production `node_modules` kurulumu eklendi.
+  - Runtime secret değerlerinde `process.env` önceliklendirildi; lokal build-time `.env` değerleri canlı şifreleri ezmemeli.
+
+### ⚠️ Canlı Operasyonda Kalan Dış Aksiyonlar
+
+- GitHub deploy key eklendi, `/opt/spornerede/repo` clone edildi ve `spornerede-autoupdate.timer` aktif.
+- Offsite backup için ilk aşama kararı: admin panelden aylık manuel backup indirilecek ve yerel bilgisayar/harici diskte saklanacak.
+  - 50 GB sunucu alanı 1000 kulüp seviyesine kadar yeterli görülüyor.
+  - İhtiyaç büyürse ikinci VPS/S3/Backblaze gibi otomatik offsite hedef sonra eklenir.
+- Canlı SMTP Brevo ile tamamlandı:
+  - `MAIL_FROM=no-reply@spornerede.net`
+  - `MAIL_TO=info@spornerede.net`
+  - `npm run smoke:check` deep health `ok`
+  - Canlı mail queue testinde `processed:1`, `sent:1`, `failed:0`
+
 ### 📋 Sıradaki (Faz 4 ve İyileştirmeler)
 
 1. **Arama ve Filtreleme:** Arama filtrelerinin URL + veri sorgu katmanını optimize etme, harita entegrasyonu (örn. Mapbox veya Leaflet ile ilanları haritada gösterme).
 2. **Monetizasyon (Gelir Modeli):** Ücretli üyelik paketleri, premium ilan öne çıkarma, online ödeme/tahsilat akışları (örn. Iyzico/Stripe entegrasyonu).
 3. **Akıllı Eşleştirme:** Kullanıcıların beklentilerine göre kurs/kulüp eşleştirme testi (Quiz akışı).
 4. **UX İyileştirmeleri:** Puanlama ve yorum sistemleri.
-5. Kulüp liste/veri kaynaklarının API ile birleştirilmesi ve landing bloklarına yansıtılması.
 
 ## Faz Sırasına Göre Uygulama Akışı
 

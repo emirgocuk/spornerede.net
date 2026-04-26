@@ -2,56 +2,11 @@
 /**
  * NewsBar.astro
  * Haberler / Duyurular bölümü — Landing page orta kısmı.
- * Başlangıçta statik veri, ileride CMS ile beslenir.
+ * Veritabanından dinamik beslenir.
  */
+import { getActiveNews } from '../lib/repositories/news';
 
-const haberler = [
-  {
-    id: 1,
-    kategori: 'Etkinlik',
-    kategoriRenk: 'red',
-    tarih: '18 Nisan 2026',
-    baslik: 'Bahar Maratonu Başvuruları Açıldı',
-    ozet: '2026 Bahar Maratonu için başvurular başladı. 5K, 10K ve yarı maraton kategorileri mevcut.',
-    link: '#',
-  },
-  {
-    id: 2,
-    kategori: 'Müdürlük',
-    kategoriRenk: 'blue',
-    tarih: '15 Nisan 2026',
-    baslik: 'Gençlik Spor Kulübü Lisans Başvuruları',
-    ozet: 'Gençlik ve Spor İl Müdürlükleri 2026-27 sezonu için kulüp lisans yenileme başvurularını açtı.',
-    link: '#',
-  },
-  {
-    id: 3,
-    kategori: 'Başarı',
-    kategoriRenk: 'green',
-    tarih: '12 Nisan 2026',
-    baslik: 'Genç Sporcu Milli Takıma Davet Edildi',
-    ozet: 'Bir spor kulübünden Ayşe Demir, U16 Türkiye Jimnastik Milli Takımı\'na seçildi.',
-    link: '#',
-  },
-  {
-    id: 4,
-    kategori: 'Kurs',
-    kategoriRenk: 'orange',
-    tarih: '10 Nisan 2026',
-    baslik: 'Ücretsiz Yaz Spor Okulları Başlıyor',
-    ozet: 'Belediyeler birçok ilçede ücretsiz yaz spor okulları açıyor. Ön kayıt başladı.',
-    link: '#',
-  },
-  {
-    id: 5,
-    kategori: 'Duyuru',
-    kategoriRenk: 'purple',
-    tarih: '8 Nisan 2026',
-    baslik: 'Hakemlik Sınavı Tarihleri Açıklandı',
-    ozet: 'Futbol, basketbol ve voleybol branşlarında hakemlik sınavları Mayıs 2026\'da yapılacak.',
-    link: '#',
-  },
-];
+const haberler = await getActiveNews();
 
 const kategoriRenkler: Record<string, string> = {
   red:    'badge-red',
@@ -59,6 +14,7 @@ const kategoriRenkler: Record<string, string> = {
   green:  'badge-green',
   orange: 'badge-orange',
   purple: 'badge-purple',
+  gray:   'badge-gray',
 };
 
 const [oneCikanHaber, ...digerHaberler] = haberler;
@@ -78,8 +34,9 @@ const [oneCikanHaber, ...digerHaberler] = haberler;
       </a>
     </div>
 
-    <div class="news-showcase">
-      <article class="featured-news animate-fade-in-up">
+    {haberler.length > 0 ? (
+      <div class="news-showcase">
+        <article class="featured-news animate-fade-in-up">
         <div class="featured-glow" aria-hidden="true"></div>
         <div class="featured-topline">
           <span class={`haber-kategori ${kategoriRenkler[oneCikanHaber.kategoriRenk] ?? 'badge-gray'}`}>
@@ -88,17 +45,17 @@ const [oneCikanHaber, ...digerHaberler] = haberler;
           <time class="haber-tarih" datetime={oneCikanHaber.tarih}>{oneCikanHaber.tarih}</time>
         </div>
         <h3 class="featured-title">
-          <a href={oneCikanHaber.link}>{oneCikanHaber.baslik}</a>
+          <a href={`/haberler/${oneCikanHaber.slug}`}>{oneCikanHaber.baslik}</a>
         </h3>
-        <p class="featured-summary">{oneCikanHaber.ozet}</p>
-        <a href={oneCikanHaber.link} class="featured-link" aria-label={`${oneCikanHaber.baslik} haberini oku`}>
+        <div class="featured-summary" set:html={oneCikanHaber.ozet}></div>
+        <a href={`/haberler/${oneCikanHaber.slug}`} class="featured-link" aria-label={`${oneCikanHaber.baslik} haberini oku`}>
           Haberi İncele
           <span aria-hidden="true">→</span>
         </a>
-      </article>
+        </article>
 
-      <div class="haberler-grid" role="list">
-      {digerHaberler.map((haber, index) => (
+        <div class="haberler-grid" role="list">
+        {digerHaberler.map((haber, index) => (
         <article
           class={`haber-kart animate-fade-in-up`}
           style={`animation-delay: ${index * 0.08}s`}
@@ -122,14 +79,14 @@ const [oneCikanHaber, ...digerHaberler] = haberler;
 
           <!-- Başlık & Özet -->
           <h3 class="haber-baslik">
-            <a href={haber.link} class="haber-link">
+            <a href={`/haberler/${haber.slug}`} class="haber-link">
               {haber.baslik}
             </a>
           </h3>
-          <p class="haber-ozet">{haber.ozet}</p>
+          <div class="haber-ozet" set:html={haber.ozet}></div>
 
           <!-- Footer link -->
-          <a href={haber.link} class="haber-devami" aria-label={`${haber.baslik} haberini oku`}>
+          <a href={`/haberler/${haber.slug}`} class="haber-devami" aria-label={`${haber.baslik} haberini oku`}>
             Devamını Oku
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <line x1="5" y1="12" x2="19" y2="12"/>
@@ -137,9 +94,14 @@ const [oneCikanHaber, ...digerHaberler] = haberler;
             </svg>
           </a>
         </article>
-      ))}
+        ))}
+        </div>
       </div>
-    </div>
+    ) : (
+      <div class="empty-news-state">
+        <p>Henüz yayınlanmış haber veya duyuru bulunmuyor.</p>
+      </div>
+    )}
   </div>
 </section>
 
@@ -169,6 +131,16 @@ const [oneCikanHaber, ...digerHaberler] = haberler;
     grid-template-columns: 1fr;
     gap: 1.25rem;
     align-items: stretch;
+  }
+
+  .empty-news-state {
+    border: 1px dashed #F0DCDD;
+    border-radius: 1rem;
+    padding: 2rem 1.25rem;
+    text-align: center;
+    background: rgba(255, 255, 255, 0.8);
+    color: #6C757D;
+    font-weight: 600;
   }
 
   @media (min-width: 1024px) {

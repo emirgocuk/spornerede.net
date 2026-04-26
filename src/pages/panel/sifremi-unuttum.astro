@@ -1,0 +1,94 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+const sent = Astro.url.searchParams.get('sent') === '1';
+---
+
+<BaseLayout title="Sifremi unuttum" description="Kulup paneli sifre sifirlama sayfasi." noIndex={true}>
+  <section class="forgot-page section">
+    <div class="container container--narrow">
+      <h1 class="page-title">Sifremi unuttum</h1>
+      <p class="page-lead">E-posta adresinizi yazin, hesabiniz varsa sifre sifirlama baglantisi gonderelim.</p>
+
+      {sent && (
+        <p class="success-box">
+          Eger bu e-posta ile bir hesap varsa sifre sifirlama baglantisi gonderildi.
+        </p>
+      )}
+
+      <form class="forgot-form" method="post" action="/api/panel/forgot-password">
+        <label>
+          E-posta
+          <input name="email" type="email" autocomplete="email" required />
+        </label>
+        <button type="submit">Sifirlama linki gonder</button>
+      </form>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .forgot-page {
+    background: #f8f9fa;
+    min-height: 55vh;
+    padding-block: 2.5rem;
+  }
+  .container--narrow {
+    max-width: 36rem;
+  }
+  .page-title {
+    font-size: clamp(1.65rem, 3vw, 2rem);
+    font-weight: 900;
+    color: #212529;
+    margin: 0;
+  }
+  .page-lead {
+    margin-top: 0.75rem;
+    color: #495057;
+    line-height: 1.65;
+  }
+  .success-box {
+    margin-top: 1rem;
+    border: 1px solid #c3fae8;
+    background: #ebfbee;
+    color: #087f5b;
+    border-radius: 0.65rem;
+    padding: 0.7rem 0.85rem;
+    font-size: 0.92rem;
+  }
+  .forgot-form {
+    margin-top: 1rem;
+    display: grid;
+    gap: 0.85rem;
+    background: #fff;
+    border: 1px solid #e9ecef;
+    border-radius: 0.85rem;
+    padding: 1rem;
+  }
+  .forgot-form label {
+    display: grid;
+    gap: 0.45rem;
+    color: #343a40;
+    font-weight: 600;
+    font-size: 0.92rem;
+  }
+  .forgot-form input {
+    border: 1px solid #dee2e6;
+    border-radius: 0.6rem;
+    padding: 0.62rem 0.7rem;
+    font-size: 0.95rem;
+  }
+  .forgot-form button {
+    margin-top: 0.15rem;
+    border: 0;
+    border-radius: 0.65rem;
+    background: #e30a17;
+    color: #fff;
+    font-weight: 700;
+    padding: 0.62rem 0.9rem;
+    cursor: pointer;
+  }
+  .forgot-form button:hover {
+    background: #b5080f;
+  }
+</style>

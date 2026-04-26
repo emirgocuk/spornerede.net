@@ -13,13 +13,31 @@ const isPanel = Astro.url.pathname.startsWith('/panel');
 
   <div id="panel-feedback-box" class="panel-feedback-box" hidden>
     <div class="feedback-head">
-      <h4>Bize Fikrinizi Söyleyin</h4>
+      <div>
+        <h4>Geliştirme Önerisi Gönderin</h4>
+        <p>Paneli sizin kullanımınıza göre iyileştirelim.</p>
+      </div>
       <button id="close-feedback-btn" type="button" aria-label="Kapat">&times;</button>
     </div>
     <div class="feedback-body">
-      <textarea id="feedback-message" rows="4" placeholder="Panel hakkında ne düşünüyorsunuz? Öneri veya şikayetlerinizi buraya yazabilirsiniz..." required></textarea>
+      <label class="feedback-field">
+        <span>Ad Soyad</span>
+        <input id="feedback-name" type="text" placeholder="Adınız ve soyadınız" autocomplete="name" />
+      </label>
+      <label class="feedback-field">
+        <span>Mesajınız</span>
+        <textarea id="feedback-message" rows="5" placeholder="Panelde neyi geliştirmemizi istersiniz? Yaşadığınız hata veya öneriyi mümkünse adım adım yazın..." required></textarea>
+      </label>
+      <label class="feedback-upload">
+        <input id="feedback-image" type="file" accept="image/*" />
+        <span class="upload-copy">
+          <strong>Fotoğraf / ekran görüntüsü ekle</strong>
+          <small>PNG, JPG veya WebP - en fazla 5 MB</small>
+        </span>
+      </label>
+      <div id="feedback-file-name" class="feedback-file-name"></div>
       <div id="feedback-status" class="feedback-status"></div>
-      <button id="submit-feedback-btn" class="btn btn-primary btn-block" type="button">Gönder</button>
+      <button id="submit-feedback-btn" class="btn btn-primary btn-block" type="button">Geliştirme Ekibine Gönder</button>
     </div>
   </div>
 </div>
@@ -58,10 +76,14 @@ const isPanel = Astro.url.pathname.startsWith('/panel');
     box-shadow: 0 6px 16px rgba(15,23,42,0.3);
   }
 
+  .panel-feedback-btn.is-hidden {
+    display: none;
+  }
+
   .panel-feedback-box {
     background: white;
-    border-radius: 12px;
-    width: 320px;
+    border-radius: 18px;
+    width: 390px;
     box-shadow: 0 10px 40px rgba(0,0,0,0.15);
     border: 1px solid #e2e8f0;
     margin-bottom: 12px;
@@ -75,8 +97,8 @@ const isPanel = Astro.url.pathname.startsWith('/panel');
   }
 
   .feedback-head {
-    background: #f8fafc;
-    padding: 12px 16px;
+    background: linear-gradient(135deg, #0f172a, #1e293b);
+    padding: 16px 18px;
     border-bottom: 1px solid #e2e8f0;
     display: flex;
     align-items: center;
@@ -87,7 +109,13 @@ const isPanel = Astro.url.pathname.startsWith('/panel');
     margin: 0;
     font-size: 1rem;
     font-weight: 700;
-    color: #0f172a;
+    color: #ffffff;
+  }
+
+  .feedback-head p {
+    margin: 0.25rem 0 0;
+    color: rgba(255,255,255,0.72);
+    font-size: 0.82rem;
   }
 
   #close-feedback-btn {
@@ -95,13 +123,13 @@ const isPanel = Astro.url.pathname.startsWith('/panel');
     border: none;
     font-size: 1.5rem;
     line-height: 1;
-    color: #64748b;
+    color: rgba(255,255,255,0.72);
     cursor: pointer;
     padding: 0;
   }
   
   #close-feedback-btn:hover {
-    color: #0f172a;
+    color: #ffffff;
   }
 
   .feedback-body {
@@ -111,9 +139,21 @@ const isPanel = Astro.url.pathname.startsWith('/panel');
     gap: 12px;
   }
 
-  #feedback-message {
+  .feedback-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .feedback-field span {
+    color: #0f172a;
+    font-size: 0.82rem;
+    font-weight: 800;
+  }
+
+  #feedback-message,
+  #feedback-name {
     width: 100%;
-    resize: none;
     border: 1px solid #cbd5e1;
     border-radius: 8px;
     padding: 10px;
@@ -123,13 +163,59 @@ const isPanel = Astro.url.pathname.startsWith('/panel');
     transition: border-color 0.2s;
   }
 
-  #feedback-message:focus {
+  #feedback-message {
+    resize: vertical;
+    min-height: 120px;
+  }
+
+  #feedback-message:focus,
+  #feedback-name:focus {
     border-color: #3b82f6;
+  }
+
+  .feedback-upload {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.85rem;
+    border: 1px dashed #cbd5e1;
+    border-radius: 12px;
+    background: #f8fafc;
+    cursor: pointer;
+  }
+
+  .feedback-upload:hover {
+    border-color: #94a3b8;
+    background: #f1f5f9;
+  }
+
+  .feedback-upload input {
+    width: 1rem;
+    height: 1rem;
+    accent-color: #0f172a;
+  }
+
+  .upload-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  .upload-copy strong {
+    color: #0f172a;
+    font-size: 0.86rem;
+  }
+
+  .upload-copy small,
+  .feedback-file-name {
+    color: #64748b;
+    font-size: 0.78rem;
   }
 
   .feedback-status {
     font-size: 0.85rem;
     font-weight: 600;
+    line-height: 1.45;
   }
   .feedback-status.error { color: #dc2626; }
   .feedback-status.success { color: #16a34a; }
@@ -155,27 +241,43 @@ const isPanel = Astro.url.pathname.startsWith('/panel');
   const closeBtn = document.getElementById('close-feedback-btn');
   const feedbackBox = document.getElementById('panel-feedback-box');
   const submitBtn = document.getElementById('submit-feedback-btn');
+  const nameInput = document.getElementById('feedback-name') as HTMLInputElement;
   const messageInput = document.getElementById('feedback-message') as HTMLTextAreaElement;
+  const imageInput = document.getElementById('feedback-image') as HTMLInputElement;
+  const fileNameDiv = document.getElementById('feedback-file-name');
   const statusDiv = document.getElementById('feedback-status');
 
-  if (toggleBtn && closeBtn && feedbackBox && submitBtn && messageInput && statusDiv) {
+  if (toggleBtn && closeBtn && feedbackBox && submitBtn && nameInput && messageInput && imageInput && fileNameDiv && statusDiv) {
     toggleBtn.addEventListener('click', () => {
-      feedbackBox.hidden = !feedbackBox.hidden;
-      if (!feedbackBox.hidden) {
-        messageInput.focus();
-      }
+      feedbackBox.hidden = false;
+      toggleBtn.classList.add('is-hidden');
+      messageInput.focus();
     });
 
     closeBtn.addEventListener('click', () => {
       feedbackBox.hidden = true;
+      toggleBtn.classList.remove('is-hidden');
       statusDiv.textContent = '';
       statusDiv.className = 'feedback-status';
     });
 
+    imageInput.addEventListener('change', () => {
+      const file = imageInput.files?.[0];
+      fileNameDiv.textContent = file ? `Eklenen dosya: ${file.name}` : '';
+    });
+
     submitBtn.addEventListener('click', async () => {
       const mesaj = messageInput.value.trim();
+      const adSoyad = nameInput.value.trim();
       if (!mesaj) {
         statusDiv.textContent = 'Lütfen bir mesaj yazın.';
+        statusDiv.className = 'feedback-status error';
+        return;
+      }
+
+      const file = imageInput.files?.[0];
+      if (file && file.size > 5 * 1024 * 1024) {
+        statusDiv.textContent = 'Eklediğiniz görsel 5 MB sınırını aşıyor.';
         statusDiv.className = 'feedback-status error';
         return;
       }
@@ -185,19 +287,42 @@ const isPanel = Astro.url.pathname.startsWith('/panel');
       submitBtn.setAttribute('disabled', 'true');
 
       try {
+        const browserInfo = {
+          userAgent: navigator.userAgent,
+          language: navigator.language,
+          platform: navigator.platform,
+          viewport: `${window.innerWidth}x${window.innerHeight}`,
+          screen: `${window.screen.width}x${window.screen.height}`,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          url: window.location.href,
+          referrer: document.referrer,
+        };
+
+        const formData = new FormData();
+        formData.append('adSoyad', adSoyad);
+        formData.append('mesaj', mesaj);
+        formData.append('sayfaUrl', window.location.href);
+        formData.append('tarayiciBilgisi', JSON.stringify(browserInfo, null, 2));
+        if (file) {
+          formData.append('gorsel', file);
+        }
+
         const res = await fetch('/api/panel/feedback', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mesaj }),
+          body: formData,
         });
         
         const data = await res.json();
         if (res.ok) {
-          statusDiv.textContent = 'Geribildiriminiz için teşekkürler!';
+          statusDiv.textContent = 'Geri bildiriminiz tarafımıza ulaştı. En kısa sürede inceleyip paneli daha iyi hale getirmek için değerlendireceğiz. Katkınız için teşekkür ederiz.';
           statusDiv.className = 'feedback-status success';
+          nameInput.value = '';
           messageInput.value = '';
+          imageInput.value = '';
+          fileNameDiv.textContent = '';
           setTimeout(() => {
             feedbackBox.hidden = true;
+            toggleBtn.classList.remove('is-hidden');
             statusDiv.textContent = '';
           }, 3000);
         } else {

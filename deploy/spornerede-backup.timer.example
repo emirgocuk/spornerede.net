@@ -1,0 +1,11 @@
+[Unit]
+Description=Run SporNerede production backup daily
+
+[Timer]
+OnCalendar=*-*-* 03:15:00
+RandomizedDelaySec=15min
+Unit=spornerede-backup.service
+Persistent=true
+
+[Install]
+WantedBy=timers.target

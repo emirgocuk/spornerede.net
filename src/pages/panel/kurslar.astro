@@ -166,14 +166,7 @@ if (!membership || membership.clubStatus !== 'approved') {
               <div class="form-group">
                 <label>Geniş Tanıtım Metni</label>
                 <div class="editor-shell">
-                  <div class="editor-toolbar">
-                    <button type="button" class="toolbar-btn" data-editor-action="bold" title="Kalın">B</button>
-                    <button type="button" class="toolbar-btn italic" data-editor-action="italic" title="İtalik">I</button>
-                    <button type="button" class="toolbar-btn" data-editor-action="bullet" title="Madde İşareti">•</button>
-                    <button type="button" class="toolbar-btn" data-editor-action="ordered" title="Numaralı Liste">1.</button>
-                    <button type="button" class="toolbar-btn wide" data-editor-action="h2" title="Başlık">Başlık</button>
-                  </div>
-                  <div id="program-editor" class="program-editor"></div>
+                  <textarea id="program-editor" class="program-editor"></textarea>
                 </div>
               </div>
             </section>
@@ -217,8 +210,16 @@ if (!membership || membership.clubStatus !== 'approved') {
   </section>
 
   <script>
-    import { Editor } from '@tiptap/core';
-    import StarterKit from '@tiptap/starter-kit';
+    import tinymce from 'tinymce/tinymce';
+    import 'tinymce/icons/default';
+    import 'tinymce/models/dom';
+    import 'tinymce/themes/silver';
+    import 'tinymce/plugins/advlist';
+    import 'tinymce/plugins/autoresize';
+    import 'tinymce/plugins/lists';
+    import 'tinymce/skins/content/default/content.min.css';
+    import 'tinymce/skins/ui/oxide/content.min.css';
+    import 'tinymce/skins/ui/oxide/skin.min.css';
 
     const form = document.getElementById('program-form');
     const list = document.getElementById('program-list');
@@ -250,15 +251,137 @@ if (!membership || membership.clubStatus !== 'approved') {
 
     let programs = [];
     let gallery = [];
+    let editor = null;
 
-    const editor = new Editor({
-      element: editorRoot,
-      extensions: [StarterKit],
-      content: '',
-    });
+    function escapeEditorHtml(value) {
+      return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function renderInlineNodes(nodes = []) {
+      return nodes
+        .map((node) => {
+          if (!node || typeof node !== 'object') return '';
+          let text = escapeEditorHtml(node.text || '');
+          if (!text) return '';
+          const marks = Array.isArray(node.marks) ? node.marks : [];
+          if (marks.some((mark) => mark.type === 'bold')) text = `<strong>${text}</strong>`;
+          if (marks.some((mark) => mark.type === 'italic')) text = `<em>${text}</em>`;
+          return text;
+        })
+        .join('');
+    }
+
+    function programBodyJsonToHtml(bodyJson) {
+      if (!bodyJson || typeof bodyJson !== 'object' || !Array.isArray(bodyJson.content)) return '';
+      return bodyJson.content
+        .map((node) => {
+          if (!node || typeof node !== 'object') return '';
+          if (node.type === 'heading') {
+            const level = node.attrs?.level === 2 ? 2 : 3;
+            return `<h${level}>${renderInlineNodes(node.content)}</h${level}>`;
+          }
+          if (node.type === 'bulletList' || node.type === 'orderedList') {
+            const tag = node.type === 'orderedList' ? 'ol' : 'ul';
+            const items = Array.isArray(node.content)
+              ? node.content
+                  .map((item) => {
+                    const paragraph = Array.isArray(item?.content)
+                      ? item.content.find((child) => child?.type === 'paragraph')
+                      : null;
+                    return `<li>${renderInlineNodes(paragraph?.content || [])}</li>`;
+                  })
+                  .join('')
+              : '';
+            return `<${tag}>${items}</${tag}>`;
+          }
+          return `<p>${renderInlineNodes(node.content || [])}</p>`;
+        })
+        .join('');
+    }
+
+    function inlineNodesFromElement(element) {
+      const nodes = [];
+      element.childNodes.forEach((child) => {
+        if (child.nodeType === Node.TEXT_NODE) {
+          const text = child.textContent || '';
+          if (text.trim()) nodes.push({ type: 'text', text });
+          return;
+        }
+        if (!(child instanceof HTMLElement)) return;
+        const text = child.textContent || '';
+        if (!text.trim()) return;
+        const marks = [];
+        if (['STRONG', 'B'].includes(child.tagName)) marks.push({ type: 'bold' });
+        if (['EM', 'I'].includes(child.tagName)) marks.push({ type: 'italic' });
+        nodes.push({ type: 'text', text, ...(marks.length ? { marks } : {}) });
+      });
+      return nodes;
+    }
+
+    function programHtmlToBodyJson(html) {
+      const doc = new DOMParser().parseFromString(html || '', 'text/html');
+      const content = [];
+      doc.body.childNodes.forEach((child) => {
+        if (!(child instanceof HTMLElement)) return;
+        if (child.matches('h2,h3')) {
+          const inlineContent = inlineNodesFromElement(child);
+          if (inlineContent.length) {
+            content.push({ type: 'heading', attrs: { level: child.tagName === 'H2' ? 2 : 3 }, content: inlineContent });
+          }
+          return;
+        }
+        if (child.matches('ul,ol')) {
+          const listItems = Array.from(child.querySelectorAll(':scope > li'))
+            .map((item) => ({
+              type: 'listItem',
+              content: [{ type: 'paragraph', content: inlineNodesFromElement(item) }],
+            }))
+            .filter((item) => item.content[0].content.length);
+          if (listItems.length) {
+            content.push({ type: child.tagName === 'OL' ? 'orderedList' : 'bulletList', content: listItems });
+          }
+          return;
+        }
+        const inlineContent = inlineNodesFromElement(child);
+        if (inlineContent.length) {
+          content.push({ type: 'paragraph', content: inlineContent });
+        }
+      });
+      return { type: 'doc', content };
+    }
+
+    async function initProgramEditor() {
+      if (!(editorRoot instanceof HTMLTextAreaElement)) return;
+      const editors = await tinymce.init({
+        target: editorRoot,
+        height: 360,
+        menubar: false,
+        branding: false,
+        promotion: false,
+        license_key: 'gpl',
+        statusbar: false,
+        resize: false,
+        skin: false,
+        content_css: false,
+        plugins: 'advlist autoresize lists',
+        toolbar: 'undo redo | blocks | bold italic | bullist numlist',
+        block_formats: 'Paragraf=p; Başlık 2=h2; Başlık 3=h3',
+        valid_elements: 'p,strong/b,em/i,ul,ol,li,h2,h3',
+        invalid_elements: 'a,img,table,iframe,script,style',
+        paste_as_text: true,
+      });
+      editor = editors[0] ?? null;
+    }
+
+    const editorReady = initProgramEditor();
 
     function resetEditorContent() {
-      editor.commands.clearContent();
+      editor?.setContent('');
     }
 
     function showListView() {
@@ -274,15 +397,11 @@ if (!membership || membership.clubStatus !== 'approved') {
     }
 
     function editorPlainText() {
-      return editor.getText().trim();
+      return editor?.getContent({ format: 'text' }).trim() || '';
     }
 
     function setEditorFromJson(bodyJson) {
-      if (bodyJson && typeof bodyJson === 'object') {
-        editor.commands.setContent(bodyJson);
-        return;
-      }
-      resetEditorContent();
+      editor?.setContent(programBodyJsonToHtml(bodyJson));
     }
 
     function clearForm() {
@@ -310,7 +429,8 @@ if (!membership || membership.clubStatus !== 'approved') {
       document.querySelector('.form-header .badge-modern').textContent = 'Yeni Kayıt';
     }
 
-    function fillForm(program) {
+    async function fillForm(program) {
+      await editorReady;
       idEl.value = String(program.id);
       adEl.value = program.ad || '';
       eventDateEl.value = program.eventDate || '';
@@ -470,6 +590,7 @@ if (!membership || membership.clubStatus !== 'approved') {
 
     async function saveProgram(event) {
       event.preventDefault();
+      await editorReady;
       const days = getSelectedDays();
       const startTime = startTimeEl.value.trim();
       const endTime = endTimeEl.value.trim();
@@ -488,7 +609,7 @@ if (!membership || membership.clubStatus !== 'approved') {
         seviye: seviyeEl.value.trim(),
         ucretBilgisi: ucretEl.value.trim(),
         aciklama: aciklamaEl.value.trim(),
-        bodyJson: editor.getJSON(),
+        bodyJson: programHtmlToBodyJson(editor?.getContent() || ''),
         gallery,
         aktif: aktifEl.checked,
       };
@@ -601,7 +722,7 @@ if (!membership || membership.clubStatus !== 'approved') {
       if (!row) return;
       
       if (action === 'edit') {
-        fillForm(row);
+        await fillForm(row);
       } else if (action === 'delete') {
         await removeProgram(id);
       }
@@ -620,24 +741,10 @@ if (!membership || membership.clubStatus !== 'approved') {
       renderGallery();
     });
 
-    document.querySelectorAll('[data-editor-action]').forEach((button) => {
-      button.addEventListener('click', () => {
-        const action = button.getAttribute('data-editor-action');
-        if (action === 'bold') editor.chain().focus().toggleBold().run();
-        if (action === 'italic') editor.chain().focus().toggleItalic().run();
-        if (action === 'bullet') editor.chain().focus().toggleBulletList().run();
-        if (action === 'ordered') editor.chain().focus().toggleOrderedList().run();
-        if (action === 'h2') editor.chain().focus().toggleHeading({ level: 2 }).run();
-        
-        // Active state
-        document.querySelectorAll('[data-editor-action]').forEach(b => b.classList.remove('is-active'));
-        if (editor.isActive(action)) button.classList.add('is-active');
-      });
-    });
-
     form.addEventListener('submit', saveProgram);
     resetBtn.addEventListener('click', clearForm);
-    newProgramBtn.addEventListener('click', () => {
+    newProgramBtn.addEventListener('click', async () => {
+      await editorReady;
       clearForm();
       showEditorView();
       adEl.focus();
@@ -988,33 +1095,14 @@ if (!membership || membership.clubStatus !== 'approved') {
     .toolbar-btn.is-active { background: var(--color-brand-red-50); color: var(--color-brand-red); border-color: var(--color-brand-red-100); }
 
     .program-editor {
-      min-height: 200px;
-      padding: 1.15rem;
+      min-height: 320px;
       background: white;
-      font-size: 0.95rem;
-      line-height: 1.6;
     }
 
-    .program-editor .ProseMirror {
-      min-height: 170px;
-      outline: none;
+    .editor-shell :global(.tox-tinymce) {
       border: 0;
+      border-radius: 0 0 1rem 1rem;
     }
-
-    .program-editor .ProseMirror:focus {
-      outline: none;
-    }
-
-    .program-editor .ProseMirror:empty::before {
-      content: 'Programın kimler için uygun olduğunu, eğitim yaklaşımınızı ve ailelerin bilmesi gereken detayları yazın...';
-      color: var(--color-brand-gray-400);
-      pointer-events: none;
-    }
-
-    .program-editor p { margin: 0 0 0.5rem; }
-    .program-editor h2 { margin: 1rem 0 0.5rem; font-size: 1.2rem; font-weight: 800; }
-    .program-editor ul { padding-left: 1.5rem; margin: 0 0 0.5rem; }
-    .program-editor ol { padding-left: 1.5rem; margin: 0 0 0.5rem; }
 
     /* Custom Toggle Switch */
     .checkbox-wrapper { margin-top: 0.5rem; }

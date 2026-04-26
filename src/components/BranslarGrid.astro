@@ -3,21 +3,9 @@
  * BranslarGrid.astro
  * "Branşları Keşfet" bölümü — ikonlu kart grid.
  */
+import { getAllBranches } from '../lib/repositories/catalog';
 
-const branslar = [
-  { slug: 'futbol',       isim: 'Futbol',       emoji: '⚽', renk: '#22C55E', aciklama: 'Takım ruhu, strateji, hız' },
-  { slug: 'basketbol',    isim: 'Basketbol',    emoji: '🏀', renk: '#F97316', aciklama: 'Sıçrama, çeviklik, koordinasyon' },
-  { slug: 'yuzme',        isim: 'Yüzme',        emoji: '🏊', renk: '#3B82F6', aciklama: '4 teknik, tam vücut antremanı' },
-  { slug: 'tenis',        isim: 'Tenis',        emoji: '🎾', renk: '#EAB308', aciklama: 'Refleksler, strateji, dayanıklılık' },
-  { slug: 'karate',       isim: 'Karate',       emoji: '🥋', renk: '#EF4444', aciklama: 'Disiplin, güç, öz savunma' },
-  { slug: 'jimnastik',    isim: 'Jimnastik',    emoji: '🤸', renk: '#EC4899', aciklama: 'Esneklik, güç, denge' },
-  { slug: 'voleybol',     isim: 'Voleybol',     emoji: '🏐', renk: '#8B5CF6', aciklama: 'Takım çalışması, refleks' },
-  { slug: 'taekwondo',    isim: 'Taekwondo',    emoji: '🦵', renk: '#E30A17', aciklama: 'Kore dövüş sanatı, esneklik' },
-  { slug: 'atletizm',     isim: 'Atletizm',     emoji: '🏃', renk: '#14B8A6', aciklama: 'Koşu, atlama, atma' },
-  { slug: 'judo',         isim: 'Judo',         emoji: '🥊', renk: '#6366F1', aciklama: 'Düşürme teknikleri, denge' },
-  { slug: 'badminton',    isim: 'Badminton',    emoji: '🏸', renk: '#10B981', aciklama: 'Hız, refleks, koordinasyon' },
-  { slug: 'masa-tenisi',  isim: 'Masa Tenisi',  emoji: '🏓', renk: '#F59E0B', aciklama: 'El-göz koordinasyonu, taktik' },
-];
+const branslar = await getAllBranches();
 ---
 
 <section class="branslar-section section" aria-labelledby="branslar-baslik">

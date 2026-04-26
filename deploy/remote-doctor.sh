@@ -11,9 +11,11 @@ if [[ "${EUID:-0}" -ne 0 ]]; then
   echo "UYARI: root degilsiniz; systemd ve /opt yazimi basarisiz olabilir." >&2
 fi
 
+APP_REPO_DIR="${APP_REPO_DIR:-${REMOTE_BASE}/repo}"
+
 echo "==> remote-doctor: REMOTE_BASE=${REMOTE_BASE}"
 
-mkdir -p "${REMOTE_BASE}/releases" "${REMOTE_BASE}/incoming/dist"
+mkdir -p "${REMOTE_BASE}/releases" "${REMOTE_BASE}/incoming/dist" "${REMOTE_BASE}/backups" "${REMOTE_BASE}/shared/pocketbase/pb_data" "${REMOTE_BASE}/shared/pocketbase/pb_public"
 
 ENV_FILE="${REMOTE_BASE}/.env"
 if [[ ! -f "${ENV_FILE}" ]]; then
@@ -40,7 +42,16 @@ need_pkg() {
 need_pkg node || true
 need_pkg nginx || true
 need_pkg rsync || true
+need_pkg git || true
+need_pkg curl || true
 need_pkg python3 || echo "UYARI: python3 yok; deploy.sh --update-nginx nginx adiminda hata verebilir." >&2
+
+if [[ -d "${APP_REPO_DIR}/.git" ]]; then
+  echo "==> Repo var: ${APP_REPO_DIR}"
+else
+  echo "UYARI: Repo bulunamadi: ${APP_REPO_DIR}" >&2
+  echo "       Ornek: git clone <repo-url> ${APP_REPO_DIR}" >&2
+fi
 
 UNIT_PATH="/etc/systemd/system/${SYSTEMD_UNIT}.service"
 if [[ ! -f "${UNIT_PATH}" ]]; then
@@ -72,7 +83,7 @@ if command -v systemctl >/dev/null 2>&1; then
   systemctl enable "${SYSTEMD_UNIT}" 2>/dev/null || true
 fi
 
-PORT="$(awk -F= '$1=="PORT"{v=$2; gsub(/\r$/,"",v); gsub(/^[" ]+|[" ]+$/,"",v); print v}' "${ENV_FILE}" | tail -n 1)"
+PORT="$(awk -F= '$1=="PORT"{v=$2; gsub(/\n$/,"",v); gsub(/^[" ]+|[" ]+$/,"",v); print v}' "${ENV_FILE}" | tail -n 1)"
 if [[ -z "${PORT}" ]]; then
   PORT="3000"
 fi

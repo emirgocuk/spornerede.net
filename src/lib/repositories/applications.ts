@@ -1,5 +1,4 @@
 import { getDb, hasDatabaseUrl } from '../../db/client';
-import { MEMBERSHIP_PLANS, slugify } from '../../data/mockData';
 import { activateClubMembership, hasActiveMembership, type MembershipPeriod } from './memberships';
 
 export type ClubApplicationInput = {
@@ -22,6 +21,45 @@ function requireDatabase() {
     throw new Error('POCKETBASE_URL is not configured.');
   }
 }
+
+function slugify(input: string) {
+  return input
+    .toLowerCase()
+    .replaceAll(' ', '-')
+    .replaceAll('.', '')
+    .replaceAll(',', '')
+    .replaceAll("'", '')
+    .replaceAll('ı', 'i')
+    .replaceAll('ğ', 'g')
+    .replaceAll('ü', 'u')
+    .replaceAll('ş', 's')
+    .replaceAll('ö', 'o')
+    .replaceAll('ç', 'c');
+}
+
+const DEFAULT_MEMBERSHIP_PLANS = [
+  {
+    kod: 'aylik',
+    ad: 'Aylık',
+    ucret: 1500,
+    periyot: 'monthly' as const,
+    aciklama: 'Aylık paket: 1500 TL.',
+  },
+  {
+    kod: 'alti-aylik',
+    ad: '6 Aylık (1250*6)',
+    ucret: 7500,
+    periyot: 'one_time' as const,
+    aciklama: '6 aylık paket: 1250*6 = 7500 TL.',
+  },
+  {
+    kod: 'on-iki-aylik',
+    ad: '12 Aylık (1000*12)',
+    ucret: 12000,
+    periyot: 'yearly' as const,
+    aciklama: '12 aylık paket: 1000*12 = 12000 TL.',
+  },
+];
 
 export async function createClubApplication(input: ClubApplicationInput) {
   requireDatabase();
@@ -231,7 +269,31 @@ export async function listAdminApplicationLogs(applicationId: number) {
   }));
 }
 
-export function getMembershipPlans() {
-  return MEMBERSHIP_PLANS;
+export async function getMembershipPlans() {
+  requireDatabase();
+  const db = await getDb();
+  let rows = await db.collection('uyelik_paketleri').getFullList({ filter: 'aktif = true', sort: 'ucret' });
+  if (!rows.length) {
+    for (const plan of DEFAULT_MEMBERSHIP_PLANS) {
+      const existing = await db.collection('uyelik_paketleri').getFirstListItem(`kod = "${plan.kod}"`).catch(() => null);
+      if (existing) {
+        await db.collection('uyelik_paketleri').update(existing.id, { ...plan, aktif: true });
+      } else {
+        await db.collection('uyelik_paketleri').create({
+          legacyId: Date.now() + Math.floor(Math.random() * 10000),
+          ...plan,
+          aktif: true,
+        });
+      }
+    }
+    rows = await db.collection('uyelik_paketleri').getFullList({ filter: 'aktif = true', sort: 'ucret' });
+  }
+  return rows.map((row) => ({
+    kod: row.kod as string,
+    ad: row.ad as string,
+    ucret: Number(row.ucret),
+    periyot: row.periyot as 'monthly' | 'yearly' | 'one_time',
+    aciklama: row.aciklama as string,
+  }));
 }
 

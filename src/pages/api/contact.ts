@@ -4,7 +4,9 @@ import { createContactMessage } from '../../lib/repositories/contactMessages';
 export const prerender = false;
 
 function redirectWith(request: Request, status: 'success' | 'error') {
-  return Response.redirect(new URL(`/iletisim?status=${status}`, request.url), 303);
+  const configuredSiteUrl = process.env.SITE_URL ?? import.meta.env.SITE_URL;
+  const origin = configuredSiteUrl ? new URL(configuredSiteUrl).origin : new URL(request.url).origin;
+  return Response.redirect(new URL(`/iletisim?status=${status}`, origin), 303);
 }
 
 export const POST: APIRoute = async ({ request }) => {

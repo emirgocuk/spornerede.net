@@ -81,6 +81,12 @@ const summary = await getAdminClubSummary();
               <span class="tab-icon">💬</span> Geribildirimler
               <span id="feedback-tab-badge" class="tab-badge is-hidden">0</span>
             </button>
+            <button type="button" class="admin-tab" data-tab-target="news">
+              <span class="tab-icon">📰</span> Haberler
+            </button>
+            <button type="button" class="admin-tab" data-tab-target="backups">
+              <span class="tab-icon">💾</span> Yedekler
+            </button>
           </div>
         </div>
 
@@ -230,11 +236,80 @@ const summary = await getAdminClubSummary();
             </article>
           </div>
         </section>
+        <!-- News Tab Panel -->
+        <section class="admin-shell is-hidden" data-tab-panel="news">
+          <div class="admin-toolbar">
+            <button id="add-news-btn" class="btn btn-success shadow-sm" type="button">➕ Yeni Haber Ekle</button>
+            <button id="load-news" class="btn btn-primary shadow-sm" type="button">🔄 Yenile</button>
+          </div>
+
+          <div class="admin-columns">
+            <aside class="admin-list-container">
+              <div class="list-header">
+                <h2>Haberler / Duyurular</h2>
+                <span class="badge badge-gray">Tümü</span>
+              </div>
+              <ul id="news-list" class="admin-list custom-scrollbar"></ul>
+            </aside>
+
+            <article class="admin-detail-container">
+              <div id="news-detail" class="detail-content">
+                <div class="empty-state">
+                  <div class="empty-icon">📰</div>
+                  <h3>Haber Seçin</h3>
+                  <p>Haber/duyuru detayını görmek veya düzenlemek için listeden bir kayıt seçin.</p>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+        <!-- Backups Tab Panel -->
+        <section class="admin-shell is-hidden" data-tab-panel="backups">
+          <div class="backup-panel">
+            <div class="backup-card">
+              <div class="backup-icon">💾</div>
+              <div class="backup-content">
+                <h2>Manuel Yedek Al</h2>
+                <p>
+                  PocketBase verisi ve yüklenen dosyalar sıkıştırılmış arşiv olarak hazırlanır.
+                  Bu arşivde şifre/token içeren <code>.env</code> dosyası bulunmaz.
+                </p>
+                <ul class="backup-list">
+                  <li><strong>Dahil:</strong> <code>pb_data</code> veritabanı dosyaları</li>
+                  <li><strong>Dahil:</strong> <code>pb_public</code> yüklenen dosyalar</li>
+                  <li><strong>Hariç:</strong> SMTP key, admin token ve üretim <code>.env</code></li>
+                </ul>
+                <div class="backup-actions">
+                  <button id="download-backup-btn" type="button" class="btn btn-primary shadow-sm">
+                    ⬇️ Yedek Oluştur ve İndir
+                  </button>
+                  <span id="backup-status" class="backup-status">Aylık indirip bilgisayarda saklamak için uygundur.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
       </div>
     </main>
   </div>
 
-  <script is:inline>
+  <script>
+    import tinymce from 'tinymce/tinymce';
+    import 'tinymce/icons/default';
+    import 'tinymce/models/dom';
+    import 'tinymce/themes/silver';
+    import 'tinymce/plugins/advlist';
+    import 'tinymce/plugins/autolink';
+    import 'tinymce/plugins/autoresize';
+    import 'tinymce/plugins/code';
+    import 'tinymce/plugins/image';
+    import 'tinymce/plugins/link';
+    import 'tinymce/plugins/lists';
+    import 'tinymce/plugins/table';
+    import 'tinymce/skins/content/default/content.min.css';
+    import 'tinymce/skins/ui/oxide/content.min.css';
+    import 'tinymce/skins/ui/oxide/skin.min.css';
+
     const searchInput = document.getElementById('app-search');
     const statusFilter = document.getElementById('status-filter');
     const loadButton = document.getElementById('load-apps');
@@ -260,6 +335,13 @@ const summary = await getAdminClubSummary();
     const tabButtons = Array.from(document.querySelectorAll('.admin-tab'));
     const tabPanels = Array.from(document.querySelectorAll('[data-tab-panel]'));
 
+    const loadNewsBtn = document.getElementById('load-news');
+    const addNewsBtn = document.getElementById('add-news-btn');
+    const newsListEl = document.getElementById('news-list');
+    const newsDetailEl = document.getElementById('news-detail');
+    const downloadBackupBtn = document.getElementById('download-backup-btn');
+    const backupStatus = document.getElementById('backup-status');
+
     let cachedApps = [];
     let selectedAppId = 0;
     let cachedClubs = [];
@@ -268,7 +350,80 @@ const summary = await getAdminClubSummary();
     let selectedContactMessageId = 0;
     let cachedFeedbacks = [];
     let selectedFeedbackId = 0;
+    let cachedNews = [];
+    let selectedNewsId = 0;
+    let newsEditor = null;
     const draftProvisionPasswords = new Map();
+
+    async function uploadNewsImage(file) {
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const response = await fetch('/api/admin/news-image-upload', {
+        method: 'POST',
+        body: formData,
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload.error || `Request failed (${response.status})`);
+      }
+      return payload?.data?.url || '';
+    }
+
+    async function initNewsEditor(content = '') {
+      const editorRoot = document.getElementById('news-editor');
+      if (!(editorRoot instanceof HTMLTextAreaElement)) return;
+      if (newsEditor) {
+        newsEditor.remove();
+        newsEditor = null;
+      }
+      editorRoot.value = content;
+
+      const editors = await tinymce.init({
+        target: editorRoot,
+        height: 640,
+        min_height: 560,
+        menubar: false,
+        branding: false,
+        promotion: false,
+        license_key: 'gpl',
+        statusbar: false,
+        resize: false,
+        skin: false,
+        content_css: false,
+        plugins: 'advlist autolink autoresize code image link lists table',
+        toolbar:
+          'undo redo | blocks | bold italic underline | bullist numlist blockquote | alignleft aligncenter alignright | link image table | code',
+        block_formats: 'Paragraf=p; Başlık 2=h2; Başlık 3=h3; Alıntı=blockquote',
+        link_default_target: '_blank',
+        link_assume_external_targets: true,
+        images_upload_handler: async (blobInfo) => {
+          const file = blobInfo.blob();
+          const url = await uploadNewsImage(file);
+          if (!url) throw new Error('Gorsel URL alinamadi.');
+          return url;
+        },
+        file_picker_types: 'image',
+        file_picker_callback: (callback) => {
+          const input = document.createElement('input');
+          input.type = 'file';
+          input.accept = 'image/*';
+          input.addEventListener('change', async () => {
+            const file = input.files?.[0];
+            if (!file) return;
+            try {
+              const url = await uploadNewsImage(file);
+              callback(url, { alt: file.name });
+            } catch (error) {
+              alert(error instanceof Error ? error.message : 'Gorsel yukleme basarisiz.');
+            }
+          });
+          input.click();
+        },
+      });
+
+      newsEditor = editors[0] ?? null;
+    }
 
     function adminDownloadUrl(documentId) {
       return `/api/admin/application-document-download?documentId=${encodeURIComponent(documentId)}`;
@@ -296,6 +451,52 @@ const summary = await getAdminClubSummary();
       }
       const payload = await response.json();
       return payload.data;
+    }
+
+    function filenameFromContentDisposition(value) {
+      const match = String(value || '').match(/filename="([^"]+)"/);
+      return match?.[1] || `spornerede-data-backup-${new Date().toISOString().slice(0, 10)}.tar.gz`;
+    }
+
+    async function downloadManualBackup() {
+      if (!(downloadBackupBtn instanceof HTMLButtonElement)) return;
+      const previousText = downloadBackupBtn.textContent || '⬇️ Yedek Oluştur ve İndir';
+      downloadBackupBtn.disabled = true;
+      downloadBackupBtn.textContent = '⏳ Yedek hazırlanıyor...';
+      if (backupStatus) {
+        backupStatus.textContent = 'Sunucuda yedek arşivi hazırlanıyor. Dosya boyutuna göre biraz sürebilir.';
+      }
+
+      try {
+        const response = await fetch('/api/admin/backup-download');
+        if (!response.ok) {
+          const payload = await response.json().catch(() => ({}));
+          throw new Error(payload.error || `Yedek alınamadı (${response.status})`);
+        }
+
+        const blob = await response.blob();
+        const filename = filenameFromContentDisposition(response.headers.get('Content-Disposition'));
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+
+        if (backupStatus) {
+          backupStatus.textContent = `Yedek indirildi: ${filename}`;
+        }
+      } catch (error) {
+        if (backupStatus) {
+          backupStatus.textContent = error instanceof Error ? error.message : 'Yedek alınamadı.';
+        }
+        alert(error instanceof Error ? error.message : 'Yedek alınamadı.');
+      } finally {
+        downloadBackupBtn.disabled = false;
+        downloadBackupBtn.textContent = previousText;
+      }
     }
 
     async function apiPut(path, body) {
@@ -357,6 +558,26 @@ const summary = await getAdminClubSummary();
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
+    }
+
+    function slugifyNews(text) {
+      return String(text ?? '')
+        .toLowerCase()
+        .trim()
+        .replace(/ğ/g, 'g')
+        .replace(/ü/g, 'u')
+        .replace(/ş/g, 's')
+        .replace(/ı/g, 'i')
+        .replace(/ö/g, 'o')
+        .replace(/ç/g, 'c')
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+    }
+
+    function stripHtmlTags(text) {
+      return String(text ?? '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
     }
 
     function statusLabelTr(status) {
@@ -1039,7 +1260,7 @@ const summary = await getAdminClubSummary();
           return `<li>
             <button class="list-item contact-list-item ${activeClass} ${unreadClass}" data-feedback-id="${feedback.id}">
               <div class="item-main">
-                <span class="item-title">Kullanıcı: #${feedback.kullaniciLegacyId}</span>
+                <span class="item-title">${escapeHtml(feedback.adSoyad || feedback.kullaniciEmail || `Kullanıcı #${feedback.kullaniciLegacyId}`)}</span>
                 <span class="item-meta">${formatDate(feedback.createdAt)}</span>
               </div>
               <div class="item-side">${badgeHtml}</div>
@@ -1077,7 +1298,7 @@ const summary = await getAdminClubSummary();
           <div class="detail-header">
             <div class="detail-title-area">
               <span class="kicker">GERİBİLDİRİM #${feedback.id}</span>
-              <h2>Kullanıcı #${feedback.kullaniciLegacyId}</h2>
+              <h2>${escapeHtml(feedback.adSoyad || `Kullanıcı #${feedback.kullaniciLegacyId}`)}</h2>
             </div>
             <div class="detail-status">
               ${isKapandi ? '<span class="status-badge status-rejected">Kapandı</span>' : '<span class="status-badge status-approved" style="background:#e0f2fe;color:#1e40af;border-color:#bae6fd;">İncelendi</span>'}
@@ -1096,8 +1317,33 @@ const summary = await getAdminClubSummary();
                   <span class="value">${formatDate(feedback.createdAt)}</span>
                 </div>
                 <div class="info-item">
+                  <span class="label">Hesap Bilgisi</span>
+                  <span class="value">#${feedback.kullaniciLegacyId}${feedback.kullaniciEmail ? ` · ${escapeHtml(feedback.kullaniciEmail)}` : ''}</span>
+                </div>
+                <div class="info-item">
+                  <span class="label">Ad Soyad</span>
+                  <span class="value">${escapeHtml(feedback.adSoyad || '-')}</span>
+                </div>
+                <div class="info-item">
+                  <span class="label">Sayfa URL</span>
+                  <span class="value">${feedback.sayfaUrl ? `<a href="${escapeHtml(feedback.sayfaUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(feedback.sayfaUrl)}</a>` : '-'}</span>
+                </div>
+                <div class="info-item">
                   <span class="label">Mesaj</span>
                   <span class="value text-box">${escapeHtml(feedback.mesaj || '-')}</span>
+                </div>
+                ${
+                  feedback.gorselUrl
+                    ? `<div class="info-item">
+                        <span class="label">Ek Görsel</span>
+                        <span class="value"><a href="${escapeHtml(feedback.gorselUrl)}" target="_blank" rel="noopener noreferrer">Görseli yeni sekmede aç</a></span>
+                        <img src="${escapeHtml(feedback.gorselUrl)}" alt="Geribildirim görseli" style="max-width:100%;margin-top:.75rem;border-radius:10px;border:1px solid #e2e8f0;" />
+                      </div>`
+                    : ''
+                }
+                <div class="info-item">
+                  <span class="label">Tarayıcı / Cihaz Bilgileri</span>
+                  <span class="value text-box">${escapeHtml(feedback.tarayiciBilgisi || '-')}</span>
                 </div>
               </div>
             </section>
@@ -1409,6 +1655,299 @@ const summary = await getAdminClubSummary();
       }
     }
 
+    function renderNewsList() {
+      if (!newsListEl) return;
+      if (!cachedNews.length) {
+        newsListEl.innerHTML = '<li class="empty-list">Haber bulunamadı.</li>';
+        return;
+      }
+      newsListEl.innerHTML = cachedNews
+        .map((news) => {
+          const activeClass = news.id === selectedNewsId ? 'is-active' : '';
+          const badgeClass = news.aktif ? 'status-approved' : 'status-rejected';
+          const badgeText = news.aktif ? 'Aktif' : 'Pasif';
+          return `<li>
+            <button class="list-item ${activeClass}" data-news-id="${news.id}">
+              <div class="item-main">
+                <span class="item-title">${escapeHtml(news.baslik)}</span>
+                <span class="item-meta">${escapeHtml(news.kategori)} • ${formatDate(news.tarih)}</span>
+              </div>
+              <div class="item-side">
+                <span class="status-badge ${badgeClass}">${badgeText}</span>
+              </div>
+            </button>
+          </li>`;
+        })
+        .join('');
+    }
+
+    function renderNewsDetailLoading() {
+      if (!newsDetailEl) return;
+      newsDetailEl.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Haber yükleniyor...</p></div>';
+    }
+
+    async function renderNewsDetail(newsId) {
+      selectedNewsId = newsId;
+      renderNewsList();
+      if (!newsId && newsDetailEl) {
+        newsDetailEl.innerHTML = `
+          <div class="detail-header">
+            <div class="detail-title-area">
+              <span class="kicker">YENİ HABER EKLE</span>
+              <h2>Yeni İçerik Oluştur</h2>
+            </div>
+          </div>
+          <div class="detail-grid detail-grid--single">
+            <section class="card-section">
+              <div class="form-layout">
+                <div class="form-row-2">
+                  <div class="form-group">
+                    <label>Başlık</label>
+                    <input id="news-baslik" class="modern-input" type="text" placeholder="Örn: Yeni turnuva başlıyor..." />
+                  </div>
+                  <div class="form-group">
+                    <label>Kategori</label>
+                    <input id="news-kategori" class="modern-input" type="text" placeholder="Duyuru, Etkinlik vb." />
+                  </div>
+                </div>
+                <div class="form-row-2">
+                  <div class="form-group">
+                    <label>Kategori Renk Sınıfı</label>
+                    <select id="news-kategoriRenk" class="modern-select">
+                      <option value="red">Kırmızı (red)</option>
+                      <option value="blue">Mavi (blue)</option>
+                      <option value="green">Yeşil (green)</option>
+                      <option value="orange">Turuncu (orange)</option>
+                      <option value="purple">Mor (purple)</option>
+                      <option value="gray">Gri (gray)</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Tarih Metni</label>
+                    <input id="news-tarih" class="modern-input" type="date" />
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>Bağlantı (Link)</label>
+                  <input id="news-link" class="modern-input" type="text" placeholder="https://..." value="#" />
+                </div>
+                <div class="form-row-2">
+                  <div class="form-group">
+                    <label>SEO Başlığı</label>
+                    <input id="news-seo-title" class="modern-input" type="text" placeholder="Google başlık metni" />
+                  </div>
+                  <div class="form-group">
+                    <label>Slug (otomatik)</label>
+                    <input id="news-slug" class="modern-input" type="text" readonly />
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>SEO Açıklaması</label>
+                  <textarea id="news-seo-description" class="modern-textarea" rows="2" placeholder="Arama sonuçlarında görünecek açıklama"></textarea>
+                </div>
+                <div class="form-group">
+                  <label>Metin</label>
+                  <textarea id="news-editor" class="news-editor"></textarea>
+                </div>
+                <button id="save-news-btn" class="btn btn-primary w-full" type="button">Yayınla</button>
+              </div>
+            </section>
+          </div>
+        `;
+
+        await initNewsEditor('');
+        const baslikInput = document.getElementById('news-baslik');
+        const slugInput = document.getElementById('news-slug');
+        const seoTitleInput = document.getElementById('news-seo-title');
+        const seoDescriptionInput = document.getElementById('news-seo-description');
+        if (slugInput instanceof HTMLInputElement) slugInput.value = '';
+        baslikInput?.addEventListener('input', () => {
+          const nextTitle = baslikInput.value || '';
+          if (slugInput instanceof HTMLInputElement) slugInput.value = slugifyNews(nextTitle);
+          if (seoTitleInput instanceof HTMLInputElement && !seoTitleInput.value) {
+            seoTitleInput.value = nextTitle;
+          }
+        });
+        if (seoDescriptionInput instanceof HTMLTextAreaElement) {
+          seoDescriptionInput.value = '';
+        }
+        document.getElementById('save-news-btn')?.addEventListener('click', async () => {
+          await saveNewsData(0);
+        });
+        return;
+      }
+
+      const news = cachedNews.find((n) => n.id === newsId);
+      if (!news) return;
+
+      if (newsDetailEl) {
+        newsDetailEl.innerHTML = `
+          <div class="detail-header">
+            <div class="detail-title-area">
+              <span class="kicker">HABER DÜZENLE #${news.id}</span>
+              <h2>${escapeHtml(news.baslik)}</h2>
+            </div>
+            <div class="detail-status">
+              ${news.aktif ? '<span class="status-badge status-approved">Aktif</span>' : '<span class="status-badge status-rejected">Pasif</span>'}
+            </div>
+          </div>
+          <div class="detail-grid detail-grid--single">
+            <section class="card-section">
+              <div class="form-layout">
+                <div class="form-row-2">
+                  <div class="form-group">
+                    <label>Başlık</label>
+                    <input id="news-baslik" class="modern-input" type="text" value="${escapeHtml(news.baslik)}" />
+                  </div>
+                  <div class="form-group">
+                    <label>Kategori</label>
+                    <input id="news-kategori" class="modern-input" type="text" value="${escapeHtml(news.kategori)}" />
+                  </div>
+                </div>
+                <div class="form-row-2">
+                  <div class="form-group">
+                    <label>Kategori Renk Sınıfı</label>
+                    <select id="news-kategoriRenk" class="modern-select">
+                      <option value="red" ${news.kategoriRenk === 'red' ? 'selected' : ''}>Kırmızı (red)</option>
+                      <option value="blue" ${news.kategoriRenk === 'blue' ? 'selected' : ''}>Mavi (blue)</option>
+                      <option value="green" ${news.kategoriRenk === 'green' ? 'selected' : ''}>Yeşil (green)</option>
+                      <option value="orange" ${news.kategoriRenk === 'orange' ? 'selected' : ''}>Turuncu (orange)</option>
+                      <option value="purple" ${news.kategoriRenk === 'purple' ? 'selected' : ''}>Mor (purple)</option>
+                      <option value="gray" ${news.kategoriRenk === 'gray' ? 'selected' : ''}>Gri (gray)</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Tarih Metni</label>
+                    <input id="news-tarih" class="modern-input" type="date" value="${news.tarih ? new Date(news.tarih).toISOString().split('T')[0] : ''}" />
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>Bağlantı (Link)</label>
+                  <input id="news-link" class="modern-input" type="text" value="${escapeHtml(news.link)}" />
+                </div>
+                <div class="form-row-2">
+                  <div class="form-group">
+                    <label>SEO Başlığı</label>
+                    <input id="news-seo-title" class="modern-input" type="text" value="${escapeHtml(news.seoTitle || news.baslik)}" />
+                  </div>
+                  <div class="form-group">
+                    <label>Slug (otomatik)</label>
+                    <input id="news-slug" class="modern-input" type="text" value="${escapeHtml(news.slug || '')}" readonly />
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label>SEO Açıklaması</label>
+                  <textarea id="news-seo-description" class="modern-textarea" rows="2">${escapeHtml(news.seoDescription || '')}</textarea>
+                </div>
+                <div class="form-group">
+                  <label>Metin</label>
+                  <textarea id="news-editor" class="news-editor"></textarea>
+                </div>
+                <div style="display: flex; gap: 1rem;">
+                  <button id="save-news-btn" class="btn btn-primary w-full" type="button">
+                    ${news.id ? 'Güncelle' : 'Haberi Yayınla'}
+                  </button>
+                  ${news.id ? `<button id="delete-news-btn" class="btn btn-danger" type="button">Sil</button>` : ''}
+                </div>
+              </div>
+            </section>
+          </div>
+        `;
+
+        await initNewsEditor(news.ozet || '');
+        const baslikInput = document.getElementById('news-baslik');
+        const slugInput = document.getElementById('news-slug');
+        const seoTitleInput = document.getElementById('news-seo-title');
+        baslikInput?.addEventListener('input', () => {
+          const nextTitle = baslikInput.value || '';
+          if (slugInput instanceof HTMLInputElement) {
+            const baseSlug = slugifyNews(nextTitle);
+            slugInput.value = baseSlug ? `${baseSlug}-${news.id}` : `haber-${news.id}`;
+          }
+          if (seoTitleInput instanceof HTMLInputElement && !seoTitleInput.value) {
+            seoTitleInput.value = nextTitle;
+          }
+        });
+        document.getElementById('save-news-btn')?.addEventListener('click', async () => {
+          await saveNewsData(news.id);
+        });
+
+        document.getElementById('delete-news-btn')?.addEventListener('click', async () => {
+          if (!confirm('Haberi silmek istediğinize emin misiniz?')) return;
+          try {
+            await apiDelete('/api/admin/news', { id: news.id });
+            selectedNewsId = 0;
+            await loadNews();
+          } catch (e) {
+            alert(e.message);
+          }
+        });
+      }
+    }
+
+    async function saveNewsData(id) {
+      const baslik = document.getElementById('news-baslik')?.value || '';
+      const kategori = document.getElementById('news-kategori')?.value || '';
+      const kategoriRenk = document.getElementById('news-kategoriRenk')?.value || 'gray';
+      const tarihInput = document.getElementById('news-tarih')?.value || '';
+      let tarihIso = new Date().toISOString();
+      if (tarihInput) {
+         tarihIso = new Date(tarihInput).toISOString();
+      }
+      const link = document.getElementById('news-link')?.value || '';
+      const seoTitleInput = document.getElementById('news-seo-title')?.value || '';
+      const seoDescriptionInput = document.getElementById('news-seo-description')?.value || '';
+      const slugInputValue = document.getElementById('news-slug')?.value || '';
+      const ozet = newsEditor ? newsEditor.getContent() : '';
+      const ozetText = newsEditor ? newsEditor.getContent({ format: 'text' }).trim() : '';
+      const aktif = true;
+      const seoTitle = String(seoTitleInput).trim() || baslik;
+      const seoDescription = String(seoDescriptionInput).trim() || stripHtmlTags(ozet).slice(0, 160);
+      const baseSlug = slugInputValue || slugifyNews(baslik);
+      const slug = id ? `${baseSlug.replace(/-\d+$/, '')}-${id}` : baseSlug;
+
+      if (!baslik || !ozetText || !tarihInput) {
+         alert("Başlık, özet ve tarih zorunludur.");
+         return;
+      }
+
+      try {
+        if (id) {
+          await apiPut('/api/admin/news', { id, baslik, kategori, kategoriRenk, tarih: tarihIso, link, ozet, aktif, slug, seoTitle, seoDescription });
+        } else {
+          const result = await apiPost('/api/admin/news', { baslik, kategori, kategoriRenk, tarih: tarihIso, link, ozet, aktif, slug, seoTitle, seoDescription });
+          id = result.id;
+        }
+        await loadNews();
+        
+        selectedNewsId = id;
+        await renderNewsDetail(selectedNewsId);
+      } catch (e) {
+        alert(e.message);
+      }
+    }
+
+    async function loadNews() {
+      if (!newsListEl) return;
+      newsListEl.innerHTML = '<li class="loading-state"><div class="spinner-small"></div> Yükleniyor...</li>';
+      try {
+        const rows = await apiGet('/api/admin/news');
+        cachedNews = rows || [];
+        if (selectedNewsId && !cachedNews.some((f) => f.id === selectedNewsId)) {
+          selectedNewsId = 0;
+        }
+        renderNewsList();
+        if (selectedNewsId) {
+          await renderNewsDetail(selectedNewsId);
+        }
+      } catch (error) {
+        newsListEl.innerHTML = `<li class="error-state">${error.message}</li>`;
+        if (newsDetailEl) {
+          newsDetailEl.innerHTML = '<div class="error-state">Haberler yüklenemedi.</div>';
+        }
+      }
+    }
+
     listEl?.addEventListener('click', async (event) => {
       const target = event.target;
       if (!(target instanceof HTMLElement)) return;
@@ -1462,6 +2001,9 @@ const summary = await getAdminClubSummary();
         if (tabKey === 'feedback' && !cachedFeedbacks.length) {
           await loadFeedbacks();
         }
+        if (tabKey === 'news' && !cachedNews.length) {
+          await loadNews();
+        }
       });
     });
 
@@ -1479,6 +2021,31 @@ const summary = await getAdminClubSummary();
 
     loadFeedbacksButton?.addEventListener('click', async () => {
       await loadFeedbacks();
+    });
+
+    loadNewsBtn?.addEventListener('click', async () => {
+      await loadNews();
+    });
+
+    downloadBackupBtn?.addEventListener('click', async () => {
+      await downloadManualBackup();
+    });
+
+    addNewsBtn?.addEventListener('click', () => {
+      selectedNewsId = 0;
+      renderNewsList();
+      renderNewsDetail(0);
+    });
+
+    newsListEl?.addEventListener('click', async (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      const button = target.closest('button[data-news-id]');
+      if (!button) return;
+      const id = Number(button.getAttribute('data-news-id'));
+      if (id !== undefined) {
+        await renderNewsDetail(id);
+      }
     });
 
     searchInput?.addEventListener('input', () => {
@@ -1746,6 +2313,64 @@ const summary = await getAdminClubSummary();
     }
 
     .admin-shell.is-hidden { display: none; }
+
+    .backup-panel {
+      background: var(--admin-surface);
+      border: 1px solid var(--admin-border);
+      border-radius: 1rem;
+      padding: 1.5rem;
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+    }
+
+    .backup-card {
+      display: flex;
+      gap: 1.25rem;
+      align-items: flex-start;
+      max-width: 860px;
+    }
+
+    .backup-icon {
+      width: 58px;
+      height: 58px;
+      border-radius: 16px;
+      background: #eff6ff;
+      color: #2563eb;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.6rem;
+      flex: 0 0 auto;
+    }
+
+    .backup-content h2 {
+      margin: 0 0 0.5rem;
+      color: var(--admin-text-main);
+    }
+
+    .backup-content p {
+      margin: 0 0 1rem;
+      color: var(--admin-text-muted);
+      line-height: 1.6;
+    }
+
+    .backup-list {
+      margin: 0 0 1.25rem;
+      padding-left: 1.2rem;
+      color: var(--admin-text-main);
+      line-height: 1.8;
+    }
+
+    .backup-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.9rem;
+      align-items: center;
+    }
+
+    .backup-status {
+      color: var(--admin-text-muted);
+      font-size: 0.92rem;
+    }
 
     /* Toolbar */
     .admin-toolbar {
@@ -2152,6 +2777,12 @@ const summary = await getAdminClubSummary();
       font-family: inherit;
     }
 
+    .btn:disabled {
+      cursor: wait;
+      opacity: 0.7;
+      transform: none;
+    }
+
     .btn-primary { background: var(--admin-primary); color: white; }
     .btn-primary:hover { background: var(--admin-primary-hover); transform: translateY(-1px); }
     
@@ -2392,6 +3023,15 @@ const summary = await getAdminClubSummary();
       display: grid;
       grid-template-columns: 1fr;
       gap: 0.75rem;
+    }
+
+    .news-editor {
+      min-height: 260px;
+      border: 1px solid #d5dde8;
+      border-radius: 10px;
+      background: #ffffff;
+      padding: 0.95rem 1.1rem;
+      box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);
     }
 
     @media (min-width: 640px) {

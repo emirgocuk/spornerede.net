@@ -2,8 +2,8 @@
 
 ## Özet Durum
 
-**Faz: Veri + kulüp paneli / yönetim (planlama ve ilk UI yolları başladı)**
-**Versiyon:** 0.3.0
+**Faz: Canlıya alma / self-host operasyon**
+**Versiyon:** 0.4.0
 
 Ana takip dosyasi: `memory-bank/faz-gelistirme-checklist-tr.md` (faz bazli [x]/[ ] durum takibi)
 
@@ -23,6 +23,11 @@ Ana takip dosyasi: `memory-bank/faz-gelistirme-checklist-tr.md` (faz bazli [x]/[
 - `deploy.sh` + `rollback.sh` + systemd ornek unit eklendi (SSR release deploy)
 - CI deploy gate + smoke check eklendi (`npm run release:gate`, `npm run smoke:check`)
 - `/api/health` endpoint'i deep readiness kontrolune guncellendi (`?deep=1`)
+- Canlı sunucu Node 22 + Nginx + systemd ile çalışıyor (`spornerede` service).
+- PocketBase canlıda binary/systemd olarak çalışıyor (`spornerede-pocketbase` service).
+- Production env sunucuda tutuluyor: `/opt/spornerede/.env`.
+- Canlı backup timer aktif: `spornerede-backup.timer`.
+- İlk canlı release smoke check geçti: `/`, `/ara`, `/basvuru`, `/api/health?deep=1`.
 
 ### Sayfalar & Bileşenler
 
@@ -48,6 +53,9 @@ Ana takip dosyasi: `memory-bank/faz-gelistirme-checklist-tr.md` (faz bazli [x]/[
 - Başvuru ekleri: `application_documents`, multipart yükleme, güvenli depolama (Tamamlandı)
 - Admin arayüzü: başvuru sağ liste + detay + onay/red + onayda kulüp oluşturma (Tamamlandı)
 - Kulüp paneli: kurslar, profil yönetimi, geribildirim sistemi (Tamamlandı)
+- GitHub deploy key eklendi; sunucuda `/opt/spornerede/repo` clone edildi ve `spornerede-autoupdate.timer` aktif.
+- Offsite backup yerine ilk aşamada admin panelden manuel backup indirme modeli seçildi; lokal sunucu backup timer da çalışmaya devam ediyor.
+- Canlı SMTP Brevo ile doğrulandı; mail deep health `ok`.
 
 ### Ürün Özellikleri
 
@@ -159,6 +167,46 @@ Ana takip dosyasi: `memory-bank/faz-gelistirme-checklist-tr.md` (faz bazli [x]/[
   - Panelde arayuz duzenleri revize edildi: `/panel`, `/panel/kurslar`, `/panel/profil`
   - Kurslar sayfası listeleme görünümü ve ilan tasarımları yenilendi (`pcard` UI komponentleri)
   - Public deneyimde listeleme/detay sunumu guncellendi: `/ara`, `/branslar/[brans]`, `/kulupler/[id]`, `/ilanlar/[id]`
+- Self-hosted mail kuyruğu, form bildirimleri ve "şifremi unuttum" akışı eklendi (`mail_kuyrugu` & Mailpit desteği).
+- Haberler yönetimi (`haberler` tablosu) eklendi, landing sayfasındaki bileşenler (Haberler, Branşlar) admin panelinden/veritabanından yönetilir hale getirildi.
+- Uygulamadaki tüm mock veri kullanımları (basvuru.astro, sitemap dosyaları) temizlenip veritabanına bağlandı (canlıya çıkışa hazır).
+- Canlıya alma ilk turu tamamlandı:
+  - Sunucu: `root@45.155.19.82`
+  - Node: `v22.22.2`
+  - App service: `spornerede`
+  - PocketBase service: `spornerede-pocketbase`
+  - Backup timer: `spornerede-backup.timer`
+  - Current release: `/opt/spornerede/current`
+  - PocketBase data: `/opt/spornerede/pocketbase/pb_data`
+  - PocketBase public/uploads: `/opt/spornerede/pocketbase/pb_public`
+- Production secret bilgileri repoya yazılmaz; sunucuda root-only olarak `/opt/spornerede/production-credentials.txt` içinde tutulur.
+- Astro SSR deploy modeli düzeltildi: release içine `dist/` yanında `package.json`, `package-lock.json` ve production `node_modules` gerekir.
+- Runtime env önceliği düzeltildi: canlıda `process.env` değerleri build-time `import.meta.env` değerlerinin önüne geçer.
+- Brevo SMTP canlıya bağlandı:
+  - `MAIL_FROM=no-reply@spornerede.net`
+  - `MAIL_TO=info@spornerede.net`
+  - Canlı mail queue testi `processed:1`, `sent:1`, `failed:0`
+- Admin panelde `Yedekler` sekmesi eklendi:
+  - `pb_data` ve `pb_public` arşivlenip indiriliyor.
+  - `.env`, SMTP key, admin token gibi secret dosyalar arşive dahil edilmiyor.
+  - Canlı endpoint testi 200 döndü ve arşiv içeriği doğrulandı.
+
+### Faz 11 — Canlı Operasyon ve Güncelleme Akışı 🚧
+
+- Elle canlı deploy başarılı ve smoke check temiz.
+- Yeni versiyon yayınlama standart yolu:
+  1. Lokalde değişiklikleri tamamla.
+  2. `npm run build` çalıştır.
+  3. Gerekirse `npm run release:gate` ve `npm run smoke:check` için `SITE_URL` ayarla.
+  4. Değişiklikleri `main` branch'e push et.
+  5. GitHub deploy key eklendikten sonra sunucu timer yeni commit'i otomatik çeker.
+  6. Timer hazır değilse geçici elle deploy: `npm run build` sonrası `deploy.sh` veya mevcut Windows `ssh/scp` release akışı.
+  7. Deploy sonrası `SITE_URL=https://spornerede.net npm run smoke:check` eşdeğeri kontrol yapılır.
+- Auto-update tamamen açılmadan önce yapılacak:
+  - GitHub deploy key'i repo `Deploy keys` bölümüne ekle.
+  - Sunucuda `/opt/spornerede/repo` clone et.
+  - `spornerede-autoupdate.service/timer` etkinleştir.
+  - `systemctl start spornerede-autoupdate.service` ile elle test et.
 
 ### Faz 4 — Gelişmiş Özellikler & Monetizasyon (Sıradaki)
 

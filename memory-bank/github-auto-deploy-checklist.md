@@ -1,17 +1,19 @@
-# SporNerede.net — GitHub Auto Deploy Checklist (Active Guide)
+# SporNerede.net — Server Pull Auto Deploy Checklist (Active Guide)
 
-Use this checklist to enable and verify automatic production deploys from GitHub.
+Use this checklist to enable and verify automatic production deploys with a server-side Git pull timer.
 Mark each item as done when completed.
 
 ## Goal
 
-- Every push to `main` triggers an automatic deploy to the production server.
+- Every push to `main` is picked up by the production server timer.
 - Deploy flow includes pre-checks, deploy, and post-deploy smoke checks.
 - Rollback path is ready if a bad release occurs.
 
 ## 1) Server Prerequisites (One-time)
 
 - Node.js 22+ is installed on the server.
+- Git and rsync are installed on the server.
+- PocketBase is installed as `spornerede-pocketbase`.
 - Target directories exist:
   - `/opt/spornerede/releases`
   - `/opt/spornerede/current` (symlink managed by deploy script)
@@ -21,50 +23,76 @@ Mark each item as done when completed.
 - Runtime env file exists: `/opt/spornerede/.env`
 - Nginx reverse proxy is configured to app port (default 3000).
 
-## 2) SSH Access for GitHub Actions (One-time)
+## 2) GitHub Deploy Key for Server Pull (One-time)
 
-- Create a dedicated deploy SSH keypair (recommended: ed25519).
-- Add the public key to server authorized keys for deploy user.
-- Confirm SSH login works without password from a trusted machine.
-- Record deploy target format: `user@server_ip` (for `DEPLOY_SSH`).
+- A dedicated ed25519 deploy key was created on the production server.
+- Add this public key to the GitHub repo as a read-only deploy key:
 
-## 3) GitHub Repository Settings (One-time)
+```text
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKVpmouLvpxNyzPl4uR0z1nAN5Fnv9I4snMKmkwikbr2 spornerede-prod-deploy
+```
 
-Go to: **GitHub -> Settings -> Secrets and variables -> Actions**
+- GitHub path:
+  - Repository `Settings`
+  - `Deploy keys`
+  - `Add deploy key`
+  - `Allow write access`: off
+- After adding it, verify from the server:
 
-### Required Secrets
+```bash
+ssh -T git@github.com
+```
 
-- `DEPLOY_SSH` = `user@server_ip`
-- `DEPLOY_SSH_KEY` = private SSH key content
-- `DEPLOY_SSH_HOST` = server host/IP only (example: `1.2.3.4`)
+Expected result is an authentication success message for GitHub. A publickey permission error means the deploy key is not active yet.
 
-### Recommended Variables
+## 3) Server Repo Clone (One-time)
 
-- `SITE_URL` = `https://spornerede.net`
-- `REMOTE_BASE` = `/opt/spornerede` (or your custom base path)
-- `SYSTEMD_UNIT` = `spornerede`
-- `UPDATE_NGINX` = `0` (set `1` only when nginx config update is intended)
+After the deploy key is active:
 
-## 4) Workflow Expectations
+```bash
+git clone git@github.com:emirgocuk/spornerede.net.git /opt/spornerede/repo
+cd /opt/spornerede/repo
+git status
+```
 
-Workflow file: `.github/workflows/deploy.yml`
+Repo must stay clean. If `git status --porcelain` returns anything, auto-update intentionally skips deployment.
 
-Expected pipeline order:
+## 4) systemd Timer Expectations
 
-- Checkout repository
-- Setup Node 22
-- Prepare SSH key and known_hosts
-- Run `npm run release:gate`
-- Run deploy script (`bash deploy.sh --ssh ...`)
-- Run `npm run smoke:check` (when `SITE_URL` is set)
+Files:
+
+- `/etc/systemd/system/spornerede-autoupdate.service`
+- `/etc/systemd/system/spornerede-autoupdate.timer`
+
+Expected service order:
+
+- `git fetch`
+- `git pull --ff-only`
+- `npm ci`
+- `npm run release:gate`
+- `npm run build`
+- `npm run pb:setup`
+- create timestamped release
+- copy `dist/`, `package.json`, `package-lock.json`
+- run `npm ci --omit=dev` inside release
+- update `/opt/spornerede/current`
+- restart `spornerede`
+- run `npm run smoke:check`
+
+Enable and test:
+
+```bash
+systemctl daemon-reload
+systemctl enable --now spornerede-autoupdate.timer
+systemctl start spornerede-autoupdate.service
+journalctl -u spornerede-autoupdate.service -n 100 --no-pager
+```
 
 ## 5) First Live Validation
 
 - Push a small safe commit to `main`.
-- Open GitHub Actions and confirm deploy workflow starts.
-- Confirm `release:gate` step passes.
-- Confirm deploy step passes.
-- Confirm smoke check step passes.
+- Confirm the server timer sees the new commit.
+- Confirm `release:gate`, build, `pb:setup`, service restart, and smoke check pass in journal logs.
 - Verify routes manually:
   - `/`
   - `/ara`
@@ -73,7 +101,9 @@ Expected pipeline order:
 
 ## 6) Failure Playbook
 
-- If workflow fails, inspect the failed job step logs first.
+- If timer deploy fails, inspect:
+  - `journalctl -u spornerede-autoupdate.service -n 200 --no-pager`
+  - `journalctl -u spornerede -n 200 --no-pager`
 - If production is unhealthy after deploy, run rollback:
   - `bash rollback.sh` (or `npm run rollback:remote`)
 - Re-verify health endpoints and key routes after rollback.
@@ -81,13 +111,13 @@ Expected pipeline order:
 
 ## 7) Operating Principles (Self-hosted First)
 
-- Keep core runtime self-hosted: Node app + PostgreSQL + Nginx + systemd.
+- Keep core runtime self-hosted: Node app + PocketBase + Nginx + systemd.
 - Minimize external services to required-only integrations.
 - Make deploy quality measurable: gate + smoke + health checks on every release.
 - Never skip rollback readiness.
 
 ## Done Criteria
 
-- A push to `main` updates production without manual SSH deploy steps.
+- A push to `main` updates production through the server timer without manual release upload.
 - Health and smoke checks pass automatically.
 - Rollback has been tested at least once.

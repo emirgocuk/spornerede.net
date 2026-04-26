@@ -6,7 +6,7 @@ export async function isAdminAuthorized(request: Request) {
     return true;
   }
 
-  const expected = import.meta.env.ADMIN_TOKEN;
+  const expected = process.env.ADMIN_TOKEN ?? import.meta.env.ADMIN_TOKEN;
   if (!expected) {
     return false;
   }

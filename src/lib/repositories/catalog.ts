@@ -41,8 +41,8 @@ export async function getAllDistricts(ilSlug?: string) {
   requireDatabase();
   const db = await getDb();
   if (!ilSlug) {
-    const rows = await db.collection('ilceler').getList(1, 500, { sort: 'ad' });
-    return rows.items.map((row) => ({ ad: row.ad as string, slug: row.slug as string }));
+    const rows = await db.collection('ilceler').getFullList({ sort: 'ad' });
+    return rows.map((row) => ({ ad: row.ad as string, slug: row.slug as string }));
   }
   const city = await db.collection('iller').getFirstListItem(`slug = "${ilSlug}"`).catch(() => null);
   if (!city) return [];
@@ -51,6 +51,25 @@ export async function getAllDistricts(ilSlug?: string) {
     sort: 'ad',
   });
   return rows.map((row) => ({ ad: row.ad as string, slug: row.slug as string }));
+}
+
+export async function getAllDistrictsWithCities() {
+  requireDatabase();
+  const db = await getDb();
+  const [cities, districts] = await Promise.all([
+    db.collection('iller').getFullList({ sort: 'ad' }),
+    db.collection('ilceler').getFullList({ sort: 'ad' }),
+  ]);
+  const cityById = new Map(cities.map((row) => [Number(row.legacyId), row]));
+  return districts.map((row) => {
+    const city = cityById.get(Number(row.ilLegacyId));
+    return {
+      ad: row.ad as string,
+      slug: row.slug as string,
+      il: (city?.ad as string | undefined) ?? '',
+      ilSlug: (city?.slug as string | undefined) ?? '',
+    };
+  });
 }
 
 export async function getAllBranches() {

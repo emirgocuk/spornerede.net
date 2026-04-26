@@ -5,21 +5,38 @@
  * Kulüplerin platforma kayıt için dolduracağı form.
  */
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { CITIES, MEMBERSHIP_PLANS } from '../data/mockData';
+import { getAllCities, getAllDistrictsWithCities } from '../lib/repositories/catalog';
+import { getMembershipPlans } from '../lib/repositories/applications';
 
-// Form submit sonrası durum (server tarafı handle edildiğinde kullanılır)
 const success = Astro.url.searchParams.get('success') === '1';
+const errorCode = Astro.url.searchParams.get('error') ?? '';
+const errorMessages: Record<string, string> = {
+  missing: 'Lütfen zorunlu alanları eksiksiz doldurun.',
+  email: 'Lütfen geçerli bir e-posta adresi yazın.',
+  payment: 'Başvuru için ödeme onayı zorunludur.',
+  receipt: 'Dekont dosyası zorunludur.',
+  receipt_size: 'Dekont dosyası 10MB sınırını aşıyor.',
+  receipt_type: 'Dekont için yalnızca PDF, JPG, PNG veya WEBP kabul edilir.',
+  server: 'Başvuru gönderilemedi. Lütfen tekrar deneyin.',
+};
+const errorMessage = errorMessages[errorCode] ?? '';
+
+const cityRows = await getAllCities();
+const CITIES = cityRows.map(c => c.ad);
+const districtRows = await getAllDistrictsWithCities();
+const MEMBERSHIP_PLANS = await getMembershipPlans();
+const DISTRICTS_BY_CITY = districtRows.reduce<Record<string, { ad: string; slug: string }[]>>((acc, district) => {
+  if (!district.il) return acc;
+  acc[district.il] ??= [];
+  acc[district.il].push({ ad: district.ad, slug: district.slug });
+  return acc;
+}, {});
 
 const bransListesi = [
   'Futbol', 'Basketbol', 'Voleybol', 'Tenis', 'Yüzme', 'Karate',
   'Judo', 'Taekwondo', 'Jimnastik', 'Atletizm', 'Hentbol', 'Badminton',
   'Masa Tenisi', 'Boks', 'Güreş', 'Satranç', 'Dans', 'Okçuluk',
   'At Binicilik', 'Golf', 'Diğer',
-];
-
-const ilceler = [
-  'Çankaya', 'Keçiören', 'Yenimahalle', 'Etimesgut', 'Sincan', 'Mamak', 'Gölbaşı',
-  'Altındağ', 'Pursaklar', 'Çubuk', 'Polatlı',
 ];
 
 const adimlar = [
@@ -104,6 +121,12 @@ const bankName = import.meta.env.PUBLIC_BANK_NAME || 'Banka Adi';
                 aria-label="Kulüp Başvuru Formu"
               >
 
+                {errorMessage && (
+                  <div class="form-alert form-alert--error" role="alert" aria-live="polite">
+                    {errorMessage}
+                  </div>
+                )}
+
                 <!-- Bölüm 1: Kulüp Bilgileri -->
                 <div class="form-section">
                   <h2 class="form-section-title">
@@ -146,10 +169,7 @@ const bankName = import.meta.env.PUBLIC_BANK_NAME || 'Banka Adi';
                         İlçe <span class="required" aria-label="zorunlu alan">*</span>
                       </label>
                       <select id="kulup-ilce" name="ilce" class="form-select" required aria-required="true">
-                        <option value="">İlçe seçin...</option>
-                        {ilceler.map((ilce) => (
-                          <option value={ilce}>{ilce}</option>
-                        ))}
+                        <option value="">Önce il seçin...</option>
                       </select>
                     </div>
 
@@ -287,7 +307,7 @@ const bankName = import.meta.env.PUBLIC_BANK_NAME || 'Banka Adi';
                   </h2>
                   <p class="paket-subtitle">Size en uygun planı seçin, kampanya fiyatlarıyla hemen başlayın.</p>
                   <div class="membership-grid" role="radiogroup" aria-label="Üyelik Paketi">
-                    {MEMBERSHIP_PLANS.map((plan) => {
+                    {MEMBERSHIP_PLANS.length ? MEMBERSHIP_PLANS.map((plan) => {
                       const meta = planDisplayMeta[plan.kod] ?? { ad: plan.ad, sure: plan.ad };
                       return (
                         <label class={`membership-card ${meta.oneCikan ? 'membership-card--featured' : ''}`} for={`uyelik-${plan.kod}`}>
@@ -332,7 +352,11 @@ const bankName = import.meta.env.PUBLIC_BANK_NAME || 'Banka Adi';
                           </div>
                         </label>
                       );
-                    })}
+                    }) : (
+                      <div class="form-alert form-alert--error membership-empty" role="alert">
+                        Üyelik paketleri şu an yüklenemedi. Lütfen daha sonra tekrar deneyin.
+                      </div>
+                    )}
                   </div>
 
                   <div class="payment-box">
@@ -420,7 +444,37 @@ const bankName = import.meta.env.PUBLIC_BANK_NAME || 'Banka Adi';
 
   </div>
 
+  <script id="district-data" type="application/json" set:html={JSON.stringify(DISTRICTS_BY_CITY)}></script>
+
   <script is:inline>
+    const citySelect = document.getElementById('kulup-il');
+    const districtSelect = document.getElementById('kulup-ilce');
+    const districtDataEl = document.getElementById('district-data');
+    const districtsByCity = districtDataEl ? JSON.parse(districtDataEl.textContent || '{}') : {};
+
+    function fillDistricts(cityName) {
+      if (!(districtSelect instanceof HTMLSelectElement)) return;
+      districtSelect.innerHTML = '';
+
+      const districts = districtsByCity[cityName] || [];
+      const placeholder = document.createElement('option');
+      placeholder.value = '';
+      placeholder.textContent = cityName ? (districts.length ? 'İlçe seçin...' : 'Bu il için ilçe bulunamadı') : 'Önce il seçin...';
+      districtSelect.appendChild(placeholder);
+
+      districts.forEach((district) => {
+        const option = document.createElement('option');
+        option.value = district.ad;
+        option.textContent = district.ad;
+        districtSelect.appendChild(option);
+      });
+    }
+
+    if (citySelect instanceof HTMLSelectElement) {
+      fillDistricts(citySelect.value);
+      citySelect.addEventListener('change', () => fillDistricts(citySelect.value));
+    }
+
     // Dinamik odeme metinleri
     const kulupInput = document.getElementById('kulup-ad');
     const dynDesc = document.getElementById('dyn-payment-desc');
@@ -777,6 +831,25 @@ const bankName = import.meta.env.PUBLIC_BANK_NAME || 'Banka Adi';
     color: #E30A17;
     font-size: 1rem;
     line-height: 1;
+  }
+
+  .form-alert {
+    padding: 0.9rem 1rem;
+    border-radius: 0.85rem;
+    font-weight: 700;
+    line-height: 1.5;
+    margin-bottom: 1.25rem;
+  }
+
+  .form-alert--error {
+    color: #991b1b;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+  }
+
+  .membership-empty {
+    grid-column: 1 / -1;
+    margin-bottom: 0;
   }
 
   .paket-subtitle {

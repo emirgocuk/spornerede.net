@@ -1,0 +1,244 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getActiveNews, getActiveNewsBySlug } from '../../lib/repositories/news';
+
+export const prerender = false;
+
+const slug = String(Astro.params.slug ?? '').trim();
+const haber = await getActiveNewsBySlug(slug);
+
+if (!haber) {
+  Astro.response.status = 404;
+}
+
+const allNews = await getActiveNews();
+const relatedNews = allNews.filter((item) => item.slug !== slug).slice(0, 4);
+
+const pageTitle = haber?.seoTitle || haber?.baslik || 'Haber Bulunamadi';
+const pageDescription = haber?.seoDescription || 'Aradiginiz haber bulunamadi.';
+const canonical = `https://spornerede.net/haberler/${slug}`;
+
+const articleSchema = haber
+  ? {
+      '@context': 'https://schema.org',
+      '@type': 'NewsArticle',
+      headline: haber.seoTitle || haber.baslik,
+      description: haber.seoDescription,
+      datePublished: haber.tarihIso || new Date().toISOString(),
+      dateModified: haber.tarihIso || new Date().toISOString(),
+      inLanguage: 'tr-TR',
+      mainEntityOfPage: canonical,
+      author: {
+        '@type': 'Organization',
+        name: 'SporNerede.net',
+      },
+      publisher: {
+        '@type': 'Organization',
+        name: 'SporNerede.net',
+      },
+    }
+  : null;
+---
+
+<BaseLayout
+  title={pageTitle}
+  description={pageDescription}
+  canonical={canonical}
+  keywords="spor haberleri, kulup duyurulari, spor etkinlikleri"
+>
+  {articleSchema && (
+    <script type="application/ld+json" set:html={JSON.stringify(articleSchema)} />
+  )}
+
+  <section class="news-detail section">
+    <div class="container news-detail-container">
+      {haber ? (
+        <>
+          <nav class="breadcrumb" aria-label="Breadcrumb">
+            <a href="/">Ana Sayfa</a>
+            <span>/</span>
+            <a href="/haberler">Haberler</a>
+            <span>/</span>
+            <span>{haber.baslik}</span>
+          </nav>
+
+          <article class="news-article">
+            <header class="article-head">
+              <div class="article-meta">
+                <span class={`badge badge-${haber.kategoriRenk || 'gray'}`}>{haber.kategori}</span>
+                <time datetime={haber.tarihIso || ''}>{haber.tarih}</time>
+              </div>
+              <h1>{haber.baslik}</h1>
+              <p class="seo-lead">{haber.seoDescription}</p>
+            </header>
+
+            <div class="article-body" set:html={haber.ozet}></div>
+
+            {haber.link && haber.link !== '#' && (
+              <p class="source-link">
+                Kaynak:
+                <a href={haber.link} target="_blank" rel="noopener noreferrer">
+                  {haber.link}
+                </a>
+              </p>
+            )}
+          </article>
+
+          {relatedNews.length > 0 && (
+            <aside class="related-news">
+              <h2>Diğer Haberler</h2>
+              <div class="related-grid">
+                {relatedNews.map((item) => (
+                  <a class="related-card" href={`/haberler/${item.slug}`}>
+                    <span class={`badge badge-${item.kategoriRenk || 'gray'}`}>{item.kategori}</span>
+                    <strong>{item.baslik}</strong>
+                    <small>{item.tarih}</small>
+                  </a>
+                ))}
+              </div>
+            </aside>
+          )}
+        </>
+      ) : (
+        <div class="not-found-news">
+          <h1>Haber bulunamadı</h1>
+          <p>Bu içerik kaldırılmış veya URL hatalı olabilir.</p>
+          <a class="btn btn-primary" href="/haberler">Haberlere dön</a>
+        </div>
+      )}
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .news-detail {
+    background: linear-gradient(180deg, #fff8f8 0%, #ffffff 100%);
+  }
+  .news-detail-container {
+    max-width: 920px;
+  }
+  .breadcrumb {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+    color: #6b7280;
+    margin-bottom: 1.2rem;
+  }
+  .breadcrumb a {
+    color: #b5080f;
+    text-decoration: none;
+  }
+  .news-article {
+    background: #fff;
+    border: 1px solid #f1dede;
+    border-radius: 1rem;
+    padding: clamp(1.1rem, 2.8vw, 2rem);
+  }
+  .article-meta {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    font-size: 0.85rem;
+    margin-bottom: 0.8rem;
+    color: #6b7280;
+  }
+  .article-head h1 {
+    margin: 0;
+    font-size: clamp(1.55rem, 4vw, 2.6rem);
+    line-height: 1.1;
+    color: #111827;
+  }
+  .seo-lead {
+    margin-top: 0.9rem;
+    color: #4b5563;
+    line-height: 1.6;
+  }
+  .article-body {
+    margin-top: 1.4rem;
+    color: #1f2937;
+    line-height: 1.75;
+  }
+  .article-body :global(h2) {
+    margin-top: 1.4rem;
+    margin-bottom: 0.7rem;
+    font-size: 1.45rem;
+    line-height: 1.2;
+  }
+  .article-body :global(p) {
+    margin: 0.7rem 0;
+  }
+  .article-body :global(ul) {
+    margin: 0.7rem 0;
+    padding-left: 1.1rem;
+  }
+  .article-body :global(img) {
+    max-width: 100%;
+    border-radius: 0.75rem;
+    margin: 1rem 0;
+  }
+  .source-link {
+    margin-top: 1rem;
+    font-size: 0.9rem;
+    color: #4b5563;
+  }
+  .source-link a {
+    margin-left: 0.4rem;
+    color: #b5080f;
+    word-break: break-all;
+  }
+  .related-news {
+    margin-top: 1.5rem;
+  }
+  .related-news h2 {
+    margin: 0 0 0.8rem;
+    font-size: 1.2rem;
+  }
+  .related-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 0.75rem;
+  }
+  .related-card {
+    border: 1px solid #f1dede;
+    border-radius: 0.8rem;
+    padding: 0.8rem;
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    background: #fff;
+  }
+  .related-card strong {
+    color: #111827;
+    line-height: 1.35;
+  }
+  .related-card small {
+    color: #6b7280;
+  }
+  .badge {
+    display: inline-flex;
+    width: fit-content;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    font-weight: 700;
+  }
+  .badge-red { color: #a30711; background: #ffe9eb; border-color: #ffd5d8; }
+  .badge-blue { color: #1d4ed8; background: #eff6ff; border-color: #dbeafe; }
+  .badge-green { color: #15803d; background: #f0fdf4; border-color: #bbf7d0; }
+  .badge-orange { color: #c2410c; background: #fff7ed; border-color: #fed7aa; }
+  .badge-purple { color: #7c3aed; background: #faf5ff; border-color: #e9d5ff; }
+  .badge-gray { color: #4b5563; background: #f3f4f6; border-color: #e5e7eb; }
+  .not-found-news {
+    text-align: center;
+    background: #fff;
+    border: 1px dashed #e5c8c8;
+    border-radius: 1rem;
+    padding: 2rem 1rem;
+  }
+</style>

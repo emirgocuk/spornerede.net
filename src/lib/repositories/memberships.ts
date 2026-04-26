@@ -1,5 +1,4 @@
 import { getDb, hasDatabaseUrl } from '../../db/client';
-import { MEMBERSHIP_PLANS } from '../../data/mockData';
 
 export type MembershipPeriod = 'monthly' | 'yearly';
 
@@ -8,6 +7,23 @@ function requireDatabase() {
     throw new Error('POCKETBASE_URL is not configured.');
   }
 }
+
+const DEFAULT_PLANS = [
+  {
+    kod: 'aylik',
+    ad: 'Aylık',
+    ucret: 1500,
+    periyot: 'monthly',
+    aciklama: 'Aylık paket: 1500 TL.',
+  },
+  {
+    kod: 'on-iki-aylik',
+    ad: '12 Aylık (1000*12)',
+    ucret: 12000,
+    periyot: 'yearly',
+    aciklama: '12 aylık paket: 1000*12 = 12000 TL.',
+  },
+];
 
 function addPeriod(startAt: Date, period: MembershipPeriod) {
   const next = new Date(startAt);
@@ -31,7 +47,7 @@ async function ensureMembershipPlan(period: MembershipPeriod) {
     return Number(existing.legacyId);
   }
 
-  const mockPlan = MEMBERSHIP_PLANS.find((plan) => plan.kod === preferredCode) ?? MEMBERSHIP_PLANS[0];
+  const mockPlan = DEFAULT_PLANS.find((plan) => plan.kod === preferredCode) ?? DEFAULT_PLANS[0];
   const created = await db.collection('uyelik_paketleri').create({
     legacyId: Date.now(),
     kod: mockPlan.kod,

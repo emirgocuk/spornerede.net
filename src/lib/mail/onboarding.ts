@@ -4,10 +4,13 @@ export async function sendClubProvisionedMail(input: {
   email: string;
   tempPassword: string;
 }) {
-  const smtpHost = import.meta.env.SMTP_HOST;
-  const smtpPort = Number(import.meta.env.SMTP_PORT ?? 587);
-  const smtpUser = import.meta.env.SMTP_USER;
-  const smtpPass = import.meta.env.SMTP_PASS;
+  const env = (name: string) => process.env[name] ?? import.meta.env[name];
+  const smtpHost = env('SMTP_HOST');
+  const smtpPortRaw = env('SMTP_PORT') ?? '587';
+  const smtpPort = Number(smtpPortRaw);
+  const smtpUser = env('SMTP_USER');
+  const smtpPass = env('SMTP_PASS');
+  const mailFrom = env('MAIL_FROM') || smtpUser;
 
   if (!smtpHost || !smtpUser || !smtpPass) {
     return { sent: false as const, reason: 'smtp_not_configured' };
@@ -17,11 +20,11 @@ export async function sendClubProvisionedMail(input: {
   const transporter = nodemailer.default.createTransport({
     host: smtpHost,
     port: smtpPort,
-    secure: String(import.meta.env.SMTP_PORT ?? '') === '465',
+    secure: String(smtpPortRaw) === '465',
     auth: { user: smtpUser, pass: smtpPass },
   });
 
-  const panelUrl = `${import.meta.env.SITE_URL ?? 'https://spornerede.net'}/panel/giris`;
+  const panelUrl = `${env('SITE_URL') ?? 'https://spornerede.net'}/panel/giris`;
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 620px; margin: 0 auto; padding: 20px;">
       <h2 style="margin:0 0 10px; color:#212529;">Kulup panel hesabiniz hazir</h2>
@@ -36,7 +39,7 @@ export async function sendClubProvisionedMail(input: {
   `;
 
   await transporter.sendMail({
-    from: `"SporNerede.net" <${smtpUser}>`,
+    from: `"SporNerede.net" <${mailFrom}>`,
     to: input.to,
     subject: `Kulup panel hesabi hazir: ${input.clubName}`,
     html,

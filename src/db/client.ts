@@ -5,17 +5,17 @@ let authInFlight: Promise<void> | null = null;
 
 function getPocketBaseUrl() {
   const astroEnvUrl = (import.meta as { env?: Record<string, string | undefined> }).env?.POCKETBASE_URL;
-  return astroEnvUrl ?? process.env.POCKETBASE_URL ?? '';
+  return process.env.POCKETBASE_URL ?? astroEnvUrl ?? '';
 }
 
 function getPocketBaseAdminEmail() {
   const astroEnvValue = (import.meta as { env?: Record<string, string | undefined> }).env?.POCKETBASE_ADMIN_EMAIL;
-  return astroEnvValue ?? process.env.POCKETBASE_ADMIN_EMAIL ?? '';
+  return process.env.POCKETBASE_ADMIN_EMAIL ?? astroEnvValue ?? '';
 }
 
 function getPocketBaseAdminPassword() {
   const astroEnvValue = (import.meta as { env?: Record<string, string | undefined> }).env?.POCKETBASE_ADMIN_PASSWORD;
-  return astroEnvValue ?? process.env.POCKETBASE_ADMIN_PASSWORD ?? '';
+  return process.env.POCKETBASE_ADMIN_PASSWORD ?? astroEnvValue ?? '';
 }
 
 export function hasDatabaseUrl() {

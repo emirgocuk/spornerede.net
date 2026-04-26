@@ -1,0 +1,17 @@
+[Unit]
+Description=SporNerede production backup
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+Environment=APP_BASE=/opt/spornerede
+Environment=APP_REPO_DIR=/opt/spornerede/repo
+Environment=BACKUP_DIR=/opt/spornerede/backups
+Environment=ENV_FILE=/opt/spornerede/.env
+EnvironmentFile=-/opt/spornerede/.env
+# Optional: user@backup-host:/path/to/backups
+# Environment=OFFSITE_BACKUP_TARGET=
+ExecStart=/usr/bin/bash /opt/spornerede/repo/deploy/server-backup.sh

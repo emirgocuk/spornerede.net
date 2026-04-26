@@ -1,10 +1,13 @@
 import type { APIRoute } from 'astro';
-import { CITIES, BRANCHES, slugify } from '../../data/mockData';
+import { getAllCities, getAllBranches } from '../../lib/repositories/catalog';
 
 export const GET: APIRoute = async () => {
   const baseUrl = 'https://spornerede.net';
-  const urls = CITIES.flatMap((city) =>
-    BRANCHES.map((branch) => `${baseUrl}/sehirler/${slugify(city)}/${branch.slug}`)
+  const cities = await getAllCities();
+  const branches = await getAllBranches();
+  
+  const urls = cities.flatMap((city) =>
+    branches.map((branch) => `${baseUrl}/sehirler/${city.slug}/${branch.slug}`)
   );
 
   const body = `<?xml version="1.0" encoding="UTF-8"?>

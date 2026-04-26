@@ -13,6 +13,12 @@ export default defineConfig({
   // Site URL (sitemap için)
   site: 'https://spornerede.net',
 
+  // Cloudflare/Nginx proxy arkasında Astro origin kontrolü form POST'larını
+  // hatalı şekilde cross-site algılayabiliyor. Oturum cookie'leri SameSite=Lax.
+  security: {
+    checkOrigin: false,
+  },
+
   // Entegrasyonlar
   integrations: [sitemap()],
 

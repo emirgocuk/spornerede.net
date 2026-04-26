@@ -173,7 +173,7 @@ warn_if_windows_dev_server() {
   busy="$(
     powershell.exe -NoProfile -Command \
       "try { \$c = Get-NetTCPConnection -LocalPort 4321 -State Listen -ErrorAction Stop | Select-Object -First 1; if (\$null -ne \$c) { \$p = Get-Process -Id \$c.OwningProcess -ErrorAction SilentlyContinue; \"\$c.OwningProcess|\$(\$p.ProcessName)\" } } catch { }" \
-      2>/dev/null | tr -d '\r'
+      2>/dev/null | tr -d '\n'
   )"
 
   if [[ -z "${busy}" ]]; then
@@ -240,6 +240,10 @@ EOF
 
 echo "==> rsync: ./dist/ -> ${REMOTE_RELEASE}/"
 rsync_r "${ROOT_DIR}/dist/" "${DEPLOY_SSH}:${REMOTE_RELEASE}/"
+scp_r "${ROOT_DIR}/package.json" "${DEPLOY_SSH}:${REMOTE_RELEASE}/package.json"
+if [[ -f "${ROOT_DIR}/package-lock.json" ]]; then
+  scp_r "${ROOT_DIR}/package-lock.json" "${DEPLOY_SSH}:${REMOTE_RELEASE}/package-lock.json"
+fi
 
 ssh_r bash -s <<EOF
 set -euo pipefail
@@ -248,6 +252,7 @@ REMOTE_RELEASE="${REMOTE_RELEASE}"
 SYSTEMD_UNIT="${SYSTEMD_UNIT}"
 
 CUR_LINK="\${REMOTE_BASE}/current"
+(cd "\${REMOTE_RELEASE}" && npm ci --omit=dev)
 ln -sfn "\${REMOTE_RELEASE}" "\${CUR_LINK}"
 echo "==> current -> \${REMOTE_RELEASE}"
 
@@ -311,7 +316,7 @@ get_env() {
   awk -F= -v k="${key}" '
     $1 == k {
       v=$2
-      gsub(/\r$/, "", v)
+      gsub(/\n$/, "", v)
       gsub(/^[" ]+|[" ]+$/, "", v)
       print v
     }
@@ -449,7 +454,7 @@ PY
     proxy_set_header Host \$host;
     proxy_set_header X-Real-IP \$remote_addr;
     proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto \$scheme;
+    proxy_set_header X-Forwarded-Proto \$http_x_forwarded_proto;
     proxy_set_header Upgrade \$http_upgrade;
     proxy_set_header Connection \$connection_upgrade;
 

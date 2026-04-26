@@ -20,6 +20,9 @@
     "pb:start": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"./pocketbase/pocketbase.exe serve --http=127.0.0.1:8090\"",
     "pb:stop": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$pbPid=(Get-NetTCPConnection -LocalAddress 127.0.0.1 -LocalPort 8090 -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty OwningProcess); if ($pbPid) { Stop-Process -Id $pbPid -Force; Write-Host ('Stopped PID ' + $pbPid) } else { Write-Host 'PocketBase not running on 8090' }\"",
     "pb:setup": "tsx scripts/pb-setup.ts",
+    "mail:up": "docker compose -f docker-compose.mailpit.yml up -d",
+    "mail:down": "docker compose -f docker-compose.mailpit.yml down",
+    "mail:queue": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"Invoke-RestMethod -Uri 'http://localhost:4321/api/internal/mail-queue' -Method POST -Headers @{ 'x-mail-queue-token' = 'local-test-token' }\"",
     "user:create": "tsx scripts/create-user.ts",
     "user:assign-club": "tsx scripts/assign-user-club.ts",
     "deploy:remote": "bash deploy.sh",
@@ -35,12 +38,11 @@
     "@astrojs/node": "^10.0.5",
     "@astrojs/sitemap": "^3.7.2",
     "@tailwindcss/vite": "^4.2.2",
-    "@tiptap/core": "^3.22.4",
-    "@tiptap/starter-kit": "^3.22.4",
     "astro": "^6.1.6",
     "nodemailer": "^8.0.5",
     "pocketbase": "^0.26.2",
-    "tailwindcss": "^4.2.2"
+    "tailwindcss": "^4.2.2",
+    "tinymce": "^8.4.0"
   },
   "devDependencies": {
     "@types/nodemailer": "^8.0.0",

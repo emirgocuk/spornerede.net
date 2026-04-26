@@ -4,22 +4,116 @@
 
 Deploy sürecini tekrarlanabilir ve düşük riskli hale getirmek.
 
+## Canlı Durum Özeti (2026-04-26)
+
+- Production sunucu: `root@45.155.19.82`
+- App service: `spornerede`
+- PocketBase service: `spornerede-pocketbase`
+- Backup timer: `spornerede-backup.timer`
+- App current symlink: `/opt/spornerede/current`
+- Release dizini: `/opt/spornerede/releases/<timestamp>`
+- Production env: `/opt/spornerede/.env`
+- Production credential notu: `/opt/spornerede/production-credentials.txt` (root-only, repoya yazılmaz)
+- PocketBase data: `/opt/spornerede/pocketbase/pb_data`
+- PocketBase public/uploads: `/opt/spornerede/pocketbase/pb_public`
+
+İlk canlı release elle yüklendi ve smoke check geçti:
+
+- `/`
+- `/ara`
+- `/basvuru`
+- `/api/health?deep=1`
+
+Not: Brevo SMTP ayarları girildikten sonra deep health `ok` döndü.
+
 ## Deploy Öncesi Kontrol
 
 - `npm ci` ve `npm run build` lokal başarılı
 - `npm run release:gate` başarılı (deploy zorunlu ön kontrol)
-- Gerekli env değerleri hazır: `SMTP_*`, `MAIL_TO`, `SITE_URL`
+- Gerekli env değerleri hazır: `SITE_URL`, `POCKETBASE_URL`, `POCKETBASE_ADMIN_EMAIL`, `POCKETBASE_ADMIN_PASSWORD`
+- Mail canlı testi yapılacaksa `SMTP_*`, `MAIL_FROM`, `MAIL_TO`, `MAIL_QUEUE_TOKEN`
 - Son değişikliklerde kritik sayfalar test edildi: `/`, `/ara`, `/basvuru`
 - `robots.txt` ve sitemap erişilebilir durumda
 - Windows: `npm run dev` acikken `npm ci` cogu zaman `EPERM` verir; deploy oncesi dev server'i durdurun
 
-## Standart Deploy Akışı
+## Yeni Versiyon Yayınlama Akışı
 
-1. Sunucuda güncel kodu al
-2. Bağımlılıkları kur (`npm ci`)
-3. Build al (`npm run build`)
-4. Uygulamayı yeniden başlat (process manager ile)
-5. Sağlık kontrolü yap:
+### Hedef Model: Sunucu Pull + systemd Timer
+
+Normal hedef şudur:
+
+1. Değişiklikler lokal geliştirilir.
+2. `npm run build` temiz geçer.
+3. Değişiklikler `main` branch'e push edilir.
+4. Sunucudaki `spornerede-autoupdate.timer` periyodik olarak yeni commit'i görür.
+5. `deploy/server-auto-update.sh` şunları yapar:
+   - `git fetch`
+   - repo temizse `git pull --ff-only`
+   - `npm ci`
+   - `npm run release:gate`
+   - `npm run build`
+   - `npm run pb:setup`
+   - yeni release klasörü oluşturma
+   - `dist/`, `package.json`, `package-lock.json` kopyalama
+   - release içinde `npm ci --omit=dev`
+   - `/opt/spornerede/current` symlink update
+   - `systemctl restart spornerede`
+   - `npm run smoke:check`
+
+Astro SSR notu: `dist/` tek başına yeterli değildir. Runtime için release içinde production `node_modules` bulunmalıdır.
+
+### Şu Anki Geçici Durum
+
+GitHub repo private olduğu için sunucu `git clone/pull` işlemi deploy key ile çalışır. Deploy key eklendi ve doğrulandı.
+
+GitHub'a eklenecek public deploy key:
+
+```text
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKVpmouLvpxNyzPl4uR0z1nAN5Fnv9I4snMKmkwikbr2 spornerede-prod-deploy
+```
+
+GitHub yolu:
+
+1. Repo `Settings`
+2. `Deploy keys`
+3. `Add deploy key`
+4. Title: `spornerede-prod-deploy`
+5. Key: yukarıdaki public key
+6. `Allow write access`: kapalı
+
+Sunucuda doğrulanan kurulum:
+
+```bash
+git clone git@github.com:emirgocuk/spornerede.net.git /opt/spornerede/repo
+systemctl daemon-reload
+systemctl enable --now spornerede-autoupdate.timer
+systemctl start spornerede-autoupdate.service
+journalctl -u spornerede-autoupdate.service -n 100 --no-pager
+```
+
+### Geçici Elle Deploy
+
+Timer tamamen açılmadan önce elle deploy gerekirse:
+
+1. Lokalde `npm run build`
+2. Yeni release dizini oluştur:
+   - `/opt/spornerede/releases/YYYYMMDDTHHMMSSZ`
+3. `dist/` içeriğini release'e yükle.
+4. `package.json` ve `package-lock.json` dosyalarını release'e yükle.
+5. Sunucuda release içinde `npm ci --omit=dev`
+6. `ln -sfn <release> /opt/spornerede/current`
+7. `systemctl restart spornerede`
+8. `SITE_URL=https://spornerede.net npm run smoke:check`
+
+## Standart Deploy Akışı (Genel)
+
+1. Sunucuda güncel kodu al.
+2. Bağımlılıkları kur (`npm ci`).
+3. Build al (`npm run build`).
+4. PocketBase schema sync çalıştır (`npm run pb:setup`).
+5. Yeni release oluştur ve `current` symlink'i güncelle.
+6. Uygulamayı yeniden başlat (`systemctl restart spornerede`).
+7. Sağlık kontrolü yap:
   - Ana sayfa açılıyor mu
   - `/ara` filtreleniyor mu
   - `/basvuru` form gönderimi çalışıyor mu
@@ -36,7 +130,8 @@ Neden:
 Sonuc:
 
 - `main` push -> GitHub Actions tetiklenmez (deploy karari sunucu timer'i tarafinda verilir)
-- Deploy sadece gelistirici makinesinden SSH uzerinden calisir (`deploy.sh`)
+- Deploy hedef modeli sunucu timer ile `git pull` modelidir.
+- Timer açılana kadar deploy geliştirici makinesinden SSH/SCP release akışıyla yapılabilir.
 
 ## Sunucudan Otomatik Guncelleme (GitHub pull modeli)
 
@@ -84,6 +179,114 @@ sudo journalctl -u spornerede-autoupdate.service -n 100 --no-pager
 
 Timer calisma araligi varsayilan olarak 1 dakikadir (`OnUnitActiveSec=1min`).
 Isterseniz `deploy/spornerede-autoupdate.timer.example` icinde araligi buyutebilirsiniz.
+
+## Backup Altyapısı
+
+Canlı backup kapsamı:
+
+- `/opt/spornerede/.env`
+- `/opt/spornerede/pocketbase/pb_data`
+- `/opt/spornerede/pocketbase/pb_public`
+- release metadata
+
+Repo tarafı:
+
+- `deploy/server-backup.sh`
+- `deploy/spornerede-backup.service.example`
+- `deploy/spornerede-backup.timer.example`
+
+Sunucuda aktif:
+
+```bash
+systemctl status spornerede-backup.timer --no-pager
+systemctl list-timers spornerede-backup.timer --no-pager
+ls -lah /opt/spornerede/backups
+```
+
+Elle backup test:
+
+```bash
+systemctl start spornerede-backup.service
+journalctl -u spornerede-backup.service -n 100 --no-pager
+```
+
+Offsite hedef seçilince `/opt/spornerede/.env` içine eklenir:
+
+```env
+OFFSITE_BACKUP_TARGET=backup@IP:/srv/backups/spornerede
+LOCAL_RETENTION_DAYS=7
+OFFSITE_RETENTION_DAYS=30
+```
+
+Sonra tekrar `systemctl start spornerede-backup.service` ile test edilir.
+
+### Admin Panelden Manuel Backup
+
+İlk canlı kullanım kararı:
+
+- Offsite otomasyonu yerine başlangıçta admin panelden manuel backup indirilecek.
+- Admin panelinde `Yedekler` sekmesi bulunur.
+- `Yedek Oluştur ve İndir` butonu anlık `.tar.gz` arşivi üretir.
+- İndirilen arşiv şunları içerir:
+  - `pb_data`
+  - `pb_public`
+- İndirilen arşiv şunları içermez:
+  - `/opt/spornerede/.env`
+  - SMTP key
+  - admin token
+  - üretim credential dosyaları
+
+Önerilen pratik:
+
+- Ayda 1 kez admin panelden backup indir.
+- Bilgisayarda ve mümkünse harici disk/cloud klasörde sakla.
+- Büyük veri artışı veya 1000 kulüp seviyesine yaklaşınca otomatik offsite hedef tekrar değerlendir.
+
+Canlı test:
+
+```bash
+GET /api/admin/backup-download
+```
+
+Admin yetkisiyle 200 döndü; arşiv içinde `pb_data/` ve `pb_public/` doğrulandı.
+
+Restore şimdilik admin panelden yapılmaz. Gerekirse güvenli manuel restore akışı:
+
+1. `spornerede` servisini durdur.
+2. `spornerede-pocketbase` servisini durdur.
+3. Mevcut `pb_data` ve `pb_public` için güvenlik kopyası al.
+4. İndirilen arşivi aç.
+5. `pb_data` ve `pb_public` dizinlerini geri koy.
+6. PocketBase ve uygulamayı başlat.
+7. `npm run smoke:check` veya `/api/health?deep=1` ile doğrula.
+
+## Mail Canlı Test Akışı
+
+Canlı SMTP değerleri `/opt/spornerede/.env` içine girildi:
+
+```env
+SMTP_HOST=smtp-relay.brevo.com
+SMTP_PORT=587
+SMTP_USER=<Brevo SMTP login>
+SMTP_PASS=<Brevo SMTP key>
+MAIL_FROM=no-reply@spornerede.net
+MAIL_TO=info@spornerede.net
+MAIL_QUEUE_TOKEN=<strong-token>
+```
+
+DNS tarafında kontrol:
+
+- SPF
+- DKIM
+- DMARC
+- SMTP provider gerektiriyorsa reverse DNS veya domain doğrulama
+
+Test sırası:
+
+1. `/api/health?deep=1` sonucu SMTP için `configured=true` ve bağlantı başarılı olmalı. Tamamlandı.
+2. Mail queue endpoint'i token ile tetiklenir. Tamamlandı: `processed:1`, `sent:1`, `failed:0`.
+3. Başvuru formu gönderilir, kurucu maili alınır.
+4. `/panel/sifremi-unuttum` ile şifre sıfırlama maili denenir.
 
 ### Yeni komutlar (lokal/CI)
 
@@ -183,7 +386,7 @@ npm run rollback:remote
 
 ## Self-host Felsefesi (Operasyon Kararı)
 
-- Uygulama ve veritabanı self-host (Node + PostgreSQL + Nginx + systemd)
+- Uygulama ve veritabanı self-host (Node + PocketBase + Nginx + systemd)
 - Kritik deploy akışları repo scriptleriyle yönetilir (elle SSH komutuna bağımlılığı azalt)
 - Dış bağımlılık minimizasyonu hedeflenir; zorunlu dış servisler (ör. SMTP relay) tek sorumlulukla izole edilir
 - Her deploy sonrası ölçülebilir sağlık sinyali (`release:gate` + `smoke:check` + `api/health`) zorunlu kabul edilir

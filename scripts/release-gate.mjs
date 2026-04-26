@@ -28,7 +28,11 @@ for (const relativePath of requiredFiles) {
   pushCheck(fs.existsSync(fullPath), `file:${relativePath}`);
 }
 
-pushCheck(hasValue("DEPLOY_SSH"), "env:DEPLOY_SSH", "GitHub secret veya lokal env");
+pushCheck(
+  hasValue("DEPLOY_SSH") || hasValue("APP_REPO_DIR"),
+  "env:DEPLOY_SSH veya APP_REPO_DIR",
+  "lokal deploy icin DEPLOY_SSH, sunucu auto-update icin APP_REPO_DIR",
+);
 pushCheck(hasValue("SITE_URL"), "env:SITE_URL", "post-deploy smoke check hedefi");
 
 const failed = checks.filter((item) => !item.ok);

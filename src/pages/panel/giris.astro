@@ -77,6 +77,9 @@ const errorMessage =
         </label>
         <button type="submit">Giriş yap</button>
       </form>
+      <p class="forgot-password">
+        <a href="/panel/sifremi-unuttum">Sifrenizi mi unuttunuz?</a>
+      </p>
 
       <p class="page-note">
         Henüz hesabınız yoksa kulüp kaydı için <a href="/basvuru">başvuru formunu</a> kullanabilirsiniz.
@@ -109,6 +112,18 @@ const errorMessage =
     margin-top: 1.25rem;
     font-size: 0.95rem;
     color: #6c757d;
+  }
+  .forgot-password {
+    margin-top: 0.85rem;
+  }
+  .forgot-password a {
+    color: #e30a17;
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .forgot-password a:hover {
+    color: #b5080f;
   }
   .error-box {
     margin-top: 1rem;

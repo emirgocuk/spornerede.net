@@ -4,6 +4,8 @@ import { randomUUID } from 'node:crypto';
 import type { APIRoute } from 'astro';
 import { createApplicationDocument } from '../../lib/repositories/applicationDocuments';
 import { createClubApplication } from '../../lib/repositories/applications';
+import { enqueueMail, processMailQueue } from '../../lib/mail/service';
+import { buildApplicationNotificationMail } from '../../lib/mail/templates';
 
 export const prerender = false;
 
@@ -22,6 +24,14 @@ const ALLOWED_RECEIPT_MIME_TYPES = new Set([
   'image/png',
   'image/webp',
 ]);
+
+function redirectToForm(request: Request, params: Record<string, string>) {
+  const url = new URL('/basvuru', request.url);
+  for (const [key, value] of Object.entries(params)) {
+    url.searchParams.set(key, value);
+  }
+  return Response.redirect(url, 303);
+}
 
 function sanitizeFilename(input: string) {
   return input.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 120) || 'dosya';
@@ -55,44 +65,26 @@ export const POST: APIRoute = async ({ request }) => {
     const dekontFile = formData.get('dekont');
 
     if (!kulupad || !il || !ilce || !brans || !paket || !yetkili || !telefon || !email) {
-      return new Response(JSON.stringify({ success: false, error: 'Zorunlu alanlar eksik.' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return redirectToForm(request, { error: 'missing' });
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      return new Response(JSON.stringify({ success: false, error: 'Geçersiz e-posta adresi.' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return redirectToForm(request, { error: 'email' });
     }
 
     if (odemeOnay !== '1') {
-      return new Response(JSON.stringify({ success: false, error: 'Başvuru için ödeme onayı zorunludur.' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return redirectToForm(request, { error: 'payment' });
     }
 
     if (!(dekontFile instanceof File) || !dekontFile.name || dekontFile.size === 0) {
-      return new Response(JSON.stringify({ success: false, error: 'Dekont dosyası zorunludur.' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return redirectToForm(request, { error: 'receipt' });
     }
     if (dekontFile.size > MAX_FILE_SIZE) {
-      return new Response(JSON.stringify({ success: false, error: 'Dekont dosyası 10MB sınırını aşıyor.' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return redirectToForm(request, { error: 'receipt_size' });
     }
     if (!ALLOWED_RECEIPT_MIME_TYPES.has(dekontFile.type)) {
-      return new Response(JSON.stringify({ success: false, error: 'Dekont için yalnızca PDF/JPG/PNG/WEBP kabul edilir.' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return redirectToForm(request, { error: 'receipt_type' });
     }
 
     const applicationResult = await createClubApplication({
@@ -149,48 +141,32 @@ export const POST: APIRoute = async ({ request }) => {
       });
     }
 
-    const nodemailer = await import('nodemailer');
-    const transporter = nodemailer.default.createTransport({
-      host: import.meta.env.SMTP_HOST,
-      port: Number(import.meta.env.SMTP_PORT ?? 587),
-      secure: import.meta.env.SMTP_PORT === '465',
-      auth: {
-        user: import.meta.env.SMTP_USER,
-        pass: import.meta.env.SMTP_PASS,
-      },
-    });
-
-    const mailHtml = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8f9fa; padding: 24px; border-radius: 12px;">
-        <div style="background: #E30A17; color: white; padding: 16px 20px; border-radius: 8px;">
-          <h1 style="margin:0; font-size:1.2rem;">Yeni Kulüp Başvurusu</h1>
-          <p style="margin:6px 0 0; opacity:0.9;">${kulupad} - ${brans} (${il}/${ilce})</p>
-        </div>
-        <div style="background: white; padding: 18px 20px; border: 1px solid #e9ecef; border-radius: 8px; margin-top: 12px;">
-          <p><strong>Yetkili:</strong> ${yetkili}</p>
-          <p><strong>Telefon:</strong> ${telefon}</p>
-          <p><strong>E-posta:</strong> ${email}</p>
-          <p><strong>Paket:</strong> ${paket}</p>
-          <p><strong>Ödeme Modeli:</strong> Havale/EFT (dekont yüklendi)</p>
-          ${aciklama ? `<p><strong>Açıklama:</strong> ${aciklama}</p>` : ''}
-        </div>
-      </div>
-    `;
-
-    await transporter.sendMail({
-      from: `"SporNerede.net Başvuru" <${import.meta.env.SMTP_USER}>`,
-      to: import.meta.env.MAIL_TO,
-      subject: `Yeni Kulup Basvurusu: ${kulupad} - ${brans} (${il}/${ilce})`,
-      html: mailHtml,
-      replyTo: email,
-    });
+    const ownerEmail = process.env.MAIL_TO ?? import.meta.env.MAIL_TO;
+    if (ownerEmail) {
+      const template = buildApplicationNotificationMail({
+        kulupad,
+        brans,
+        il,
+        ilce,
+        yetkili,
+        telefon,
+        email,
+        paket,
+        aciklama,
+      });
+      await enqueueMail({
+        kind: 'application_notification',
+        toEmail: ownerEmail,
+        subject: template.subject,
+        html: template.html,
+        replyTo: email,
+      });
+      await processMailQueue(3).catch(() => undefined);
+    }
 
     return Response.redirect(new URL('/basvuru?success=1', request.url), 303);
   } catch (err) {
     console.error('[/api/basvuru] Hata:', err);
-    return new Response(
-      JSON.stringify({ success: false, error: 'Sunucu hatası. Lütfen tekrar deneyin.' }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    );
+    return redirectToForm(request, { error: 'server' });
   }
 };
