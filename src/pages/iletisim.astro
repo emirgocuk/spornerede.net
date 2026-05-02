@@ -86,7 +86,17 @@ const formStatus = Astro.url.searchParams.get('status');
           <article class="contact-info-card contact-info-card--dark">
             <span class="info-label">Doğrudan İletişim</span>
             <h2>Size yardımcı olmaya hazırız.</h2>
-            <p>Form dışında bize dummy iletişim kanallarından da ulaşabilirsiniz.</p>
+            <p>Form dışında bize doğrudan iletişim kanallarımızdan da ulaşabilirsiniz.</p>
+            <a
+              href="https://wa.me/905362982218"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="contact-whatsapp-cta"
+              aria-label="WhatsApp ile doğrudan mesaj gönder"
+            >
+              <img src="/icons/whatsapp.svg" alt="" aria-hidden="true" class="contact-whatsapp-icon" />
+              WhatsApp'tan Ulaş
+            </a>
           </article>
 
           <article class="contact-info-card">
@@ -99,7 +109,7 @@ const formStatus = Astro.url.searchParams.get('status');
           <article class="contact-info-card">
             <span class="info-icon">📞</span>
             <h3>Telefon</h3>
-            <a href="tel:+905551234567">+90 555 123 45 67</a>
+            <a href="tel:+905362982218">+90 536 298 22 18</a>
             <p>Hafta içi 09:00 - 18:00 arası ulaşabilirsiniz.</p>
           </article>
 
@@ -412,5 +422,46 @@ const formStatus = Astro.url.searchParams.get('status');
 
   .contact-info-card--dark p {
     color: rgba(255, 255, 255, 0.72);
+  }
+
+  .contact-whatsapp-cta {
+    margin-top: 0.25rem;
+    width: fit-content;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.65rem 0.95rem;
+    border-radius: 999px;
+    background: #25D366;
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    font-weight: 800;
+    text-decoration: none;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+  }
+
+  .contact-info-card .contact-whatsapp-cta {
+    color: #ffffff;
+  }
+
+  .contact-whatsapp-cta:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 24px rgba(37, 211, 102, 0.35);
+    filter: brightness(1.02);
+    text-decoration: none;
+  }
+
+  .contact-info-card .contact-whatsapp-cta:hover {
+    color: #ffffff;
+  }
+
+  .contact-whatsapp-icon {
+    width: 20px !important;
+    height: 20px !important;
+    max-width: 20px !important;
+    min-width: 20px;
+    object-fit: contain;
+    display: block;
+    flex-shrink: 0;
   }
 </style>

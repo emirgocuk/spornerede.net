@@ -4,15 +4,18 @@
  * Landing page hero bölümü.
  * "SPOR NEREDE?" vurgusu + arama formu + popüler branşlar.
  */
-import { getAllCities, getAllDistricts } from '../lib/repositories/catalog';
+import { getAllCities, getAllDistricts, getAllBranches } from '../lib/repositories/catalog';
 
 const { searchParams } = Astro.url;
 const seciliIl = searchParams.get('il') || '';
 const seciliIlce = searchParams.get('ilce') || '';
 const seciliBrans = searchParams.get('brans') || '';
 
-const tumIller = await getAllCities();
-const tumIlceler = await getAllDistricts(seciliIl || undefined);
+const [tumIller, tumIlceler, tumBranslar] = await Promise.all([
+  getAllCities(),
+  getAllDistricts(seciliIl || undefined),
+  getAllBranches(),
+]);
 const turkishCityMap: Record<string, string> = {
   adana: 'Adana', adiyaman: 'Adıyaman', afyonkarahisar: 'Afyonkarahisar', agri: 'Ağrı', amasya: 'Amasya',
   ankara: 'Ankara', antalya: 'Antalya', artvin: 'Artvin', aydin: 'Aydın', balikesir: 'Balıkesir',
@@ -54,16 +57,13 @@ for (let i = normalizedCities.length - 1; i > 0; i -= 1) {
 
 const cityNames = [...prioritizedCities, ...normalizedCities];
 
-const branslar = [
-  'Futbol', 'Basketbol', 'Voleybol', 'Tenis', 'Yüzme', 'Karate', 'Judo',
-  'Taekwondo', 'Jimnastik', 'Atletizm', 'Hentbol', 'Badminton', 'Masa Tenisi',
-  'Boks', 'Güreş', 'Satranç', 'Dans', 'Okçuluk', 'At Binicilik', 'Golf',
-];
+const bransOptions = [...tumBranslar]
+  .sort((a, b) => a.isim.localeCompare(b.isim, 'tr'))
+  .map((b) => ({ ad: b.isim, slug: b.slug }));
 
 const seciliIlAdi = tumIller.find((il) => il.slug === seciliIl)?.ad ?? '';
 const seciliIlceAdi = tumIlceler.find((ilce) => ilce.slug === seciliIlce)?.ad ?? '';
-const bransOptions = branslar.map((ad) => ({ ad, slug: ad.toLowerCase().replace(/\s/g, '-') }));
-const seciliBransAdi = bransOptions.find((brans) => brans.slug === seciliBrans)?.ad ?? '';
+const seciliBransAdi = tumBranslar.find((b) => b.slug === seciliBrans)?.isim ?? '';
 
 ---
 

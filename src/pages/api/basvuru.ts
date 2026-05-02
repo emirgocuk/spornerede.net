@@ -25,8 +25,19 @@ const ALLOWED_RECEIPT_MIME_TYPES = new Set([
   'image/webp',
 ]);
 
+function getAppOrigin(request: Request) {
+  const forwardedHost = request.headers.get('x-forwarded-host')?.split(',')[0]?.trim();
+  if (forwardedHost) {
+    const forwardedProto = request.headers.get('x-forwarded-proto')?.split(',')[0]?.trim() || 'https';
+    return `${forwardedProto}://${forwardedHost}`;
+  }
+
+  const configuredSiteUrl = process.env.SITE_URL ?? import.meta.env.SITE_URL;
+  return configuredSiteUrl ? new URL(configuredSiteUrl).origin : new URL(request.url).origin;
+}
+
 function redirectToForm(request: Request, params: Record<string, string>) {
-  const url = new URL('/basvuru', request.url);
+  const url = new URL('/basvuru', getAppOrigin(request));
   for (const [key, value] of Object.entries(params)) {
     url.searchParams.set(key, value);
   }
@@ -64,27 +75,17 @@ export const POST: APIRoute = async ({ request }) => {
     const odemeOnay = formData.get('odemeOnay')?.toString().trim() || '';
     const dekontFile = formData.get('dekont');
 
-    if (!kulupad || !il || !ilce || !brans || !paket || !yetkili || !telefon || !email) {
+    if (!kulupad || !il || !ilce || !brans || !paket || !yetkili || !telefon) {
       return redirectToForm(request, { error: 'missing' });
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (email && !emailRegex.test(email)) {
       return redirectToForm(request, { error: 'email' });
     }
 
     if (odemeOnay !== '1') {
       return redirectToForm(request, { error: 'payment' });
-    }
-
-    if (!(dekontFile instanceof File) || !dekontFile.name || dekontFile.size === 0) {
-      return redirectToForm(request, { error: 'receipt' });
-    }
-    if (dekontFile.size > MAX_FILE_SIZE) {
-      return redirectToForm(request, { error: 'receipt_size' });
-    }
-    if (!ALLOWED_RECEIPT_MIME_TYPES.has(dekontFile.type)) {
-      return redirectToForm(request, { error: 'receipt_type' });
     }
 
     const applicationResult = await createClubApplication({
@@ -105,19 +106,28 @@ export const POST: APIRoute = async ({ request }) => {
     const uploadRoot = path.resolve(process.cwd(), 'uploads', 'applications', String(applicationResult.id));
     await fs.mkdir(uploadRoot, { recursive: true });
 
-    const dekontSafeName = sanitizeFilename(dekontFile.name);
-    const dekontDiskFilename = `${Date.now()}-${randomUUID()}-${dekontSafeName}`;
-    const dekontDiskPath = path.join(uploadRoot, dekontDiskFilename);
-    const dekontBytes = Buffer.from(await dekontFile.arrayBuffer());
-    await fs.writeFile(dekontDiskPath, dekontBytes);
-    await createApplicationDocument({
-      applicationId: applicationResult.id,
-      kind: 'dekont',
-      storageKey: `applications/${applicationResult.id}/${dekontDiskFilename}`,
-      originalFilename: dekontFile.name,
-      mimeType: dekontFile.type || 'application/octet-stream',
-      byteSize: dekontFile.size,
-    });
+    if (dekontFile instanceof File && dekontFile.name && dekontFile.size > 0) {
+      if (dekontFile.size > MAX_FILE_SIZE) {
+        return redirectToForm(request, { error: 'receipt_size' });
+      }
+      if (!ALLOWED_RECEIPT_MIME_TYPES.has(dekontFile.type)) {
+        return redirectToForm(request, { error: 'receipt_type' });
+      }
+
+      const dekontSafeName = sanitizeFilename(dekontFile.name);
+      const dekontDiskFilename = `${Date.now()}-${randomUUID()}-${dekontSafeName}`;
+      const dekontDiskPath = path.join(uploadRoot, dekontDiskFilename);
+      const dekontBytes = Buffer.from(await dekontFile.arrayBuffer());
+      await fs.writeFile(dekontDiskPath, dekontBytes);
+      await createApplicationDocument({
+        applicationId: applicationResult.id,
+        kind: 'dekont',
+        storageKey: `applications/${applicationResult.id}/${dekontDiskFilename}`,
+        originalFilename: dekontFile.name,
+        mimeType: dekontFile.type || 'application/octet-stream',
+        byteSize: dekontFile.size,
+      });
+    }
 
     const files = formData.getAll('documents').filter((value): value is File => value instanceof File);
     for (const file of files) {
@@ -164,7 +174,7 @@ export const POST: APIRoute = async ({ request }) => {
       await processMailQueue(3).catch(() => undefined);
     }
 
-    return Response.redirect(new URL('/basvuru?success=1', request.url), 303);
+    return Response.redirect(new URL('/basvuru?success=1', getAppOrigin(request)), 303);
   } catch (err) {
     console.error('[/api/basvuru] Hata:', err);
     return redirectToForm(request, { error: 'server' });

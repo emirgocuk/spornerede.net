@@ -4,8 +4,74 @@
  * "Branşları Keşfet" bölümü — ikonlu kart grid.
  */
 import { getAllBranches } from '../lib/repositories/catalog';
+import { searchClubs } from '../lib/repositories/catalog';
 
-const branslar = await getAllBranches();
+const [branslar, clubs] = await Promise.all([getAllBranches(), searchClubs({})]);
+const ilanCountByBranch = new Map<string, number>();
+const clubCountByBranch = new Map<string, number>();
+
+for (const club of clubs) {
+  const branchSlug = String(club.bransSlug ?? '').trim();
+  if (!branchSlug) continue;
+  const ilanCount = Array.isArray(club.programlar) ? club.programlar.length : 0;
+  const current = ilanCountByBranch.get(branchSlug) ?? 0;
+  ilanCountByBranch.set(branchSlug, current + ilanCount);
+  const clubCurrent = clubCountByBranch.get(branchSlug) ?? 0;
+  clubCountByBranch.set(branchSlug, clubCurrent + 1);
+}
+
+/** Kulüpsüz olsa da ana sayfada kart olarak göster (veritabanında varsa). */
+const HOME_FEATURED_SLUGS = new Set([
+  'triatlon',
+  'kick-boks',
+  'aikido',
+  'kadin-futbolu',
+  'kayak',
+  'rulman-pateni',
+  'buz-pateni',
+  'bale',
+  'bisiklet',
+  'motor-sporlari',
+  'motokros',
+  'rafting',
+  '4x4-offroad',
+  'enduro',
+  'atv',
+  'utv',
+  'side-by-side',
+  'trial-motosiklet',
+  'yamac-parasutu',
+  'modern-pentatlon',
+  'kosu',
+  'bowling',
+  'yuruyus',
+  'yelken',
+  'atis-poligonu',
+  'halk-oyunlari',
+  'beyzbol',
+]);
+
+const sortByActivity = (a: (typeof branslar)[0], b: (typeof branslar)[0]) => {
+  const aClubCount = clubCountByBranch.get(a.slug) ?? 0;
+  const bClubCount = clubCountByBranch.get(b.slug) ?? 0;
+  if (aClubCount !== bClubCount) return bClubCount - aClubCount;
+  const aCount = ilanCountByBranch.get(a.slug) ?? 0;
+  const bCount = ilanCountByBranch.get(b.slug) ?? 0;
+  if (aCount !== bCount) return bCount - aCount;
+  return a.isim.localeCompare(b.isim, 'tr');
+};
+
+const withClubs = [...branslar]
+  .filter((branch) => (clubCountByBranch.get(branch.slug) ?? 0) > 0)
+  .sort(sortByActivity)
+  .slice(0, 20);
+
+const withClubSlugs = new Set(withClubs.map((b) => b.slug));
+const featuredExtra = branslar
+  .filter((b) => HOME_FEATURED_SLUGS.has(b.slug) && !withClubSlugs.has(b.slug))
+  .sort((a, b) => a.isim.localeCompare(b.isim, 'tr'));
+
+const topBranslar = [...withClubs, ...featuredExtra];
 ---
 
 <section class="branslar-section section" aria-labelledby="branslar-baslik">
@@ -24,48 +90,53 @@ const branslar = await getAllBranches();
       </div>
     </div>
 
-    <!-- Branş grid -->
-    <div class="branslar-grid" role="list" aria-label="Spor Branşları">
-      {branslar.map((brans, index) => (
-        <a
-          href={`/branslar/${brans.slug}`}
-          class="brans-kart animate-fade-in-up"
-          style={`animation-delay: ${index * 0.05}s`}
-          role="listitem"
-          aria-label={`${brans.isim} kurslarını ara`}
-        >
-          <!-- Emoji ikonu -->
-          <div class="brans-icon" style={`--brans-renk: ${brans.renk}`}>
-            <span aria-hidden="true">{brans.emoji}</span>
-          </div>
+    {topBranslar.length > 0 && (
+      <>
+        <!-- Branş grid -->
+        <div class="branslar-grid" role="list" aria-label="Spor Branşları">
+          {topBranslar.map((brans, index) => (
+            <a
+              href={`/ara?brans=${encodeURIComponent(brans.slug)}`}
+              class="brans-kart animate-fade-in-up"
+              style={`animation-delay: ${index * 0.05}s`}
+              role="listitem"
+              aria-label={`${brans.isim} kurslarını ara`}
+            >
+              <!-- Emoji ikonu -->
+              <div class="brans-icon" style={`--brans-renk: ${brans.renk}`}>
+                <span aria-hidden="true">{brans.emoji}</span>
+              </div>
 
-          <!-- İsim & Açıklama -->
-          <div class="brans-info">
-            <h3 class="brans-isim">{brans.isim}</h3>
-            <p class="brans-aciklama">{brans.aciklama}</p>
-          </div>
+              <!-- İsim & Açıklama -->
+              <div class="brans-info">
+                <h3 class="brans-isim">{brans.isim}</h3>
+                <p class="brans-kulup-sayisi">{clubCountByBranch.get(brans.slug) ?? 0} kulüp</p>
+                <p class="brans-aciklama">{brans.aciklama}</p>
+              </div>
 
-          <!-- Ok ikonu -->
-          <div class="brans-arrow" aria-hidden="true">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <!-- Ok ikonu -->
+              <div class="brans-arrow" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="5" y1="12" x2="19" y2="12"/>
+                  <polyline points="12 5 19 12 12 19"/>
+                </svg>
+              </div>
+            </a>
+          ))}
+        </div>
+
+        <!-- Tüm branşlar CTA -->
+        <div class="branslar-footer">
+          <a href="/branslar" class="btn btn-outline" aria-label="Tüm spor branşlarını görüntüle">
+            Tüm Branşları Gör
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <line x1="5" y1="12" x2="19" y2="12"/>
               <polyline points="12 5 19 12 12 19"/>
             </svg>
-          </div>
-        </a>
-      ))}
-    </div>
-
-    <!-- Tüm branşlar CTA -->
-    <div class="branslar-footer">
-      <a href="/branslar" class="btn btn-outline" aria-label="Tüm spor branşlarını görüntüle">
-        Tüm Branşları Gör
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <line x1="5" y1="12" x2="19" y2="12"/>
-          <polyline points="12 5 19 12 12 19"/>
-        </svg>
-      </a>
-    </div>
+          </a>
+        </div>
+      </>
+    )}
 
   </div>
 </section>
@@ -205,6 +276,13 @@ const branslar = await getAllBranches();
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+  }
+
+  .brans-kulup-sayisi {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #E30A17;
+    margin-top: 0.1rem;
   }
 
   /* ===== OK ===== */

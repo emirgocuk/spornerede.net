@@ -5,8 +5,7 @@
  * Kulüplerin platforma kayıt için dolduracağı form.
  */
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { getAllCities, getAllDistrictsWithCities } from '../lib/repositories/catalog';
-import { getMembershipPlans } from '../lib/repositories/applications';
+import { getAllCities, getAllDistrictsWithCities, getAllBranches } from '../lib/repositories/catalog';
 
 const success = Astro.url.searchParams.get('success') === '1';
 const errorCode = Astro.url.searchParams.get('error') ?? '';
@@ -21,10 +20,16 @@ const errorMessages: Record<string, string> = {
 };
 const errorMessage = errorMessages[errorCode] ?? '';
 
-const cityRows = await getAllCities();
+const [cityRows, districtRows, branchRows] = await Promise.all([
+  getAllCities(),
+  getAllDistrictsWithCities(),
+  getAllBranches(),
+]);
 const CITIES = cityRows.map(c => c.ad);
-const districtRows = await getAllDistrictsWithCities();
-const MEMBERSHIP_PLANS = await getMembershipPlans();
+const MEMBERSHIP_PLANS = [
+  { kod: 'alti-aylik', ad: '6 Aylık', ucret: 7500, sure: '1 Branş Dahil', oneCikan: true },
+  { kod: 'on-iki-aylik', ad: 'Yıllık', ucret: 12000, sure: '1 Branş Dahil', oneCikan: false },
+];
 const DISTRICTS_BY_CITY = districtRows.reduce<Record<string, { ad: string; slug: string }[]>>((acc, district) => {
   if (!district.il) return acc;
   acc[district.il] ??= [];
@@ -33,10 +38,8 @@ const DISTRICTS_BY_CITY = districtRows.reduce<Record<string, { ad: string; slug:
 }, {});
 
 const bransListesi = [
-  'Futbol', 'Basketbol', 'Voleybol', 'Tenis', 'Yüzme', 'Karate',
-  'Judo', 'Taekwondo', 'Jimnastik', 'Atletizm', 'Hentbol', 'Badminton',
-  'Masa Tenisi', 'Boks', 'Güreş', 'Satranç', 'Dans', 'Okçuluk',
-  'At Binicilik', 'Golf', 'Diğer',
+  ...branchRows.map((b) => b.isim).sort((a, b) => a.localeCompare(b, 'tr')),
+  'Diğer',
 ];
 
 const adimlar = [
@@ -44,12 +47,6 @@ const adimlar = [
   { num: '2', label: 'İletişim' },
   { num: '3', label: 'Paket' },
 ];
-
-const planDisplayMeta: Record<string, { ad: string; sure: string; aylikKarsilik?: string; oneCikan?: boolean; populer?: boolean }> = {
-  aylik: { ad: 'Aylık', sure: 'Esnek Plan', oneCikan: false },
-  'alti-aylik': { ad: '6 Aylık', sure: 'Avantajlı Plan', aylikKarsilik: '1.250 TL / ay', oneCikan: true, populer: true },
-  'on-iki-aylik': { ad: '12 Aylık', sure: 'En İyi Fiyat', aylikKarsilik: '1.000 TL / ay', oneCikan: false },
-};
 
 const iban = import.meta.env.PUBLIC_BANK_IBAN || 'TR00 0000 0000 0000 0000 0000 00';
 const accountName = import.meta.env.PUBLIC_BANK_ACCOUNT_NAME || 'SporNerede Teknoloji A.S.';
@@ -189,7 +186,7 @@ const bankName = import.meta.env.PUBLIC_BANK_NAME || 'Banka Adi';
                   <div class="form-row">
                     <div class="form-group">
                       <label class="form-label" for="kulup-adres">
-                        Tam Adres
+                        Tam Adres - Tesis İsmi
                       </label>
                       <input
                         type="text"
@@ -204,7 +201,7 @@ const bankName = import.meta.env.PUBLIC_BANK_NAME || 'Banka Adi';
 
                   <div class="form-row form-row-2col">
                     <div class="form-group">
-                      <label class="form-label" for="kulup-yas">Yaş Aralığı</label>
+                      <label class="form-label" for="kulup-yas">Yaş Aralığı (isteğe bağlı)</label>
                       <input
                         type="text"
                         id="kulup-yas"
@@ -215,7 +212,7 @@ const bankName = import.meta.env.PUBLIC_BANK_NAME || 'Banka Adi';
                     </div>
 
                     <div class="form-group">
-                      <label class="form-label" for="kulup-fiyat">Aylık Ücret (₺)</label>
+                      <label class="form-label" for="kulup-fiyat">Aylık Ücret (₺) (isteğe bağlı)</label>
                       <input
                         type="text"
                         id="kulup-fiyat"
@@ -228,7 +225,7 @@ const bankName = import.meta.env.PUBLIC_BANK_NAME || 'Banka Adi';
 
                   <div class="form-row">
                     <div class="form-group">
-                      <label class="form-label" for="kulup-aciklama">Kulüp / Kurs Hakkında</label>
+                      <label class="form-label" for="kulup-aciklama">Kulüp / Kurs Hakkında (isteğe bağlı)</label>
                       <textarea
                         id="kulup-aciklama"
                         name="aciklama"
@@ -283,18 +280,14 @@ const bankName = import.meta.env.PUBLIC_BANK_NAME || 'Banka Adi';
 
                   <div class="form-row">
                     <div class="form-group">
-                      <label class="form-label" for="yetkili-email">
-                        E-posta <span class="required" aria-label="zorunlu alan">*</span>
-                      </label>
+                      <label class="form-label" for="yetkili-email">E-posta (isteğe bağlı)</label>
                       <input
                         type="email"
                         id="yetkili-email"
                         name="email"
                         class="form-input"
                         placeholder="kulup@orneksiteniz.com"
-                        required
                         autocomplete="email"
-                        aria-required="true"
                       />
                     </div>
                   </div>
@@ -305,48 +298,52 @@ const bankName = import.meta.env.PUBLIC_BANK_NAME || 'Banka Adi';
                     <span class="form-section-num" aria-hidden="true">3</span>
                     Üyelik Paketi
                   </h2>
-                  <p class="paket-subtitle">Size en uygun planı seçin, kampanya fiyatlarıyla hemen başlayın.</p>
+                  <p class="paket-subtitle">6 aylık veya yıllık paketinizi seçin. Her paket 1 branş içerir; sonraki her branş %50 indirimlidir.</p>
                   <div class="membership-grid" role="radiogroup" aria-label="Üyelik Paketi">
                     {MEMBERSHIP_PLANS.length ? MEMBERSHIP_PLANS.map((plan) => {
-                      const meta = planDisplayMeta[plan.kod] ?? { ad: plan.ad, sure: plan.ad };
                       return (
-                        <label class={`membership-card ${meta.oneCikan ? 'membership-card--featured' : ''}`} for={`uyelik-${plan.kod}`}>
-                          <input id={`uyelik-${plan.kod}`} class="membership-radio" type="radio" name="paket" value={plan.kod} required />
+                        <label class="membership-card" for={`uyelik-${plan.kod}`}>
+                          <input
+                            id={`uyelik-${plan.kod}`}
+                            class="membership-radio"
+                            type="radio"
+                            name="paket"
+                            value={plan.kod}
+                            data-plan-name={plan.ad}
+                            data-plan-price={plan.ucret}
+                            required
+                          />
                           <div class="membership-card-content">
-                            {meta.populer && <div class="campaign-badge">✨ En Popüler</div>}
-                            
                             <div class="membership-header">
-                              <h3 class="membership-name">{meta.ad}</h3>
-                              <span class="membership-period">{meta.sure}</span>
+                              <h3 class="membership-name">{plan.ad}</h3>
+                              <span class="membership-period">{plan.sure}</span>
                             </div>
                             
                             <div class="membership-price-area">
                               <div class="membership-price">
                                 {new Intl.NumberFormat('tr-TR').format(plan.ucret)} <span class="currency">TL</span>
                               </div>
-                              {meta.aylikKarsilik ? (
-                                <div class="membership-monthly">{meta.aylikKarsilik}</div>
-                              ) : (
-                                <div class="membership-monthly-placeholder">&nbsp;</div>
-                              )}
+                              <div class="membership-monthly">1 BRANŞ</div>
+                              <div class="membership-discount-badge">Ek Branşlar %50 İndirimli</div>
                             </div>
                             
                             <div class="membership-divider"></div>
                             
-                            <ul class="membership-features">
-                              <li>
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="feature-icon"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                                Sınırsız Branş Ekleme
-                              </li>
-                              <li>
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="feature-icon"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                                Gelişmiş Profil Paneli
-                              </li>
-                              <li>
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="feature-icon"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                                7/24 Öncelikli Destek
-                              </li>
-                            </ul>
+                            <p class="membership-count-caption">
+                              1 branş dahildir, sonraki branşlar %50 indirimlidir.
+                            </p>
+                            <div class="membership-branch-count">
+                              <label for={`brans-sayisi-${plan.kod}`}>Eklenecek Branş Sayısı</label>
+                              <input
+                                id={`brans-sayisi-${plan.kod}`}
+                                type="number"
+                                min="1"
+                                step="1"
+                                value="1"
+                                class="form-input membership-branch-input"
+                                data-branch-input
+                              />
+                            </div>
                             
                             <div class="membership-select-btn">Planı Seç</div>
                           </div>
@@ -358,6 +355,7 @@ const bankName = import.meta.env.PUBLIC_BANK_NAME || 'Banka Adi';
                       </div>
                     )}
                   </div>
+                  <input type="hidden" id="brans-sayisi-hidden" name="bransSayisi" value="1" />
 
                   <div class="payment-box">
                     <h3 class="payment-title">Banka Havalesi ile Ödeme</h3>
@@ -375,28 +373,20 @@ const bankName = import.meta.env.PUBLIC_BANK_NAME || 'Banka Adi';
                         <span class="payment-label">IBAN</span>
                         <strong>{iban}</strong>
                       </div>
+                      <div class="payment-item payment-item--iban">
+                        <span class="payment-label">Gönderilecek Tutar</span>
+                        <strong id="dyn-payment-total">Paket seçin</strong>
+                      </div>
+                    </div>
+                    <div class="payment-reference">
+                      <label for="dyn-payment-ref">Banka Açıklama</label>
+                      <input id="dyn-payment-ref" type="text" readonly value="Kulüp adı girildiğinde otomatik doldurulur" />
                     </div>
                     <ol class="payment-steps">
                       <li><strong id="dyn-payment-amount">Paket tutarını</strong> yukarıdaki IBAN hesabına gönderin.</li>
                       <li>Açıklama alanına <strong id="dyn-payment-desc">kulüp adınızı</strong> yazın.</li>
-                      <li>Dekont dosyanızı yükleyip başvuruyu tamamlayın.</li>
+                      <li>Ödeme onay kutusunu işaretleyip başvuruyu tamamlayın.</li>
                     </ol>
-                    <div class="form-row">
-                      <div class="form-group">
-                        <label class="form-label" for="odeme-dekont">
-                          Dekont Yükle (PDF/JPG/PNG) <span class="required" aria-label="zorunlu alan">*</span>
-                        </label>
-                        <input
-                          type="file"
-                          id="odeme-dekont"
-                          name="dekont"
-                          class="form-input"
-                          accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp"
-                          required
-                          aria-required="true"
-                        />
-                      </div>
-                    </div>
                     <label class="payment-confirm">
                       <input type="checkbox" name="odemeOnay" value="1" class="sr-only-checkbox" required aria-required="true" />
                       <div class="custom-checkbox">
@@ -425,13 +415,29 @@ const bankName = import.meta.env.PUBLIC_BANK_NAME || 'Banka Adi';
                 <div class="form-contact-card">
                   <h3 class="form-contact-title">Sorularınız mı var?</h3>
                   <p class="form-contact-text">Başvuru süreciyle ilgili yardım için bize ulaşın:</p>
-                  <a href="mailto:info@spornerede.net" class="form-contact-email">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-                      <polyline points="22,6 12,13 2,6"/>
-                    </svg>
-                    info@spornerede.net
-                  </a>
+                  <div class="form-contact-actions">
+                    <a
+                      href="https://wa.me/905362982218"
+                      class="form-contact-action form-contact-action--whatsapp"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label="WhatsApp ile doğrudan mesaj gönder"
+                    >
+                      <img src="/icons/whatsapp.svg" alt="" aria-hidden="true" width="16" height="16" />
+                      WhatsApp'tan Ulaş
+                    </a>
+                    <a
+                      href="mailto:info@spornerede.net"
+                      class="form-contact-action form-contact-action--email"
+                      aria-label="E-posta ile iletişime geç"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                        <polyline points="22,6 12,13 2,6"/>
+                      </svg>
+                      info@spornerede.net
+                    </a>
+                  </div>
                 </div>
 
               </form>
@@ -479,26 +485,68 @@ const bankName = import.meta.env.PUBLIC_BANK_NAME || 'Banka Adi';
     const kulupInput = document.getElementById('kulup-ad');
     const dynDesc = document.getElementById('dyn-payment-desc');
     const dynAmount = document.getElementById('dyn-payment-amount');
+    const dynTotal = document.getElementById('dyn-payment-total');
+    const dynReference = document.getElementById('dyn-payment-ref');
+    const branchCountHidden = document.getElementById('brans-sayisi-hidden');
+    const branchCountInputs = Array.from(document.querySelectorAll('[data-branch-input]'));
     const radios = document.querySelectorAll('input[name="paket"]');
 
-    // Kulup adini aciklamaya yansit
-    kulupInput?.addEventListener('input', (e) => {
-      const val = e.target.value.trim();
-      if (dynDesc) dynDesc.textContent = val ? '"' + val + '"' : 'kulüp adınızı';
-    });
+    const formatTL = (amount) => `${new Intl.NumberFormat('tr-TR').format(amount)} TL`;
+    const getSelectedPlan = () => Array.from(radios).find((radio) => radio.checked);
 
-    // Secilen paketin tutarini yansit
-    radios.forEach((radio) => {
-      radio.addEventListener('change', (e) => {
-        // İlgili kartin icindeki fiyat elementini bul
-        const card = e.target.closest('.membership-card');
-        const priceEl = card?.querySelector('.membership-price');
-        if (priceEl && dynAmount) {
-          const priceText = priceEl.textContent.trim();
-          dynAmount.textContent = priceText + ' tutarını';
+    function updatePaymentInfo() {
+      const selected = getSelectedPlan();
+      const clubName = kulupInput instanceof HTMLInputElement ? kulupInput.value.trim() : '';
+      const safeClubName = clubName || 'kulüp adınızı';
+      const branchCountRaw = branchCountHidden instanceof HTMLInputElement ? Number(branchCountHidden.value || 1) : 1;
+      const branchCount = Number.isFinite(branchCountRaw) ? Math.max(1, Math.floor(branchCountRaw)) : 1;
+      const extraCount = Math.max(0, branchCount - 1);
+
+      if (dynDesc) dynDesc.textContent = `"${safeClubName}"`;
+
+      if (!selected) {
+        if (dynAmount) dynAmount.textContent = 'Paket tutarını';
+        if (dynTotal) dynTotal.textContent = 'Paket seçin';
+        if (dynReference instanceof HTMLInputElement) {
+          dynReference.value = `${safeClubName} - Paket Seçilmedi`;
+        }
+        return;
+      }
+
+      const basePrice = Number(selected.dataset.planPrice || 0);
+      const planName = selected.dataset.planName || 'Paket';
+      const totalAmount = basePrice + (extraCount * basePrice * 0.5);
+      const totalText = formatTL(totalAmount);
+
+      if (dynAmount) dynAmount.textContent = `${totalText} tutarını`;
+      if (dynTotal) dynTotal.textContent = totalText;
+      if (dynReference instanceof HTMLInputElement) {
+        dynReference.value = `${safeClubName} - ${planName} - ${totalText}`;
+      }
+    }
+
+    function syncBranchCount(nextValue) {
+      const count = Number.isFinite(nextValue) ? Math.max(1, Math.floor(nextValue)) : 1;
+      if (branchCountHidden instanceof HTMLInputElement) {
+        branchCountHidden.value = String(count);
+      }
+      branchCountInputs.forEach((input) => {
+        if (input instanceof HTMLInputElement && input.value !== String(count)) {
+          input.value = String(count);
         }
       });
+      updatePaymentInfo();
+    }
+
+    kulupInput?.addEventListener('input', updatePaymentInfo);
+    branchCountInputs.forEach((input) => {
+      input.addEventListener('input', () => syncBranchCount(Number(input.value)));
+      input.addEventListener('click', (event) => event.stopPropagation());
+      input.addEventListener('keydown', (event) => event.stopPropagation());
     });
+    radios.forEach((radio) => radio.addEventListener('change', updatePaymentInfo));
+    syncBranchCount(1);
+    updatePaymentInfo();
   </script>
 
 </BaseLayout>
@@ -709,7 +757,7 @@ const bankName = import.meta.env.PUBLIC_BANK_NAME || 'Banka Adi';
     padding: 2.5rem;
     box-shadow: 0 4px 24px rgba(0,0,0,0.07);
     width: 100%;
-    max-width: 840px;
+    max-width: 1120px;
   }
 
   /* ===== FORM SECTION ===== */
@@ -863,11 +911,12 @@ const bankName = import.meta.env.PUBLIC_BANK_NAME || 'Banka Adi';
     display: grid;
     grid-template-columns: 1fr;
     gap: 1.25rem;
+    align-items: stretch;
   }
 
   @media (min-width: 768px) {
     .membership-grid {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   }
 
@@ -919,34 +968,6 @@ const bankName = import.meta.env.PUBLIC_BANK_NAME || 'Banka Adi';
     background: #E30A17;
   }
 
-  .membership-card--featured .membership-card-content {
-    border-color: #E30A17;
-    background: linear-gradient(to bottom, #fff5f5 0%, #ffffff 100%);
-    box-shadow: 0 8px 24px rgba(227, 10, 23, 0.12);
-  }
-  
-  .membership-card--featured .membership-radio:checked + .membership-card-content {
-    border-color: #E30A17;
-    box-shadow: 0 12px 30px rgba(227, 10, 23, 0.25), 0 0 0 1px #E30A17;
-  }
-  
-  .membership-card--featured .membership-radio:checked + .membership-card-content::before {
-    background: #E30A17;
-  }
-
-  .campaign-badge {
-    position: absolute;
-    top: 0;
-    right: 1.5rem;
-    background: #E30A17;
-    color: #ffffff;
-    font-size: 0.75rem;
-    font-weight: 800;
-    padding: 0.35rem 0.75rem;
-    border-radius: 0 0 0.5rem 0.5rem;
-    box-shadow: 0 4px 10px rgba(227, 10, 23, 0.3);
-    z-index: 2;
-  }
 
   .membership-header {
     margin-bottom: 1.25rem;
@@ -986,10 +1007,6 @@ const bankName = import.meta.env.PUBLIC_BANK_NAME || 'Banka Adi';
     color: #E30A17;
   }
   
-  .membership-card--featured .membership-radio:checked + .membership-card-content .membership-price {
-    color: #E30A17;
-  }
-
   .membership-price .currency {
     font-size: 1.15rem;
     font-weight: 700;
@@ -1005,6 +1022,18 @@ const bankName = import.meta.env.PUBLIC_BANK_NAME || 'Banka Adi';
     display: inline-block;
     padding: 0.2rem 0.6rem;
     border-radius: 0.35rem;
+  }
+
+  .membership-discount-badge {
+    display: inline-block;
+    margin-top: 0.5rem;
+    padding: 0.25rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #9a3412;
+    background: #ffedd5;
+    border: 1px solid #fed7aa;
   }
   
   .membership-monthly-placeholder {
@@ -1056,10 +1085,15 @@ const bankName = import.meta.env.PUBLIC_BANK_NAME || 'Banka Adi';
     border-radius: 0.75rem;
     font-weight: 700;
     font-size: 0.95rem;
-    background: #F8F9FA;
-    color: #495057;
-    border: 1px solid #E9ECEF;
+    background: linear-gradient(180deg, #fff1f2 0%, #ffe4e6 100%);
+    color: #b91c1c;
+    border: 1px solid #fecdd3;
     transition: all 0.2s ease;
+  }
+
+  .membership-card:hover .membership-select-btn {
+    border-color: #fda4af;
+    background: linear-gradient(180deg, #ffe4e6 0%, #fecdd3 100%);
   }
   
   .membership-radio:checked + .membership-card-content .membership-select-btn {
@@ -1068,24 +1102,13 @@ const bankName = import.meta.env.PUBLIC_BANK_NAME || 'Banka Adi';
     border-color: #E30A17;
   }
   
-  .membership-card--featured .membership-radio:checked + .membership-card-content .membership-select-btn {
-    background: #E30A17;
-    border-color: #E30A17;
-    color: #ffffff;
-  }
-
   .payment-box {
     margin-top: 1.5rem;
     padding: 1.25rem;
     border: 1px solid #FECACA;
     border-radius: 1rem;
     background: linear-gradient(180deg, #fff7f7 0%, #ffffff 100%);
-    display: none;
-  }
-
-  .membership-grid:has(input[type="radio"]:checked) + .payment-box {
     display: block;
-    animation: slideDownPayment 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
   @keyframes slideDownPayment {
@@ -1159,6 +1182,62 @@ const bankName = import.meta.env.PUBLIC_BANK_NAME || 'Banka Adi';
     color: #374151;
     font-size: 0.85rem;
     line-height: 1.5;
+  }
+
+  .payment-reference {
+    display: grid;
+    gap: 0.4rem;
+    margin-bottom: 0.9rem;
+  }
+
+  .payment-reference label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #b91c1c;
+  }
+
+  .payment-reference input {
+    width: 100%;
+    border: 1px solid #fecaca;
+    border-radius: 0.6rem;
+    padding: 0.7rem 0.8rem;
+    background: #fff;
+    color: #1f2937;
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+
+  .helper-text {
+    font-size: 0.78rem;
+    color: #6b7280;
+  }
+
+  .membership-count-caption {
+    margin: 0 0 1.2rem;
+    font-size: 0.85rem;
+    color: #4b5563;
+    line-height: 1.5;
+    flex-grow: 1;
+  }
+
+  .membership-branch-count {
+    display: grid;
+    gap: 0.4rem;
+    margin-bottom: 1rem;
+  }
+
+  .membership-branch-count label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #4b5563;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .membership-branch-input {
+    padding: 0.7rem 0.9rem;
   }
 
   .payment-confirm {
@@ -1383,26 +1462,53 @@ const bankName = import.meta.env.PUBLIC_BANK_NAME || 'Banka Adi';
     margin: 0;
   }
 
-  .form-contact-email {
+  .form-contact-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.65rem;
+    margin-top: 0.5rem;
+  }
+
+  .form-contact-action {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
     font-size: 1rem;
     font-weight: 700;
-    color: #E30A17;
     text-decoration: none;
-    margin-top: 0.5rem;
-    padding: 0.75rem 1.5rem;
-    background: #fff5f5;
+    padding: 0.72rem 1.2rem;
     border-radius: 0.75rem;
-    border: 1px solid #fee2e2;
+    border: 1px solid transparent;
     transition: all 0.2s ease;
   }
 
-  .form-contact-email:hover {
+  .form-contact-action--whatsapp {
+    background: #25D366;
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.25);
+  }
+
+  .form-contact-action--whatsapp:hover {
+    background: #1fb957;
+    color: #ffffff;
+    border-color: #1fb957;
+    transform: translateY(-1px);
+    box-shadow: 0 10px 24px rgba(37, 211, 102, 0.3);
+  }
+
+  .form-contact-action--email {
+    background: #fff5f5;
+    color: #E30A17;
+    border-color: #fee2e2;
+  }
+
+  .form-contact-action--email:hover {
     background: #E30A17;
     color: #ffffff;
     border-color: #E30A17;
+    transform: translateY(-1px);
   }
 
 </style>

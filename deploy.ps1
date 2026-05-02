@@ -114,6 +114,17 @@ fi
 mkdir -p "${RELEASE}"
 tar xzf "${TGZ}" -C "${RELEASE}"
 rm -f "${TGZ}"
+if [[ -f "${REMOTE_BASE}/package.json" ]]; then
+  cp "${REMOTE_BASE}/package.json" "${RELEASE}/package.json"
+fi
+if [[ -f "${REMOTE_BASE}/package-lock.json" ]]; then
+  cp "${REMOTE_BASE}/package-lock.json" "${RELEASE}/package-lock.json"
+fi
+if [[ -f "${RELEASE}/package-lock.json" ]]; then
+  (cd "${RELEASE}" && npm ci --omit=dev)
+else
+  echo "UYARI: package-lock.json yok, npm ci atlandi" >&2
+fi
 ln -sfn "${RELEASE}" "${CUR_LINK}"
 echo "==> current -> ${RELEASE}"
 if systemctl list-unit-files | grep -q "^${SYSTEMD_UNIT}.service"; then
@@ -132,6 +143,10 @@ $utf8NoBom = New-Object System.Text.UTF8Encoding $false
 Write-Host "==> Yukleme: scp" -ForegroundColor Yellow
 scp $localTgz "${DeploySsh}:$remoteTgz"
 scp $localSh "${DeploySsh}:$remoteSh"
+scp (Join-Path $Root "package.json") "${DeploySsh}:${RemoteBase}/package.json"
+if (Test-Path (Join-Path $Root "package-lock.json")) {
+  scp (Join-Path $Root "package-lock.json") "${DeploySsh}:${RemoteBase}/package-lock.json"
+}
 
 Write-Host "==> Sunucu: release + systemd" -ForegroundColor Yellow
 ssh $DeploySsh "chmod +x $remoteSh && bash $remoteSh && rm -f $remoteSh"

@@ -207,6 +207,10 @@ Aktif hedef: Canlı operasyonu tamamlamak; sunucu pull modeli, canlı SMTP ve ad
 - Deploy scriptleri düzeltildi:
   - Astro SSR release sadece `dist/` ile çalışmadığı için release içine `package.json`, `package-lock.json` ve production `node_modules` kurulumu eklendi.
   - Runtime secret değerlerinde `process.env` önceliklendirildi; lokal build-time `.env` değerleri canlı şifreleri ezmemeli.
+- Search Console sitemap operasyonu tamamlandı:
+  - `sitemap-index.xml`, `cities.xml`, `districts.xml`, `news.xml`, `clubs.xml`, `listings.xml` gönderildi.
+  - Dinamik sitemap endpoint'lerinde boş veri durumuna fallback URL (`https://spornerede.net/`) eklendi.
+  - "urlset içinde url etiketi eksik" hatası çözüldü ve tüm sitemap URL'leri `200` doğrulandı.
 
 ### ⚠️ Canlı Operasyonda Kalan Dış Aksiyonlar
 
@@ -226,6 +230,27 @@ Aktif hedef: Canlı operasyonu tamamlamak; sunucu pull modeli, canlı SMTP ve ad
 2. **Monetizasyon (Gelir Modeli):** Ücretli üyelik paketleri, premium ilan öne çıkarma, online ödeme/tahsilat akışları (örn. Iyzico/Stripe entegrasyonu).
 3. **Akıllı Eşleştirme:** Kullanıcıların beklentilerine göre kurs/kulüp eşleştirme testi (Quiz akışı).
 4. **UX İyileştirmeleri:** Puanlama ve yorum sistemleri.
+5. **Teknik SEO Operasyonu (Search Console + keşif):**
+   - Haftalık: Search Console "Dizin > Sayfalar", "Core Web Vitals", manuel işlem/güvenlik kontrolleri.
+   - Yeni güçlü sayfalar için URL Denetimi ile manuel index talebi (özellikle haber ve ilan detayları).
+   - Canonical disiplinini güçlendirme (parametreli/filtreli URL'lerde tek canonical).
+   - `noindex` kapsamının net tutulması (`/admin`, `/panel`, şifre sıfırlama, iç operasyon sayfaları).
+   - İç linkleme planı: landing + şehir/branş sayfalarından yeni ilan/haber sayfalarına düzenli linkleme.
+   - Yapısal veri genişletme: mevcut `NewsArticle` şemasına ek olarak `Organization` ve `BreadcrumbList` tamamlama.
+   - Aylık backlink kalite kontrolü (toxicity/spam kaynak izleme, gerekirse disavow değerlendirmesi).
+
+### 📈 SEO İzleme Planı (Yeni)
+
+1. **Haftalık teknik kontrol (30 dk):**
+   - Sitemap erişim/boş içerik kontrolü
+   - 404/500 ve crawl anomaly kontrolü
+   - robots/canonical/noindex hızlı tarama
+2. **Aylık içerik + keşif kontrolü:**
+   - Hangi içerik tipleri daha hızlı index alıyor (haber/ilan/kulüp)
+   - İç linkleme ve başlık/meta iyileştirme adaylarının listelenmesi
+3. **Operasyonel alarm yaklaşımı:**
+   - Deploy sonrası `sitemap-index.xml` + 5 alt sitemap smoke check
+   - Her deploy sonrası servis ayakta mı + XML içinde en az bir `<url>` var mı doğrulama
 
 ## Faz Sırasına Göre Uygulama Akışı
 
