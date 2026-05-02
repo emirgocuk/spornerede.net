@@ -1,4 +1,5 @@
 import { getDb, hasDatabaseUrl } from '../../db/client';
+import { displayIlAd } from '../turkishIlDisplay';
 import { parseProgramContent, serializeProgramContent } from './programContent';
 
 function requireDatabase() {
@@ -19,18 +20,21 @@ export async function listApprovedAdminClubs() {
     db.collection('ilceler').getFullList(),
   ]);
 
-  const cityMap = new Map(cities.map((row) => [Number(row.legacyId), row.ad as string]));
+  const cityById = new Map(cities.map((row) => [Number(row.legacyId), row]));
   const districtMap = new Map(districts.map((row) => [Number(row.legacyId), row.ad as string]));
 
-  return rows.items.map((row) => ({
+  return rows.items.map((row) => {
+    const city = cityById.get(Number(row.ilLegacyId));
+    return {
     id: Number(row.legacyId),
     ad: row.ad as string,
-    il: cityMap.get(Number(row.ilLegacyId)) ?? '',
+    il: city ? displayIlAd(String(city.slug), String(city.ad)) : '',
     ilce: districtMap.get(Number(row.ilceLegacyId)) ?? '',
     telefon: (row.telefon as string) ?? '',
     email: (row.email as string) ?? '',
     updatedAt: row.updated,
-  }));
+  };
+  });
 }
 
 export async function getApprovedAdminClubById(clubId: number) {
@@ -55,7 +59,7 @@ export async function getApprovedAdminClubById(clubId: number) {
   return {
     id: Number(row.legacyId),
     ad: row.ad as string,
-    il: (city?.ad as string | undefined) ?? '',
+    il: displayIlAd(city?.slug as string | undefined, city?.ad as string | undefined),
     ilce: (district?.ad as string | undefined) ?? '',
     telefon: (row.telefon as string) ?? '',
     email: (row.email as string) ?? '',

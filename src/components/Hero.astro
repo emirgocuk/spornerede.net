@@ -4,51 +4,30 @@
  * Landing page hero bölümü.
  * "SPOR NEREDE?" vurgusu + arama formu + popüler branşlar.
  */
-import { getAllCities, getAllDistricts, getAllBranches } from '../lib/repositories/catalog';
+import { getAllCities, getAllDistricts, getAllBranches, searchClubs } from '../lib/repositories/catalog';
 
 const { searchParams } = Astro.url;
 const seciliIl = searchParams.get('il') || '';
 const seciliIlce = searchParams.get('ilce') || '';
 const seciliBrans = searchParams.get('brans') || '';
 
-const [tumIller, tumIlceler, tumBranslar] = await Promise.all([
+const [tumIller, tumIlceler, tumBranslar, heroClubs] = await Promise.all([
   getAllCities(),
   getAllDistricts(seciliIl || undefined),
   getAllBranches(),
+  searchClubs({}),
 ]);
-const turkishCityMap: Record<string, string> = {
-  adana: 'Adana', adiyaman: 'Adıyaman', afyonkarahisar: 'Afyonkarahisar', agri: 'Ağrı', amasya: 'Amasya',
-  ankara: 'Ankara', antalya: 'Antalya', artvin: 'Artvin', aydin: 'Aydın', balikesir: 'Balıkesir',
-  bilecik: 'Bilecik', bingol: 'Bingöl', bitlis: 'Bitlis', bolu: 'Bolu', burdur: 'Burdur',
-  bursa: 'Bursa', canakkale: 'Çanakkale', cankiri: 'Çankırı', corum: 'Çorum', denizli: 'Denizli',
-  diyarbakir: 'Diyarbakır', edirne: 'Edirne', elazig: 'Elazığ', erzincan: 'Erzincan', erzurum: 'Erzurum',
-  eskisehir: 'Eskişehir', gaziantep: 'Gaziantep', giresun: 'Giresun', gumushane: 'Gümüşhane', hakkari: 'Hakkari',
-  hatay: 'Hatay', isparta: 'Isparta', mersin: 'Mersin', istanbul: 'İstanbul', izmir: 'İzmir',
-  kars: 'Kars', kastamonu: 'Kastamonu', kayseri: 'Kayseri', kirklareli: 'Kırklareli', kirsehir: 'Kırşehir',
-  kocaeli: 'Kocaeli', konya: 'Konya', kutahya: 'Kütahya', malatya: 'Malatya', manisa: 'Manisa',
-  kahramanmaras: 'Kahramanmaraş', mardin: 'Mardin', mugla: 'Muğla', mus: 'Muş', nevsehir: 'Nevşehir',
-  nigde: 'Niğde', ordu: 'Ordu', rize: 'Rize', sakarya: 'Sakarya', samsun: 'Samsun',
-  siirt: 'Siirt', sinop: 'Sinop', sivas: 'Sivas', tekirdag: 'Tekirdağ', tokat: 'Tokat',
-  trabzon: 'Trabzon', tunceli: 'Tunceli', sanliurfa: 'Şanlıurfa', usak: 'Uşak', van: 'Van',
-  yozgat: 'Yozgat', zonguldak: 'Zonguldak', aksaray: 'Aksaray', bayburt: 'Bayburt', karaman: 'Karaman',
-  kirikkale: 'Kırıkkale', batman: 'Batman', sirnak: 'Şırnak', bartin: 'Bartın', ardahan: 'Ardahan',
-  igdir: 'Iğdır', yalova: 'Yalova', karabuk: 'Karabük', kilis: 'Kilis', osmaniye: 'Osmaniye', duzce: 'Düzce',
-};
 
-const normalizeCityName = (name: string) => {
-  const ascii = name
-    .toLocaleLowerCase('tr-TR')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/ı/g, 'i')
-    .replace(/[^a-z]/g, '');
-  return turkishCityMap[ascii] ?? name;
-};
+const clubBranchAreaIndex = heroClubs.map((c) => ({
+  ilSlug: c.ilSlug,
+  ilceSlug: c.ilceSlug,
+  bransSlug: c.bransSlug,
+}));
 
 const prioritizedCities = ['Ankara', 'İstanbul', 'İzmir', 'Adana'];
-const normalizedCities = Array.from(
-  new Set(tumIller.map((il) => normalizeCityName(il.ad)).filter(Boolean))
-).filter((city) => !prioritizedCities.includes(city));
+const normalizedCities = Array.from(new Set(tumIller.map((il) => il.ad).filter(Boolean))).filter(
+  (city) => !prioritizedCities.includes(city),
+);
 
 for (let i = normalizedCities.length - 1; i > 0; i -= 1) {
   const j = Math.floor(Math.random() * (i + 1));
@@ -61,10 +40,11 @@ const bransOptions = [...tumBranslar]
   .sort((a, b) => a.isim.localeCompare(b.isim, 'tr'))
   .map((b) => ({ ad: b.isim, slug: b.slug }));
 
+const cityOptions = tumIller.map((il) => ({ ad: il.ad, slug: il.slug }));
+
 const seciliIlAdi = tumIller.find((il) => il.slug === seciliIl)?.ad ?? '';
 const seciliIlceAdi = tumIlceler.find((ilce) => ilce.slug === seciliIlce)?.ad ?? '';
 const seciliBransAdi = tumBranslar.find((b) => b.slug === seciliBrans)?.isim ?? '';
-
 ---
 
 <section class="hero-section" aria-label="Ana Arama Bölümü">
@@ -116,50 +96,92 @@ const seciliBransAdi = tumBranslar.find((b) => b.slug === seciliBrans)?.isim ?? 
         action="/ara"
         aria-label="Spor Arama Formu"
       >
-        <!-- İl seçimi -->
+        <!-- İl -->
         <div class="search-field">
-          <label for="hero-il-input" class="search-label">
+          <label class="search-label" for="hero-il-input" id="hero-il-lbl">
             <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M12 2l7 4v6c0 5-3.5 9.74-7 10-3.5-.26-7-5-7-10V6l7-4z"/>
             </svg>
             İl
           </label>
-          <input id="hero-il-input" class="search-input" type="text" placeholder="Tüm Türkiye" value={seciliIlAdi} autocomplete="off" aria-label="İl seçin" data-hero-il-input />
-          <input type="hidden" name="il" value={seciliIl} data-hero-il-hidden />
-          <div class="search-suggestions" data-suggest-il></div>
+          <div class="hero-typeahead" data-hero-city-select>
+            <input type="hidden" name="il" value={seciliIl} data-hero-city-hidden />
+            <input
+              id="hero-il-input"
+              type="text"
+              class="search-input"
+              placeholder="Tüm Türkiye"
+              value={seciliIlAdi}
+              autocomplete="off"
+              aria-labelledby="hero-il-lbl"
+              aria-autocomplete="list"
+              aria-controls="hero-city-menu"
+              aria-expanded="false"
+              data-hero-city-input
+            />
+            <div class="search-suggestions" role="listbox" id="hero-city-menu" data-hero-city-menu></div>
+          </div>
         </div>
 
         <div class="search-divider" aria-hidden="true"></div>
 
-        <!-- İlçe seçimi -->
+        <!-- İlçe -->
         <div class="search-field">
-          <label for="hero-ilce-input" class="search-label">
+          <label class="search-label" for="hero-ilce-input" id="hero-ilce-lbl">
             <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
               <circle cx="12" cy="10" r="3"/>
             </svg>
             İlçe
           </label>
-          <input id="hero-ilce-input" class="search-input" type="text" placeholder={seciliIl ? 'Tüm ilçeler' : 'İlçe yazın'} value={seciliIlceAdi} autocomplete="off" aria-label="İlçe seçin" data-hero-ilce-input />
-          <input type="hidden" name="ilce" value={seciliIlce} data-hero-ilce-hidden />
-          <div class="search-suggestions" data-suggest-ilce></div>
+          <div class="hero-typeahead" data-hero-district-select>
+            <input type="hidden" name="ilce" value={seciliIlce} data-hero-district-hidden />
+            <input
+              id="hero-ilce-input"
+              type="text"
+              class="search-input"
+              placeholder={seciliIl ? 'Tüm ilçeler' : 'Önce il seçin'}
+              value={seciliIl ? (seciliIlce ? seciliIlceAdi : '') : ''}
+              autocomplete="off"
+              aria-labelledby="hero-ilce-lbl"
+              aria-autocomplete="list"
+              aria-controls="hero-district-menu"
+              aria-expanded="false"
+              disabled={!seciliIl}
+              data-hero-district-input
+            />
+            <div class="search-suggestions" role="listbox" id="hero-district-menu" data-hero-district-menu></div>
+          </div>
         </div>
 
-        <!-- Dikey ayraç -->
         <div class="search-divider" aria-hidden="true"></div>
 
-        <!-- Branş seçimi -->
+        <!-- Branş -->
         <div class="search-field">
-          <label for="hero-brans-input" class="search-label">
+          <label class="search-label" for="hero-brans-input" id="hero-brans-lbl">
             <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <circle cx="12" cy="12" r="10"/>
               <polygon points="10 8 16 12 10 16 10 8"/>
             </svg>
             Branş
           </label>
-          <input id="hero-brans-input" class="search-input" type="text" placeholder="Tüm Branşlar" value={seciliBransAdi} autocomplete="off" aria-label="Branş seçin" data-hero-brans-input />
-          <input type="hidden" name="brans" value={seciliBrans} data-hero-brans-hidden />
-          <div class="search-suggestions" data-suggest-brans></div>
+          <div class="hero-typeahead" data-hero-branch-select>
+            <input type="hidden" name="brans" value={seciliBrans} data-hero-branch-hidden />
+            <input
+              id="hero-brans-input"
+              type="text"
+              class="search-input"
+              placeholder="Tüm Branşlar"
+              value={seciliBransAdi}
+              autocomplete="off"
+              aria-labelledby="hero-brans-lbl"
+              aria-autocomplete="list"
+              aria-controls="hero-branch-menu"
+              aria-expanded="false"
+              data-hero-branch-input
+            />
+            <div class="search-suggestions search-suggestions--tall" role="listbox" id="hero-branch-menu" data-hero-branch-menu></div>
+          </div>
         </div>
 
         <!-- Ara Butonu -->
@@ -187,203 +209,473 @@ const seciliBransAdi = tumBranslar.find((b) => b.slug === seciliBrans)?.isim ?? 
 
 </section>
 
-<script define:vars={{ cityOptions: tumIller.map((il) => ({ ad: il.ad, slug: il.slug })), allDistrictOptions: tumIlceler, branchOptions: bransOptions }}>
+<script define:vars={{ branchOptions: bransOptions, clubBranchAreaIndex, cityOptions }}>
   const heroForm = document.getElementById('hero-search-form');
-  const ilInput = document.querySelector('[data-hero-il-input]');
-  const ilHidden = document.querySelector('[data-hero-il-hidden]');
-  const ilceInput = document.querySelector('[data-hero-ilce-input]');
-  const ilceHidden = document.querySelector('[data-hero-ilce-hidden]');
-  const bransInput = document.querySelector('[data-hero-brans-input]');
-  const bransHidden = document.querySelector('[data-hero-brans-hidden]');
-  const ilSuggest = document.querySelector('[data-suggest-il]');
-  const ilceSuggest = document.querySelector('[data-suggest-ilce]');
-  const bransSuggest = document.querySelector('[data-suggest-brans]');
   const cityRotator = document.querySelector('[data-city-rotator]');
-  let currentDistrictOptions = Array.isArray(allDistrictOptions) ? allDistrictOptions : [];
+
+  const citySelect = document.querySelector('[data-hero-city-select]');
+  const cityInput = citySelect?.querySelector('[data-hero-city-input]');
+  const cityHidden = citySelect?.querySelector('[data-hero-city-hidden]');
+  const cityMenu = citySelect?.querySelector('[data-hero-city-menu]');
+
+  const districtSelect = document.querySelector('[data-hero-district-select]');
+  const districtInput = districtSelect?.querySelector('[data-hero-district-input]');
+  const districtHidden = districtSelect?.querySelector('[data-hero-district-hidden]');
+  const districtMenu = districtSelect?.querySelector('[data-hero-district-menu]');
+
+  const branchSelect = document.querySelector('[data-hero-branch-select]');
+  const branchInput = branchSelect?.querySelector('[data-hero-branch-input]');
+  const branchHidden = branchSelect?.querySelector('[data-hero-branch-hidden]');
+  const branchMenu = branchSelect?.querySelector('[data-hero-branch-menu]');
+
+  const branchBySlug = new Map(branchOptions.map((b) => [b.slug, b]));
+  let districtList = [];
 
   const norm = (value) => value?.toLocaleLowerCase('tr-TR').trim() ?? '';
   const findMatch = (options, value) => options.find((item) => norm(item.ad) === norm(value));
-  const score = (input, candidate) => {
-    const i = norm(input);
-    const c = norm(candidate);
-    if (!i) return 0;
-    if (c.startsWith(i)) return 3;
-    if (c.includes(i)) return 2;
-    return 0;
-  };
-  const topThree = (options, input) =>
-    norm(input).length === 0
-      ? []
-      :
-    options
-      .map((o) => ({ ...o, _s: score(input, o.ad) }))
-      .filter((o) => o._s > 0)
-      .sort((a, b) => b._s - a._s || a.ad.localeCompare(b.ad, 'tr'))
-      .slice(0, 3);
 
-  function renderSuggestions(container, items, onSelect) {
-    if (!container) return;
-    [ilSuggest, ilceSuggest, bransSuggest].forEach((panel) => {
-      if (panel && panel !== container) panel.classList.remove('open');
-    });
-    container.innerHTML = '';
-    if (!items.length) {
-      container.classList.remove('open');
-      return;
-    }
-    for (const item of items) {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'suggestion-item';
-      btn.textContent = item.ad;
-      btn.addEventListener('mousedown', (e) => {
-        e.preventDefault();
-        onSelect(item);
-      });
-      container.append(btn);
-    }
-    container.classList.add('open');
+  function closeDropdown(select, ariaInput) {
+    select?.classList.remove('open');
+    ariaInput?.setAttribute('aria-expanded', 'false');
   }
 
-  function closeSuggestions() {
-    ilSuggest?.classList.remove('open');
-    ilceSuggest?.classList.remove('open');
-    bransSuggest?.classList.remove('open');
+  function closeAllDropdowns() {
+    closeDropdown(citySelect, cityInput);
+    closeDropdown(districtSelect, districtInput);
+    closeDropdown(branchSelect, branchInput);
     heroForm?.classList.remove('is-expanded');
   }
 
-  function renderDefaultDistrictState() {
-    if (!ilceInput || !ilceHidden) return;
-    ilceInput.value = '';
-    ilceInput.placeholder = 'İlçe yazın';
-    ilceHidden.value = '';
-    currentDistrictOptions = Array.isArray(allDistrictOptions) ? allDistrictOptions : [];
+  function openOnly(select, ariaInput) {
+    if (!select || !ariaInput) return;
+    for (const s of [citySelect, districtSelect, branchSelect]) {
+      if (!s || s === select) continue;
+      const inp = s === citySelect ? cityInput : s === districtSelect ? districtInput : branchInput;
+      closeDropdown(s, inp);
+    }
+    select.classList.add('open');
+    ariaInput.setAttribute('aria-expanded', 'true');
+    heroForm?.classList.add('is-expanded');
   }
 
-  async function loadDistricts(ilSlug, preferredValue = '') {
-    if (!ilceInput || !ilceHidden) return;
-    if (!ilSlug) {
-      renderDefaultDistrictState();
+  function setDistrictDisabled(disabled) {
+    if (districtInput) districtInput.disabled = disabled;
+    if (districtInput) {
+      districtInput.placeholder = disabled ? 'Önce il seçin' : 'Tüm ilçeler';
+    }
+  }
+
+  function createItem(attrs, text) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    const dis = attrs.disabled ? ' suggestion-item--disabled' : '';
+    btn.className = `suggestion-item${attrs.active ? ' is-active' : ''}${dis}`.trim();
+    btn.textContent = text;
+    btn.disabled = Boolean(attrs.disabled);
+    for (const [k, v] of Object.entries(attrs.attrs ?? {})) btn.setAttribute(k, String(v));
+    return btn;
+  }
+
+  /** mousedown + preventDefault: öneri tıklanırken input blur sırası yüzünden kaçırılmasın */
+  function bindPick(el, handler) {
+    el.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      handler();
+    });
+  }
+
+  function renderCityMenu(query) {
+    if (!cityMenu || !cityHidden) return;
+    const q = norm(query);
+    const filtered = !q ? cityOptions.slice() : cityOptions.filter((c) => norm(c.ad).includes(q));
+    const current = cityHidden.value?.trim() ?? '';
+
+    cityMenu.innerHTML = '';
+    const allBtn = createItem(
+      { active: !current, disabled: false, attrs: { 'data-hero-city-value': '', 'data-hero-city-text': 'Tüm Türkiye' } },
+      'Tüm Türkiye',
+    );
+    cityMenu.append(allBtn);
+    bindPick(allBtn, () => {
+      cityHidden.value = '';
+      if (cityInput) cityInput.value = '';
+      if (districtHidden) districtHidden.value = '';
+      if (districtInput) districtInput.value = '';
+      if (branchHidden) branchHidden.value = '';
+      if (branchInput) branchInput.value = '';
+      loadDistricts('', '');
+      closeAllDropdowns();
+    });
+
+    for (const c of filtered.slice(0, 200)) {
+      const btn = createItem(
+        { active: c.slug === current, disabled: false, attrs: { 'data-hero-city-value': c.slug, 'data-hero-city-text': c.ad } },
+        c.ad,
+      );
+      cityMenu.append(btn);
+      bindPick(btn, () => {
+        cityHidden.value = c.slug;
+        if (cityInput) cityInput.value = c.ad;
+        if (districtHidden) districtHidden.value = '';
+        if (districtInput) districtInput.value = '';
+        if (branchHidden) branchHidden.value = '';
+        if (branchInput) branchInput.value = '';
+        loadDistricts(c.slug, '');
+        closeAllDropdowns();
+      });
+    }
+
+    if (filtered.length === 0 && q) {
+      const p = document.createElement('p');
+      p.className = 'hero-combobox-empty';
+      p.textContent = 'Eşleşen il bulunamadı.';
+      cityMenu.append(p);
+    }
+  }
+
+  function renderDistrictMenu(query) {
+    if (!districtMenu || !districtHidden) return;
+    if (!cityHidden?.value) {
+      districtMenu.innerHTML = '';
+      districtMenu.append(
+        createItem({ active: false, disabled: true, attrs: { 'data-hero-district-value': '', 'data-hero-district-text': '' } }, 'Önce il seçin'),
+      );
       return;
     }
 
-    ilceInput.placeholder = 'Yükleniyor...';
+    const q = norm(query);
+    const filtered = !q ? districtList.slice() : districtList.filter((d) => norm(d.ad).includes(q));
+    const current = districtHidden.value?.trim() ?? '';
+
+    districtMenu.innerHTML = '';
+    const allBtn = createItem(
+      { active: !current, disabled: false, attrs: { 'data-hero-district-value': '', 'data-hero-district-text': 'Tüm İlçeler' } },
+      'Tüm İlçeler',
+    );
+    districtMenu.append(allBtn);
+    bindPick(allBtn, () => {
+      districtHidden.value = '';
+      if (districtInput) districtInput.value = '';
+      if (branchHidden) branchHidden.value = '';
+      if (branchInput) branchInput.value = '';
+      renderBranchMenu();
+      closeAllDropdowns();
+    });
+
+    for (const d of filtered.slice(0, 250)) {
+      const btn = createItem(
+        { active: d.slug === current, disabled: false, attrs: { 'data-hero-district-value': d.slug, 'data-hero-district-text': d.ad } },
+        d.ad,
+      );
+      districtMenu.append(btn);
+      bindPick(btn, () => {
+        districtHidden.value = d.slug;
+        if (districtInput) districtInput.value = d.ad;
+        if (branchHidden) branchHidden.value = '';
+        if (branchInput) branchInput.value = '';
+        renderBranchMenu();
+        closeAllDropdowns();
+      });
+    }
+
+    if (filtered.length === 0 && q) {
+      const p = document.createElement('p');
+      p.className = 'hero-combobox-empty';
+      p.textContent = 'Eşleşen ilçe bulunamadı.';
+      districtMenu.append(p);
+    }
+  }
+
+  function branchesForLocation(ilSlug, ilceSlug) {
+    if (!ilSlug) return branchOptions.slice();
+    const filtered = clubBranchAreaIndex.filter((row) => {
+      if (!row.bransSlug || row.ilSlug !== ilSlug) return false;
+      if (ilceSlug) return row.ilceSlug === ilceSlug;
+      return true;
+    });
+    const slugs = [...new Set(filtered.map((r) => r.bransSlug))];
+    return slugs
+      .map((s) => branchBySlug.get(s))
+      .filter(Boolean)
+      .sort((a, b) => a.ad.localeCompare(b.ad, 'tr'));
+  }
+
+  /** filterText === undefined → inputtaki metinle süz; boş string → odakta tüm liste */
+  function renderBranchMenu(filterText) {
+    if (!branchMenu || !branchHidden) return;
+    const ilSlug = cityHidden?.value?.trim() ?? '';
+    const ilceSlug = districtHidden?.value?.trim() ?? '';
+    const narrowed = Boolean(ilSlug);
+    let list = narrowed ? branchesForLocation(ilSlug, ilceSlug) : branchOptions.slice();
+    const rawFilter = filterText === undefined ? (branchInput?.value ?? '') : filterText;
+    const typeQ = norm(rawFilter);
+    if (typeQ) {
+      list = list.filter((b) => norm(b.ad).includes(typeQ));
+    }
+    const currentSlug = branchHidden.value?.trim() ?? '';
+
+    branchMenu.innerHTML = '';
+
+    const allBtn = createItem(
+      { active: !currentSlug, disabled: false, attrs: { 'data-hero-branch-value': '', 'data-hero-branch-text': 'Tüm Branşlar' } },
+      'Tüm Branşlar',
+    );
+    branchMenu.append(allBtn);
+    bindPick(allBtn, () => {
+      branchHidden.value = '';
+      if (branchInput) branchInput.value = '';
+      closeAllDropdowns();
+    });
+
+    if (narrowed && branchesForLocation(ilSlug, ilceSlug).length === 0 && !typeQ) {
+      const empty = document.createElement('div');
+      empty.className = 'hero-branch-empty';
+      empty.innerHTML =
+        '<p class="hero-branch-empty-title">Bu konumda kayıtlı branş yok</p>' +
+        '<p class="hero-branch-empty-desc">Seçtiğiniz il ve ilçede üyeliği olan kulüp henüz bulunmuyor. Kulübünüzü eklemek için başvurun veya bize yazın.</p>';
+      branchMenu.append(empty);
+      if (currentSlug) {
+        branchHidden.value = '';
+        if (branchInput) branchInput.value = '';
+      }
+      allBtn.classList.add('is-active');
+      return;
+    }
+
+    if (narrowed && branchesForLocation(ilSlug, ilceSlug).length > 0 && !typeQ) {
+      const hint = document.createElement('p');
+      hint.className = 'hero-branch-filter-hint';
+      hint.textContent = ilceSlug
+        ? 'Bu ilçede kayıtlı kulübü olan branşlar:'
+        : 'Bu ilde kayıtlı kulübü olan branşlar:';
+      branchMenu.append(hint);
+    }
+
+    if (typeQ && list.length === 0) {
+      const p = document.createElement('p');
+      p.className = 'hero-combobox-empty';
+      p.textContent = 'Eşleşen branş bulunamadı.';
+      branchMenu.append(p);
+    }
+
+    for (const b of list) {
+      const btn = createItem(
+        { active: b.slug === currentSlug, disabled: false, attrs: { 'data-hero-branch-value': b.slug, 'data-hero-branch-text': b.ad } },
+        b.ad,
+      );
+      branchMenu.append(btn);
+      bindPick(btn, () => {
+        branchHidden.value = b.slug;
+        if (branchInput) branchInput.value = b.ad;
+        closeAllDropdowns();
+      });
+    }
+
+    if (currentSlug && !list.some((b) => b.slug === currentSlug)) {
+      branchHidden.value = '';
+      if (branchInput) branchInput.value = '';
+      allBtn.classList.add('is-active');
+    }
+  }
+
+  function syncCityFromInput() {
+    if (!cityInput || !cityHidden) return;
+    if (!(cityInput.value ?? '').trim()) return;
+    const m = findMatch(cityOptions, cityInput.value);
+    cityHidden.value = m?.slug ?? '';
+  }
+
+  function syncDistrictFromInput() {
+    if (!districtInput || !districtHidden) return;
+    if (!(districtInput.value ?? '').trim()) return;
+    const m = findMatch(districtList, districtInput.value);
+    districtHidden.value = m?.slug ?? '';
+  }
+
+  function syncBranchFromInput() {
+    if (!branchInput || !branchHidden) return;
+    if (!(branchInput.value ?? '').trim()) return;
+    const m = findMatch(branchOptions, branchInput.value);
+    branchHidden.value = m?.slug ?? '';
+  }
+
+  function renderDefaultDistrictState() {
+    districtList = [];
+    if (branchHidden) branchHidden.value = '';
+    if (branchInput) branchInput.value = '';
+    if (!districtMenu || !districtHidden || !districtInput) return;
+    districtMenu.innerHTML = '';
+    districtHidden.value = '';
+    districtInput.value = '';
+    setDistrictDisabled(true);
+    renderDistrictMenu('');
+  }
+
+  async function loadDistricts(citySlug, preferredValue = '') {
+    if (!districtMenu || !districtHidden || !districtInput) return;
+    if (!citySlug) {
+      renderDefaultDistrictState();
+      renderBranchMenu();
+      return;
+    }
+
+    setDistrictDisabled(true);
+    districtMenu.innerHTML = '';
+    districtMenu.append(createItem({ active: false, disabled: true, attrs: {} }, 'Yükleniyor...'));
 
     try {
-      const response = await fetch(`/api/districts?il=${encodeURIComponent(ilSlug)}`);
-      if (!response.ok) {
-        throw new Error('Ilce listesi alinamadi');
-      }
+      const response = await fetch(`/api/districts?il=${encodeURIComponent(citySlug)}`);
+      if (!response.ok) throw new Error('İlçe listesi alınamadı');
       const payload = await response.json();
       const items = Array.isArray(payload?.items) ? payload.items : [];
-      currentDistrictOptions = items;
-      ilceInput.placeholder = 'Tüm ilçeler';
+      districtList = items;
+      const selectedDistrict = items.find((item) => item.slug === preferredValue);
 
-      if (preferredValue) {
-        const selectedDistrict = items.find((item) => item.slug === preferredValue);
-        ilceInput.value = selectedDistrict?.ad ?? '';
-        ilceHidden.value = selectedDistrict?.slug ?? '';
-      } else {
-        ilceInput.value = '';
-        ilceHidden.value = '';
-      }
-    } catch (_error) {
-      currentDistrictOptions = [];
-      ilceInput.placeholder = 'İlçeler yüklenemedi';
-      ilceInput.value = '';
-      ilceHidden.value = '';
+      districtHidden.value = selectedDistrict?.slug ?? '';
+      districtInput.value = selectedDistrict?.ad ?? '';
+      districtInput.placeholder = 'Tüm ilçeler';
+      setDistrictDisabled(false);
+      renderDistrictMenu('');
+      renderBranchMenu();
+    } catch (_e) {
+      districtList = [];
+      districtMenu.innerHTML = '';
+      districtMenu.append(createItem({ active: false, disabled: true, attrs: {} }, 'İlçeler yüklenemedi'));
+      districtHidden.value = '';
+      districtInput.value = '';
+      if (branchHidden) branchHidden.value = '';
+      if (branchInput) branchInput.value = '';
+      setDistrictDisabled(true);
+      renderBranchMenu();
     }
   }
 
-  function syncCity() {
-    if (!ilInput || !ilHidden) return;
-    const selectedCity = findMatch(cityOptions, ilInput.value);
-    ilHidden.value = selectedCity?.slug ?? '';
-    if (selectedCity) {
-      loadDistricts(selectedCity.slug, '');
-    } else {
-      renderDefaultDistrictState();
+  function openCityDropdown() {
+    openOnly(citySelect, cityInput);
+    if (cityInput) cityInput.value = '';
+    renderCityMenu('');
+  }
+
+  function openDistrictDropdown() {
+    if (districtInput?.disabled) return;
+    openOnly(districtSelect, districtInput);
+    if (districtInput) districtInput.value = '';
+    renderDistrictMenu('');
+  }
+
+  function openBranchDropdown() {
+    openOnly(branchSelect, branchInput);
+    if (branchInput) branchInput.value = '';
+    renderBranchMenu('');
+  }
+
+  cityInput?.addEventListener('focus', () => {
+    openCityDropdown();
+  });
+
+  cityInput?.addEventListener('input', () => {
+    openOnly(citySelect, cityInput);
+    renderCityMenu(cityInput.value);
+  });
+
+  cityInput?.addEventListener('blur', () => {
+    const before = cityHidden?.value ?? '';
+    if (cityInput && !(cityInput.value ?? '').trim() && cityHidden?.value?.trim()) {
+      const keep = cityOptions.find((c) => c.slug === cityHidden.value.trim());
+      if (keep) cityInput.value = keep.ad;
     }
-  }
-
-  function syncDistrict() {
-    if (!ilceInput || !ilceHidden) return;
-    const selectedDistrict = findMatch(currentDistrictOptions, ilceInput.value);
-    ilceHidden.value = selectedDistrict?.slug ?? '';
-  }
-
-  function syncBranch() {
-    if (!bransInput || !bransHidden) return;
-    const selectedBranch = findMatch(branchOptions, bransInput.value);
-    bransHidden.value = selectedBranch?.slug ?? '';
-  }
-
-  ilInput?.addEventListener('change', syncCity);
-  ilInput?.addEventListener('blur', syncCity);
-  ilceInput?.addEventListener('change', syncDistrict);
-  ilceInput?.addEventListener('blur', syncDistrict);
-  bransInput?.addEventListener('change', syncBranch);
-  bransInput?.addEventListener('blur', syncBranch);
-
-  ilInput?.addEventListener('focus', () => {
-    closeSuggestions();
+    syncCityFromInput();
+    let after = cityHidden?.value ?? '';
+    const m = cityOptions.find((c) => c.slug === after);
+    if (!m && cityInput?.value?.trim()) {
+      if (cityHidden) cityHidden.value = '';
+      after = '';
+    }
+    if (cityInput) {
+      if (m) cityInput.value = m.ad;
+      else if (!after) cityInput.value = '';
+    }
+    if (before !== after) {
+      loadDistricts(after, '');
+    }
   });
 
-  ilInput?.addEventListener('input', () => {
-    heroForm?.classList.add('is-expanded');
-    renderSuggestions(ilSuggest, topThree(cityOptions, ilInput.value), (item) => {
-      ilInput.value = item.ad;
-      ilHidden.value = item.slug;
-      loadDistricts(item.slug, '');
-      closeSuggestions();
-    });
+  districtInput?.addEventListener('focus', () => {
+    if (!districtInput.disabled) openDistrictDropdown();
   });
 
-  ilceInput?.addEventListener('focus', () => {
-    heroForm?.classList.add('is-expanded');
-    renderSuggestions(ilceSuggest, topThree(currentDistrictOptions, ilceInput.value), (item) => {
-      ilceInput.value = item.ad;
-      ilceHidden.value = item.slug;
-      closeSuggestions();
-    });
+  districtInput?.addEventListener('input', () => {
+    if (districtInput.disabled) return;
+    openOnly(districtSelect, districtInput);
+    renderDistrictMenu(districtInput.value);
   });
 
-  ilceInput?.addEventListener('input', () => {
-    heroForm?.classList.add('is-expanded');
-    renderSuggestions(ilceSuggest, topThree(currentDistrictOptions, ilceInput.value), (item) => {
-      ilceInput.value = item.ad;
-      ilceHidden.value = item.slug;
-      closeSuggestions();
-    });
+  districtInput?.addEventListener('blur', () => {
+    const before = districtHidden?.value ?? '';
+    if (districtInput && !(districtInput.value ?? '').trim() && districtHidden?.value?.trim()) {
+      const keep = districtList.find((d) => d.slug === districtHidden.value.trim());
+      if (keep) districtInput.value = keep.ad;
+    }
+    syncDistrictFromInput();
+    let after = districtHidden?.value ?? '';
+    const m = districtList.find((d) => d.slug === after);
+    if (!m && districtInput?.value?.trim()) {
+      if (districtHidden) districtHidden.value = '';
+      after = '';
+    }
+    if (districtInput) {
+      if (m) districtInput.value = m.ad;
+      else if (!after) districtInput.value = '';
+    }
+    if (before !== after) {
+      renderBranchMenu();
+    }
   });
 
-  bransInput?.addEventListener('focus', () => {
-    closeSuggestions();
+  branchInput?.addEventListener('focus', () => {
+    openBranchDropdown();
   });
 
-  bransInput?.addEventListener('input', () => {
-    heroForm?.classList.add('is-expanded');
-    renderSuggestions(bransSuggest, topThree(branchOptions, bransInput.value), (item) => {
-      bransInput.value = item.ad;
-      bransHidden.value = item.slug;
-      closeSuggestions();
-    });
+  branchInput?.addEventListener('input', () => {
+    openOnly(branchSelect, branchInput);
+    renderBranchMenu();
+  });
+
+  branchInput?.addEventListener('blur', () => {
+    if (branchInput && !(branchInput.value ?? '').trim() && branchHidden?.value?.trim()) {
+      const keep = branchOptions.find((b) => b.slug === branchHidden.value.trim());
+      if (keep) branchInput.value = keep.ad;
+    }
+    syncBranchFromInput();
+    const after = branchHidden?.value ?? '';
+    const m = branchOptions.find((b) => b.slug === after);
+    if (!m && branchInput?.value?.trim()) {
+      if (branchHidden) branchHidden.value = '';
+    }
+    if (branchInput) {
+      if (m) branchInput.value = m.ad;
+      else if (!branchHidden?.value) branchInput.value = '';
+    }
   });
 
   heroForm?.addEventListener('submit', () => {
-    syncCity();
-    syncDistrict();
-    syncBranch();
+    syncCityFromInput();
+    syncDistrictFromInput();
+    syncBranchFromInput();
   });
 
-  if (ilHidden?.value) {
-    loadDistricts(ilHidden.value, ilceHidden?.value ?? '');
+  if (cityHidden?.value) {
+    loadDistricts(cityHidden.value, districtHidden?.value ?? '');
   } else {
     renderDefaultDistrictState();
+    renderBranchMenu();
   }
 
-  document.addEventListener('click', (e) => {
-    if (!heroForm?.contains(e.target)) closeSuggestions();
+  document.addEventListener('click', (event) => {
+    const target = event.target;
+    if (!(target instanceof Node)) return;
+    if (citySelect?.contains(target) || districtSelect?.contains(target) || branchSelect?.contains(target)) return;
+    closeAllDropdowns();
   });
 
   if (cityRotator) {
@@ -624,7 +916,7 @@ const seciliBransAdi = tumBranslar.find((b) => b.slug === seciliBrans)?.isim ?? 
   /* ===== ARAMA FORMU ===== */
   .hero-search-wrapper {
     width: 100%;
-    max-width: 660px;
+    max-width: min(960px, 100vw - 1.5rem);
   }
 
   .hero-search-form {
@@ -634,6 +926,7 @@ const seciliBransAdi = tumBranslar.find((b) => b.slug === seciliBrans)?.isim ?? 
     background: rgba(255, 255, 255, 0.97);
     border-radius: 1rem;
     padding: 0.5rem;
+    color: #212529;
     box-shadow:
       0 0 0 1px rgba(255,255,255,0.1),
       0 20px 60px rgba(0, 0, 0, 0.4),
@@ -656,17 +949,9 @@ const seciliBransAdi = tumBranslar.find((b) => b.slug === seciliBrans)?.isim ?? 
     position: relative;
   }
 
-  .search-label {
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-    font-size: 0.7rem;
-    font-weight: 700;
-    color: #6C757D;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    margin-bottom: 0.2rem;
-    white-space: nowrap;
+  .hero-typeahead {
+    position: relative;
+    width: 100%;
   }
 
   .search-input {
@@ -678,63 +963,138 @@ const seciliBransAdi = tumBranslar.find((b) => b.slug === seciliBrans)?.isim ?? 
     font-weight: 600;
     color: #212529;
     padding: 0;
-    cursor: pointer;
+    cursor: text;
     width: 100%;
   }
 
   .search-input:focus {
-    color: #E30A17;
+    color: #e30a17;
+  }
+
+  .search-input:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
   }
 
   .search-suggestions {
+    display: none;
     position: absolute;
     top: calc(100% + 0.4rem);
-    left: 0.5rem;
-    right: 0.5rem;
-    background: rgba(255, 255, 255, 0.98);
-    border: 1px solid #DADFE5;
-    border-radius: 0.7rem;
-    box-shadow: 0 12px 34px rgba(0,0,0,0.2);
-    padding: 0.25rem;
-    display: none;
-    z-index: 120;
-    max-height: 172px;
+    left: 0;
+    right: 0;
+    z-index: 200;
+    max-height: 200px;
     overflow-y: auto;
+    overflow-x: hidden;
+    background: rgba(255, 255, 255, 0.98);
+    border: 1px solid #e9ecef;
+    border-radius: 0.65rem;
+    box-shadow: 0 10px 32px rgba(0, 0, 0, 0.12);
+    padding: 0.25rem;
+    color: #111827;
   }
 
-  .search-suggestions.open {
-    display: block;
+  .search-suggestions--tall {
+    max-height: min(280px, 48vh);
   }
 
-  .search-suggestions :global(.suggestion-item) {
+  .hero-typeahead.open .search-suggestions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  /* JS ile eklenen satırlar scoped sınıfa takılmaz; :global ile stillenir */
+  .hero-search-form :global(.suggestion-item) {
     display: block;
     width: 100%;
+    box-sizing: border-box;
     border: none;
-    background: #ffffff;
+    background: #fff;
     text-align: left;
     padding: 0.5rem 0.6rem;
-    border-radius: 0.5rem;
+    border-radius: 0.45rem;
     font-family: 'Outfit', sans-serif;
-    font-size: 0.92rem;
+    font-size: 0.9rem;
     font-weight: 600;
-    line-height: 1.25;
-    color: #111827 !important;
-    -webkit-text-fill-color: #111827 !important;
+    line-height: 1.35;
+    color: #111827;
+    -webkit-text-fill-color: #111827;
+    cursor: pointer;
+    transition: background 0.12s ease, color 0.12s ease;
   }
 
-  .search-suggestions :global(.suggestion-item:focus),
-  .search-suggestions :global(.suggestion-item:active) {
-    color: #111827 !important;
-    -webkit-text-fill-color: #111827 !important;
-    background: #F9FAFB;
-    outline: 2px solid #D1D5DB;
-    outline-offset: -1px;
+  .hero-search-form :global(.suggestion-item:hover:not(.suggestion-item--disabled)) {
+    background: #fff1f2;
+    color: #a30711;
+    -webkit-text-fill-color: #a30711;
   }
 
-  .search-suggestions :global(.suggestion-item:hover) {
-    background: #FFE9EB;
-    color: #A30711 !important;
-    -webkit-text-fill-color: #A30711 !important;
+  .hero-search-form :global(.suggestion-item.is-active) {
+    background: #ffe9eb;
+    color: #c20c18;
+    -webkit-text-fill-color: #c20c18;
+    font-weight: 800;
+  }
+
+  .hero-search-form :global(.suggestion-item--disabled) {
+    opacity: 0.55;
+    cursor: not-allowed;
+    pointer-events: none;
+    color: #6c757d;
+    -webkit-text-fill-color: #6c757d;
+  }
+
+  .hero-search-form :global(.hero-combobox-empty) {
+    margin: 0.35rem 0.45rem 0.5rem;
+    padding: 0.35rem 0.4rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #6c757d;
+    line-height: 1.35;
+  }
+
+  .hero-search-form :global(.hero-branch-filter-hint) {
+    margin: 0.15rem 0.35rem 0.4rem;
+    padding: 0.35rem 0.45rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #6c757d;
+    line-height: 1.35;
+    border-bottom: 1px dashed #e9ecef;
+  }
+
+  .hero-search-form :global(.hero-branch-empty) {
+    padding: 0.65rem 0.5rem 0.5rem;
+    text-align: left;
+  }
+
+  .hero-search-form :global(.hero-branch-empty-title) {
+    margin: 0 0 0.35rem;
+    font-size: 0.82rem;
+    font-weight: 800;
+    color: #212529;
+  }
+
+  .hero-search-form :global(.hero-branch-empty-desc) {
+    margin: 0;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: #495057;
+    line-height: 1.45;
+  }
+
+  .search-label {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #6C757D;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.2rem;
+    white-space: nowrap;
   }
 
   .search-divider {
@@ -773,10 +1133,24 @@ const seciliBransAdi = tumBranslar.find((b) => b.slug === seciliBrans)?.isim ?? 
     transform: scale(0.98);
   }
 
+  @media (max-width: 900px) {
+    .hero-search-form {
+      flex-wrap: wrap;
+    }
+    .search-field {
+      flex: 1 1 40%;
+      min-width: min(100%, 200px);
+    }
+  }
+
   /* Mobilde buton metni kısaltılır */
   @media (max-width: 480px) {
     .hero-search-form {
       flex-direction: column;
+    }
+    .search-field {
+      flex: 1 1 auto;
+      min-width: 0;
     }
     .search-divider {
       width: auto;

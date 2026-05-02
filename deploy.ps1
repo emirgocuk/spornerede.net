@@ -127,11 +127,15 @@ else
 fi
 ln -sfn "${RELEASE}" "${CUR_LINK}"
 echo "==> current -> ${RELEASE}"
-if systemctl list-unit-files | grep -q "^${SYSTEMD_UNIT}.service"; then
-  systemctl restart "${SYSTEMD_UNIT}"
+# list-unit-files bazen özel unit'i göstermeyebilir; dosya / show ile kontrol
+if [[ -f "/etc/systemd/system/${SYSTEMD_UNIT}.service" ]] || \
+   [[ -f "/lib/systemd/system/${SYSTEMD_UNIT}.service" ]] || \
+   systemctl show "${SYSTEMD_UNIT}.service" &>/dev/null; then
+  systemctl restart "${SYSTEMD_UNIT}.service" || systemctl restart "${SYSTEMD_UNIT}"
+  systemctl --no-pager --full status "${SYSTEMD_UNIT}.service" 2>/dev/null | sed -n '1,12p' || \
   systemctl --no-pager --full status "${SYSTEMD_UNIT}" | sed -n '1,12p' || true
 else
-  echo "UYARI: systemd unit yok: ${SYSTEMD_UNIT}.service" >&2
+  echo "UYARI: systemd unit bulunamadi: ${SYSTEMD_UNIT}.service — elle: systemctl restart ${SYSTEMD_UNIT}" >&2
 fi
 '@
 $remoteBody = $remoteBody.Replace("__RB__", $RemoteBase).Replace("__SU__", $SystemdUnit).Replace("__TG__", $remoteTgz)

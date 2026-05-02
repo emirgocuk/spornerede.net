@@ -4,7 +4,8 @@ import { getAllDistricts } from '../../lib/repositories/catalog';
 export const prerender = false;
 
 export const GET: APIRoute = async ({ url }) => {
-  const il = url.searchParams.get('il') ?? undefined;
+  const ilRaw = url.searchParams.get('il');
+  const il = ilRaw?.trim() ? ilRaw.trim() : undefined;
   const items = await getAllDistricts(il);
 
   return new Response(JSON.stringify({ items }), {

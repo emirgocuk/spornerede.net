@@ -18,6 +18,8 @@
     "pb:up": "docker compose -f docker-compose.pocketbase.yml up -d",
     "pb:down": "docker compose -f docker-compose.pocketbase.yml down",
     "pb:start": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"./pocketbase/pocketbase.exe serve --http=127.0.0.1:8090\"",
+    "pb:import-il-ilce": "node scripts/pb-import-il-ilce.mjs",
+    "pb:check-il-ilce": "node scripts/pb-check-il-ilce.mjs",
     "pb:stop": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$pbPid=(Get-NetTCPConnection -LocalAddress 127.0.0.1 -LocalPort 8090 -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty OwningProcess); if ($pbPid) { Stop-Process -Id $pbPid -Force; Write-Host ('Stopped PID ' + $pbPid) } else { Write-Host 'PocketBase not running on 8090' }\"",
     "pb:setup": "tsx scripts/pb-setup.ts",
     "mail:up": "docker compose -f docker-compose.mailpit.yml up -d",

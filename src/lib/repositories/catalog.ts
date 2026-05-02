@@ -1,4 +1,6 @@
 import { getDb, hasDatabaseUrl } from '../../db/client';
+import { plateCodeFromIlSlug } from '../trIlPlateBySlug';
+import { displayIlAd } from '../turkishIlDisplay';
 import { expireDueMemberships } from './memberships';
 import { parseProgramContent } from './programContent';
 
@@ -30,11 +32,19 @@ function requireDatabase() {
   }
 }
 
+/** PocketBase filter string içinde güvenli tırnak kaçışı */
+function escapePbFilter(value: string) {
+  return String(value ?? '').replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+}
+
 export async function getAllCities() {
   requireDatabase();
   const db = await getDb();
   const rows = await db.collection('iller').getFullList({ sort: 'ad' });
-  return rows.map((row) => ({ ad: row.ad as string, slug: row.slug as string }));
+  return rows.map((row) => ({
+    ad: displayIlAd(row.slug as string, row.ad as string),
+    slug: row.slug as string,
+  }));
 }
 
 export async function getAllDistricts(ilSlug?: string) {
@@ -44,13 +54,81 @@ export async function getAllDistricts(ilSlug?: string) {
     const rows = await db.collection('ilceler').getFullList({ sort: 'ad' });
     return rows.map((row) => ({ ad: row.ad as string, slug: row.slug as string }));
   }
-  const city = await db.collection('iller').getFirstListItem(`slug = "${ilSlug}"`).catch(() => null);
-  if (!city) return [];
-  const rows = await db.collection('ilceler').getFullList({
-    filter: `ilLegacyId = ${Number(city.legacyId)}`,
+
+  const raw = ilSlug.trim();
+  if (!raw) {
+    const rows = await db.collection('ilceler').getFullList({ sort: 'ad' });
+    return rows.map((row) => ({ ad: row.ad as string, slug: row.slug as string }));
+  }
+
+  const slugNorm = raw.toLocaleLowerCase('tr-TR');
+  let city =
+    (await db
+      .collection('iller')
+      .getFirstListItem(`slug = "${escapePbFilter(raw)}"`)
+      .catch(() => null)) ??
+    (await db
+      .collection('iller')
+      .getFirstListItem(`slug = "${escapePbFilter(slugNorm)}"`)
+      .catch(() => null));
+
+  if (!city) {
+    const all = await db.collection('iller').getFullList({ sort: 'ad' });
+    city =
+      all.find((row) => String(row.slug ?? '').toLocaleLowerCase('tr-TR') === slugNorm) ??
+      all.find((row) => String(row.ad ?? '').toLocaleLowerCase('tr-TR') === slugNorm) ??
+      null;
+  }
+
+  const plateGuess =
+    plateCodeFromIlSlug(slugNorm) ??
+    plateCodeFromIlSlug(raw.toLowerCase()) ??
+    (city ? plateCodeFromIlSlug(String(city.slug ?? '').toLowerCase()) : null);
+
+  const mapRows = (rows: { ad?: unknown; slug?: unknown }[]) =>
+    rows.map((row) => ({ ad: row.ad as string, slug: row.slug as string }));
+
+  /** İl satırı yok veya legacyId bozuksa bile slug→plaka ile ilçe bul */
+  const districtsByPlate = async (plate: number) => {
+    const allDistricts = await db.collection('ilceler').getFullList({ sort: 'ad' });
+    return allDistricts.filter((row) => Number(row.ilLegacyId) === plate);
+  };
+
+  if (!city) {
+    if (plateGuess != null) {
+      const rows = await districtsByPlate(plateGuess);
+      return mapRows(rows);
+    }
+    return [];
+  }
+
+  const ilLegacy = Number(city.legacyId);
+
+  if (!Number.isFinite(ilLegacy)) {
+    if (plateGuess != null) {
+      const rows = await districtsByPlate(plateGuess);
+      return mapRows(rows);
+    }
+    return [];
+  }
+
+  let rows = await db.collection('ilceler').getFullList({
+    filter: `ilLegacyId = ${ilLegacy}`,
     sort: 'ad',
   });
-  return rows.map((row) => ({ ad: row.ad as string, slug: row.slug as string }));
+
+  if (rows.length === 0) {
+    const allDistricts = await db.collection('ilceler').getFullList({ sort: 'ad' });
+    rows = allDistricts.filter((row) => Number(row.ilLegacyId) === ilLegacy);
+    if (rows.length === 0 && plateGuess != null) {
+      const byPlate = allDistricts.filter((row) => Number(row.ilLegacyId) === plateGuess);
+      if (byPlate.length > 0) {
+        rows = byPlate;
+      }
+    }
+  }
+
+  return mapRows(rows);
 }
 
 export async function getAllDistrictsWithCities() {
@@ -66,7 +144,7 @@ export async function getAllDistrictsWithCities() {
     return {
       ad: row.ad as string,
       slug: row.slug as string,
-      il: (city?.ad as string | undefined) ?? '',
+      il: displayIlAd(city?.slug as string | undefined, city?.ad as string | undefined),
       ilSlug: (city?.slug as string | undefined) ?? '',
     };
   });
@@ -129,11 +207,12 @@ export async function searchClubs(filters: SearchFilters) {
       return {
         id: Number(club.legacyId),
         ad: club.ad as string,
-        il: (city?.ad as string | undefined) ?? '',
+        il: displayIlAd(city?.slug as string | undefined, city?.ad as string | undefined),
         ilSlug: (city?.slug as string | undefined) ?? '',
         brans: (linkedBranch?.ad as string | undefined) ?? '',
         bransSlug: (linkedBranch?.slug as string | undefined) ?? '',
         ilce: (district?.ad as string | undefined) ?? '',
+        ilceSlug: (district?.slug as string | undefined) ?? '',
         adres: (club.adres as string) ?? '',
         yasAraligi: (club.yasAraligi as string) ?? '',
         fiyat: (club.fiyatBilgisi as string) ?? '',
@@ -345,14 +424,16 @@ export async function getProgramListingById(programId: number) {
     days: parsed.content.days,
     startTime: parsed.content.startTime,
     endTime: parsed.content.endTime,
-    locationText: parsed.content.locationText || ((district?.ad as string | undefined) ?? (city?.ad as string | undefined) ?? ''),
+    locationText:
+      parsed.content.locationText ||
+      ((district?.ad as string | undefined) ?? displayIlAd(city?.slug as string | undefined, city?.ad as string | undefined) ?? ''),
     mapsUrl: parsed.content.mapsUrl,
     gallery: parsed.content.gallery,
     bodyJson: parsed.content.bodyJson,
     club: {
       id: Number(club.legacyId),
       ad: (club.ad as string) ?? '',
-      il: (city?.ad as string | undefined) ?? '',
+      il: displayIlAd(city?.slug as string | undefined, city?.ad as string | undefined),
       ilce: (district?.ad as string | undefined) ?? '',
       yasAraligi: (club.yasAraligi as string) ?? '',
       puan: Number(club.puan ?? 0),

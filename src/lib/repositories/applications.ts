@@ -1,4 +1,5 @@
 import { getDb, hasDatabaseUrl } from '../../db/client';
+import { displayIlAd } from '../turkishIlDisplay';
 import { activateClubMembership, hasActiveMembership, type MembershipPeriod } from './memberships';
 
 export type ClubApplicationInput = {
@@ -137,18 +138,21 @@ export async function listAdminApplications() {
     db.collection('iller').getFullList(),
     db.collection('ilceler').getFullList(),
   ]);
-  const cityMap = new Map(cities.map((row) => [Number(row.legacyId), row.ad as string]));
+  const cityById = new Map(cities.map((row) => [Number(row.legacyId), row]));
   const districtMap = new Map(districts.map((row) => [Number(row.legacyId), row.ad as string]));
-  return rows.items.map((row) => ({
+  return rows.items.map((row) => {
+    const city = cityById.get(Number(row.ilLegacyId));
+    return {
     id: Number(row.legacyId),
     ad: row.ad as string,
-    il: cityMap.get(Number(row.ilLegacyId)) ?? '',
+    il: city ? displayIlAd(String(city.slug), String(city.ad)) : '',
     ilce: districtMap.get(Number(row.ilceLegacyId)) ?? '',
     durum: row.durum as 'pending' | 'approved' | 'rejected',
     createdAt: row.created,
     telefon: row.telefon as string,
     sorumluAdminEmail: (row.sorumluAdminEmail as string) ?? '',
-  }));
+  };
+  });
 }
 
 export async function getAdminApplicationById(id: number) {
@@ -165,7 +169,7 @@ export async function getAdminApplicationById(id: number) {
   return {
     id: Number(row.legacyId),
     ad: row.ad as string,
-    il: (city?.ad as string | undefined) ?? '',
+    il: displayIlAd(city?.slug as string | undefined, city?.ad as string | undefined),
     ilce: (district?.ad as string | undefined) ?? '',
     durum: row.durum as 'pending' | 'approved' | 'rejected',
     createdAt: row.created,

@@ -111,6 +111,7 @@ async function run() {
       await pb.collection('iller').update(existingCity.id, {
         ad: cityName,
         slug: citySlug,
+        legacyId: cityLegacyId,
       });
       cityUpdated += 1;
     } else {

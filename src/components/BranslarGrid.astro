@@ -20,37 +20,6 @@ for (const club of clubs) {
   clubCountByBranch.set(branchSlug, clubCurrent + 1);
 }
 
-/** Kulüpsüz olsa da ana sayfada kart olarak göster (veritabanında varsa). */
-const HOME_FEATURED_SLUGS = new Set([
-  'triatlon',
-  'kick-boks',
-  'aikido',
-  'kadin-futbolu',
-  'kayak',
-  'rulman-pateni',
-  'buz-pateni',
-  'bale',
-  'bisiklet',
-  'motor-sporlari',
-  'motokros',
-  'rafting',
-  '4x4-offroad',
-  'enduro',
-  'atv',
-  'utv',
-  'side-by-side',
-  'trial-motosiklet',
-  'yamac-parasutu',
-  'modern-pentatlon',
-  'kosu',
-  'bowling',
-  'yuruyus',
-  'yelken',
-  'atis-poligonu',
-  'halk-oyunlari',
-  'beyzbol',
-]);
-
 const sortByActivity = (a: (typeof branslar)[0], b: (typeof branslar)[0]) => {
   const aClubCount = clubCountByBranch.get(a.slug) ?? 0;
   const bClubCount = clubCountByBranch.get(b.slug) ?? 0;
@@ -61,17 +30,10 @@ const sortByActivity = (a: (typeof branslar)[0], b: (typeof branslar)[0]) => {
   return a.isim.localeCompare(b.isim, 'tr');
 };
 
-const withClubs = [...branslar]
+const topBranslar = [...branslar]
   .filter((branch) => (clubCountByBranch.get(branch.slug) ?? 0) > 0)
   .sort(sortByActivity)
   .slice(0, 20);
-
-const withClubSlugs = new Set(withClubs.map((b) => b.slug));
-const featuredExtra = branslar
-  .filter((b) => HOME_FEATURED_SLUGS.has(b.slug) && !withClubSlugs.has(b.slug))
-  .sort((a, b) => a.isim.localeCompare(b.isim, 'tr'));
-
-const topBranslar = [...withClubs, ...featuredExtra];
 ---
 
 <section class="branslar-section section" aria-labelledby="branslar-baslik">
@@ -123,17 +85,6 @@ const topBranslar = [...withClubs, ...featuredExtra];
               </div>
             </a>
           ))}
-        </div>
-
-        <!-- Tüm branşlar CTA -->
-        <div class="branslar-footer">
-          <a href="/branslar" class="btn btn-outline" aria-label="Tüm spor branşlarını görüntüle">
-            Tüm Branşları Gör
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <line x1="5" y1="12" x2="19" y2="12"/>
-              <polyline points="12 5 19 12 12 19"/>
-            </svg>
-          </a>
         </div>
       </>
     )}
@@ -291,15 +242,5 @@ const topBranslar = [...withClubs, ...featuredExtra];
     opacity: 0;
     transition: all 0.2s ease;
     flex-shrink: 0;
-  }
-
-  /* ===== FOOTER ===== */
-  .branslar-footer {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-top: 2.5rem;
-    padding-top: 1.75rem;
-    border-top: 1px solid #E9ECEF;
   }
 </style>
