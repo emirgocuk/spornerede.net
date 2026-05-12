@@ -6,6 +6,8 @@
  */
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { getAllBranches, getAllCities, getAllDistricts, searchClubs } from '../lib/repositories/catalog';
+import { itemListSchema, SITE_URL } from '../lib/seo/jsonld';
+import { listingSlug } from '../lib/seo/slug';
 
 // URL parametrelerini oku
 const { searchParams } = Astro.url;
@@ -55,12 +57,37 @@ const branslar = BRANCHES;
 const seciliBransLabel = seciliBransObj?.isim ?? 'Tüm Branşlar';
 const seciliIlLabel = seciliIlObj?.ad ?? 'Tüm Türkiye';
 const seciliIlceLabel = ilceler.find((item) => item.slug === seciliIlce)?.ad ?? (seciliIl ? 'Tüm İlçeler' : 'Önce il seçin');
+
+// SEO: parametreli URL'lerde canonical her zaman /ara'ya isaret eder (ince-icerik tekrari engellenir)
+const isFilteredSearch = Boolean(seciliIl || seciliIlce || secilinBrans);
+const canonicalAra = `${SITE_URL}/ara`;
+
+// SEO: filtre uygulanmis arama sonuclari ItemList (ilk 10) olarak yapilandirilir
+const itemListJson = itemListSchema(
+  filtreliIlanlar.slice(0, 10).map((item) => ({
+    url: `${SITE_URL}/ilanlar/${listingSlug({ id: item.id, ad: item.ad, clubAd: item.kulupAd })}`,
+    name: `${item.kulupAd} - ${item.ad}`,
+  })),
+  {
+    name: `${baslikIlce} ${baslikBrans} ilanları`,
+    description: `${baslikIlce} ${baslikBrans.toLowerCase()} kursları ve kulüpleri.`,
+  }
+);
+
+const breadcrumbsAra = [
+  { name: 'Ana Sayfa', url: `${SITE_URL}/` },
+  { name: 'Arama', url: canonicalAra },
+];
 ---
 
 <BaseLayout
   title={`${baslikIlce} ${baslikBrans} Kursları ve Kulüpleri`}
   description={`${baslikIlce} ${baslikBrans.toLowerCase()} kurslari ve kulupleri. Fiyat, konum ve yas araligina gore filtreleyin, size en uygun kulubu bulun.`}
   keywords={`${secilinBrans || 'spor'} kursu, ${seciliIl || 'turkiye'} spor kulubu, cocuk spor kursu`}
+  canonical={canonicalAra}
+  noIndex={isFilteredSearch}
+  breadcrumbs={breadcrumbsAra}
+  jsonLd={sonucSayisi > 0 ? itemListJson : undefined}
 >
   <div class="page-background"></div>
   <main class="ara-main relative z-10">
@@ -213,7 +240,7 @@ const seciliIlceLabel = ilceler.find((item) => item.slug === seciliIlce)?.ad ?? 
 
                 <div class="kulup-footer">
                   <p class="kulup-adres"><i class="badge-icon">🗺️</i> {ilan.locationText || ilan.ilce}</p>
-                  <a href={`/ilanlar/${ilan.id}`} class="btn btn-primary shadow-md hover:shadow-lg transition-all kulup-detay-btn">İlanı İncele →</a>
+                  <a href={`/ilanlar/${listingSlug({ id: ilan.id, ad: ilan.ad, clubAd: ilan.kulupAd })}`} class="btn btn-primary shadow-md hover:shadow-lg transition-all kulup-detay-btn">İlanı İncele →</a>
                 </div>
               </article>
             ))}

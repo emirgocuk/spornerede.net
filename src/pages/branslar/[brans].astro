@@ -5,7 +5,7 @@ import { getBranchBySlug, searchClubs } from '../../lib/repositories/catalog';
 const slug = Astro.params.brans ?? '';
 const branch = await getBranchBySlug(slug);
 if (!branch) {
-  return Astro.redirect('/branslar');
+  return new Response(null, { status: 404 });
 }
 const kulupListesi = await searchClubs({ brans: branch.slug });
 ---

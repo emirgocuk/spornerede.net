@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffffff" />
+      <stop offset="0.55" stop-color="#fff5f5" />
+      <stop offset="1" stop-color="#ffe7e9" />
+    </linearGradient>
+    <radialGradient id="glow" cx="0.85" cy="0.15" r="0.6">
+      <stop offset="0" stop-color="#E30A17" stop-opacity="0.18" />
+      <stop offset="1" stop-color="#E30A17" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bg)" />
+  <rect width="1200" height="630" fill="url(#glow)" />
+
+  <g transform="translate(80, 90)">
+    <text x="0" y="60" font-family="Georgia, 'Times New Roman', serif" font-weight="700" font-size="64" fill="#1f2933" letter-spacing="-2">spor</text>
+    <text x="0" y="135" font-family="Georgia, 'Times New Roman', serif" font-weight="700" font-size="60" fill="#1f2933" letter-spacing="-2">nerede</text>
+    <text x="285" y="115" font-family="Georgia, 'Times New Roman', serif" font-weight="700" font-size="160" fill="#E30A17" letter-spacing="-4">?</text>
+  </g>
+
+  <g transform="translate(80, 350)">
+    <text font-family="-apple-system, 'Segoe UI', system-ui, sans-serif" font-weight="800" font-size="56" fill="#0d0d0d" letter-spacing="-1.5">
+      <tspan x="0" dy="0">Spor kursunu bul,</tspan>
+      <tspan x="0" dy="70">karsilastir, basvur.</tspan>
+    </text>
+  </g>
+
+  <g transform="translate(80, 555)">
+    <text font-family="-apple-system, 'Segoe UI', system-ui, sans-serif" font-weight="600" font-size="24" fill="#6c757d" letter-spacing="0">spornerede.net  -  Turkiye'nin spor kulup ve kurs rehberi</text>
+  </g>
+
+  <g transform="translate(880, 110)" opacity="0.85">
+    <circle cx="100" cy="100" r="100" fill="#E30A17" opacity="0.12" />
+    <circle cx="100" cy="100" r="100" fill="none" stroke="#E30A17" stroke-width="6" stroke-dasharray="20 10" opacity="0.4" />
+    <text x="100" y="118" font-family="-apple-system, 'Segoe UI', system-ui, sans-serif" font-weight="900" font-size="48" fill="#E30A17" text-anchor="middle">SN</text>
+  </g>
+
+  <g transform="translate(1010, 290)">
+    <rect x="0" y="0" width="120" height="36" rx="18" fill="#E30A17" />
+    <text x="60" y="24" font-family="-apple-system, 'Segoe UI', system-ui, sans-serif" font-weight="800" font-size="16" fill="#ffffff" text-anchor="middle">2026</text>
+  </g>
+
+  <rect x="0" y="618" width="1200" height="12" fill="#E30A17" />
+</svg>

@@ -13,6 +13,16 @@ export default defineConfig({
   // Site URL (sitemap için)
   site: 'https://spornerede.net',
 
+  // SEO: tek tip canonical icin trailing slash yok
+  trailingSlash: 'never',
+
+  // Performans: viewport icindeki iç linkleri hover'da on-yukleme yap.
+  // data-astro-prefetch="..." ile sayfa basina override edilebilir.
+  prefetch: {
+    prefetchAll: false,
+    defaultStrategy: 'hover',
+  },
+
   // Cloudflare/Nginx proxy arkasında Astro origin kontrolü form POST'larını
   // hatalı şekilde cross-site algılayabiliyor. Oturum cookie'leri SameSite=Lax.
   security: {
@@ -20,7 +30,22 @@ export default defineConfig({
   },
 
   // Entegrasyonlar
-  integrations: [sitemap()],
+  integrations: [
+    sitemap({
+      filter: (page) => {
+        // Admin, panel, API ve form sayfalari sitemap'e girmesin
+        if (page.includes('/admin')) return false;
+        if (page.includes('/panel')) return false;
+        if (page.includes('/api/')) return false;
+        if (page.includes('/basvuru')) return false;
+        if (page.includes('/uploads/')) return false;
+        return true;
+      },
+      changefreq: 'weekly',
+      priority: 0.7,
+      lastmod: new Date(),
+    }),
+  ],
 
   // Vite ayarları
   vite: {

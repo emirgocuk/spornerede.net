@@ -208,13 +208,78 @@ Ana takip dosyasi: `memory-bank/faz-gelistirme-checklist-tr.md` (faz bazli [x]/[
   - `spornerede-autoupdate.service/timer` etkinleştir.
   - `systemctl start spornerede-autoupdate.service` ile elle test et.
 
-### Faz 4 — Gelişmiş Özellikler & Monetizasyon (Sıradaki)
+### Faz 12 — SEO Güçlendirme + Reklam Altyapısı (Sıradaki, Öncelikli) 🚧
+
+Detaylı plan: `memory-bank/seo-ads-plan.md`. Faz 4'ten önce yapılacak.
+
+**Sprint 12.1 — Paket A: SEO Temeli**
+- Slug tabanlı URL'ler: `/ilanlar/[slug]`, `/kulupler/[slug]` + sayısal ID'lerden 301 redirect
+- PocketBase `kulupler` ve `kulup_programlari` koleksiyonlarına unique `slug` alanı
+- `BaseLayout`'a global JSON-LD enjeksiyonu: `Organization` + `WebSite` (potentialAction → sitelinks searchbox)
+- Breadcrumb component + `BreadcrumbList` JSON-LD
+- Kulüp detay → `SportsActivityLocation` + `LocalBusiness` schema
+- İlan detay → `Course`/`Event` schema (fiyat, tarih, sağlayıcı, geo)
+- `FAQSection` → `FAQPage` JSON-LD
+- `/ara` → `ItemList` JSON-LD (ilk 10 sonuç)
+- OG image: statik default + dinamik endpoint (`/api/og/[slug].png`)
+- Gerçek 404 davranışı (tüm `Astro.redirect('/ara')` çağrıları yerine `Astro.response.status = 404`)
+- `404.astro` özelleştir
+- `robots.txt` sıkılaştırma (`/panel`, `/admin`, `/basvuru`, parametreli `/ara`)
+- Sitemap'lere `lastmod` + `priority` + `changefreq` ekle, boş şehir/branş kombinasyonlarını çıkar
+
+**Sprint 12.2 — Paket B: Reklam Altyapısı**
+- KVKK çerez banner (`ConsentBanner.astro`) + Google Consent Mode v2
+- GA4 + GTM kurulumu (consent'e bağlı, server-side event mirror via `/api/internal/track`)
+- 10 conversion event tanımı (`view_listing`, `view_club`, `search_performed`, `lead_phone_click`, `lead_email_click`, `lead_maps_click`, `application_submit`, `application_success`, `contact_form_submit`, `feedback_submit`)
+- 4 yasal sayfa: `/gizlilik-politikasi`, `/cerez-politikasi`, `/kvkk-aydinlatma-metni`, `/kullanim-kosullari`
+- CLS-safe `AdSlot.astro` component + 3 rezerv konumu (ana sayfa, `/ara` grid arası, kulüp detayı sidebar)
+- `public/ads.txt` placeholder
+- UTM yakalama + cookie + form gizli alan + admin başvuru detayında atıf gösterimi
+- Bing Webmaster + Yandex Webmaster doğrulama (Google Search Console zaten var)
+
+**Sprint 12.3 — Paket C: Performans + İçerik**
+- `astro:assets` migration (`<Image />` componenti, WebP/AVIF, lazy loading, width/height zorunlu)
+- Outfit font self-host + LCP font preload + Google Fonts CDN kaldırma
+- `preconnect` / `dns-prefetch` network ipuçları
+- Astro `prefetch` Header nav linklerinde aktif
+- Cloudflare cache (`s-maxage=300, stale-while-revalidate=86400`) public sayfalar için
+- Şehir/ilçe + branş landing zenginleştirme (150-250 kelime özgün açıklama + SSS + iç linkler, boşlar `noindex`)
+- Galeri görsel `alt` text denetimi (`{branş} {şehir} {kulüp} - {ilan} - görsel {N}`)
+
+**Sprint 12.4 — Devam Eden**
+- Long-tail rehber/blog içerik üretimi (`/rehber` veya `haberler` rehber kategorisi)
+- `hreflang="tr-TR"` self-referencing
+- `trailingSlash: 'never'` + canonical disiplini
+- Monitoring: PageSpeed Insights API haftalık snapshot, Search Console API entegrasyonu
+
+**Kabul Kriterleri:**
+- [ ] PageSpeed Insights (mobil) Performance ≥ 90, LCP < 2.5s, CLS < 0.1
+- [ ] Google Rich Results Test → kulüp, ilan, FAQ, breadcrumb yeşil
+- [ ] Search Console "Geçerli" indeksli sayfa sayısı artıyor
+- [ ] Detay sayfaları slug ile erişiliyor, sayısal ID'lerden 301
+- [ ] `Astro.redirect('/ara')` tüm `[slug]/[id]` rotalarından kaldırıldı
+- [ ] KVKK reddinde GA4 hiç ateşlenmiyor (Network sekmesi doğrulaması)
+- [ ] GTM DebugView'da 10 event görünüyor
+- [ ] 4 yasal sayfa yayında + footer linklenmiş
+- [ ] `ads.txt` 200 dönüyor
+- [ ] UTM cookie + form gizli alan testi yeşil
+
+### Faz 4 — Gelişmiş Özellikler & Monetizasyon (Faz 12 sonrası)
 
 - Gelişmiş Arama ve Harita entegrasyonu (Mapbox / Leaflet)
 - Akıllı eşleştirme quiz'i (Kullanıcılara uygun kurs/kulüp önerisi)
 - Yorum/puanlama sistemi (Kulüpler için geri bildirimler)
 - Premium profil sistemi (Öne çıkanlar) ve online ödeme altyapısı (Stripe/Iyzico)
 - Arama filtrelerinin URL tabanlı sorgu ile derinleştirilmesi
+
+### Faz 13 — Reklam Yayını (Faz 12 ön-koşulları sonrası)
+
+- Google Ads hesabı + GA4 conversion import
+- AdSense başvurusu (içerik hacmi yeterli olduğunda)
+- İlk kampanyalar:
+  - Search: "[şehir] [branş] kursu" → ilgili landing
+  - Performance Max: kulüp başvuru CTA → `/basvuru`
+  - Remarketing: `view_listing` + `view_club` görmüş dönüşmemiş kullanıcılar
 
 ---
 
@@ -226,5 +291,6 @@ MVP odağını sade tutmak için aşağıdaki bilgilendirme dokumanlari eklendi:
 - `memory-bank/deploy-runbook.md`
 - `memory-bank/mvp-metrics.md`
 - `memory-bank/security-privacy.md`
+- `memory-bank/seo-ads-plan.md` (Faz 12: SEO + Reklam Hazırlığı tam yol haritası)
 
 Bu set, detayli kurumsal dokumantasyondan ziyade "hemen uygulanabilir adim" odaklidir.

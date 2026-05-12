@@ -1,0 +1,278 @@
+---
+/**
+ * ConsentBanner.astro
+ * KVKK uyumlu cerez izni banner'i + Google Consent Mode v2 stub.
+ *
+ * Davranis:
+ *  - Sayfaya yuklenir yuklenmez varsayilan consent state'i "denied" olarak set edilir.
+ *    Bu Google'in Consent Mode v2 gereksinimi: kullanici izni gelene kadar ads/analytics
+ *    izlemesi yapilmaz.
+ *  - LocalStorage'da kayitli onay varsa onay durumuna gore consent guncellenir,
+ *    banner gosterilmez.
+ *  - Tum reddet / Tum kabul et / Yonet (kategoriler) secenekleri var.
+ *  - Kategoriler: zorunlu (her zaman aktif), analiz, pazarlama.
+ *  - 12 ay sonra yeniden sorulur (LocalStorage tarihiyle).
+ *
+ * Etkilesim:
+ *  - gtag('consent', ...) ile GTM/GA4 entegrasyonu (BaseLayout'a GTM eklenince devreye girer)
+ *  - `window.dispatchEvent(new CustomEvent('spornerede:consent', { detail: state }))`
+ *    ile diger script'ler dinleyebilir.
+ */
+const CONSENT_VERSION = '1';
+---
+
+<aside class="consent-banner" data-consent-banner aria-live="polite" hidden>
+  <div class="consent-inner">
+    <div class="consent-text">
+      <strong class="consent-title">Cerez tercihleri</strong>
+      <p class="consent-desc">
+        SporNerede.net deneyiminizi iyilestirmek, kullanim verisini olcmek ve
+        gelecekte reklam kampanyalarini optimize etmek icin cerez kullaniriz.
+        Detaylar icin <a href="/cerez-politikasi">Cerez Politikamizi</a> ve
+        <a href="/gizlilik-politikasi">Gizlilik Politikamizi</a> inceleyebilirsiniz.
+      </p>
+    </div>
+
+    <div class="consent-options" data-consent-options hidden>
+      <label class="consent-row">
+        <input type="checkbox" checked disabled />
+        <span><strong>Zorunlu</strong> - oturum, guvenlik, temel islevsellik (kapatilamaz)</span>
+      </label>
+      <label class="consent-row">
+        <input type="checkbox" data-consent-cat="analytics" />
+        <span><strong>Analiz</strong> - sayfa goruntuleme ve kullanim verisi (Google Analytics)</span>
+      </label>
+      <label class="consent-row">
+        <input type="checkbox" data-consent-cat="marketing" />
+        <span><strong>Pazarlama</strong> - reklam ve yeniden hedefleme (Google Ads, Meta Pixel)</span>
+      </label>
+    </div>
+
+    <div class="consent-actions">
+      <button type="button" class="consent-btn consent-btn-ghost" data-consent-action="manage">
+        Yonet
+      </button>
+      <button type="button" class="consent-btn consent-btn-outline" data-consent-action="reject">
+        Reddet
+      </button>
+      <button type="button" class="consent-btn consent-btn-primary" data-consent-action="accept">
+        Tumunu Kabul Et
+      </button>
+      <button type="button" class="consent-btn consent-btn-primary" data-consent-action="save" hidden>
+        Tercihleri Kaydet
+      </button>
+    </div>
+  </div>
+</aside>
+
+<script is:inline define:vars={{ CONSENT_VERSION }}>
+(function () {
+  const STORAGE_KEY = 'spornerede-consent-v' + CONSENT_VERSION;
+  const MAX_AGE_MS = 365 * 24 * 60 * 60 * 1000; // 12 ay
+
+  // Google Consent Mode v2 — varsayilan: tum reklam/analiz izleme kapali
+  // (Tag'lar sonra eklendiginde otomatik bu state'e uyacak)
+  window.dataLayer = window.dataLayer || [];
+  function gtag() { window.dataLayer.push(arguments); }
+  window.gtag = window.gtag || gtag;
+
+  gtag('consent', 'default', {
+    ad_storage: 'denied',
+    ad_user_data: 'denied',
+    ad_personalization: 'denied',
+    analytics_storage: 'denied',
+    functionality_storage: 'granted',
+    security_storage: 'granted',
+    wait_for_update: 500,
+  });
+
+  function applyConsent(state) {
+    gtag('consent', 'update', {
+      ad_storage: state.marketing ? 'granted' : 'denied',
+      ad_user_data: state.marketing ? 'granted' : 'denied',
+      ad_personalization: state.marketing ? 'granted' : 'denied',
+      analytics_storage: state.analytics ? 'granted' : 'denied',
+    });
+
+    window.dispatchEvent(new CustomEvent('spornerede:consent', { detail: state }));
+  }
+
+  function readState() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object') return null;
+      if (typeof parsed.timestamp !== 'number') return null;
+      if (Date.now() - parsed.timestamp > MAX_AGE_MS) return null;
+      return parsed;
+    } catch {
+      return null;
+    }
+  }
+
+  function saveState(state) {
+    const payload = {
+      analytics: !!state.analytics,
+      marketing: !!state.marketing,
+      timestamp: Date.now(),
+      version: CONSENT_VERSION,
+    };
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    } catch {
+      // ignore
+    }
+    applyConsent(payload);
+  }
+
+  const banner = document.querySelector('[data-consent-banner]');
+  if (!banner) return;
+  const options = banner.querySelector('[data-consent-options]');
+  const cbAnalytics = banner.querySelector('[data-consent-cat="analytics"]');
+  const cbMarketing = banner.querySelector('[data-consent-cat="marketing"]');
+  const actionsRoot = banner.querySelector('.consent-actions');
+
+  const existing = readState();
+  if (existing) {
+    applyConsent(existing);
+    return; // banner gosterme
+  }
+
+  banner.hidden = false;
+
+  function hide() { banner.hidden = true; }
+
+  banner.addEventListener('click', (event) => {
+    const target = event.target instanceof HTMLElement ? event.target.closest('[data-consent-action]') : null;
+    if (!target) return;
+    const action = target.getAttribute('data-consent-action');
+    if (action === 'accept') {
+      saveState({ analytics: true, marketing: true });
+      hide();
+    } else if (action === 'reject') {
+      saveState({ analytics: false, marketing: false });
+      hide();
+    } else if (action === 'manage') {
+      if (options) options.hidden = false;
+      const manageBtn = actionsRoot?.querySelector('[data-consent-action="manage"]');
+      const saveBtn = actionsRoot?.querySelector('[data-consent-action="save"]');
+      if (manageBtn) manageBtn.hidden = true;
+      if (saveBtn) saveBtn.hidden = false;
+    } else if (action === 'save') {
+      saveState({
+        analytics: !!(cbAnalytics && cbAnalytics.checked),
+        marketing: !!(cbMarketing && cbMarketing.checked),
+      });
+      hide();
+    }
+  });
+})();
+</script>
+
+<style>
+  .consent-banner {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    z-index: 9998;
+    background: rgba(255, 255, 255, 0.97);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid #f1dede;
+    border-radius: 1rem;
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
+    padding: 1rem 1.25rem;
+    max-width: 880px;
+    margin: 0 auto;
+    color: #1f2933;
+  }
+  .consent-inner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.8rem 1.2rem;
+  }
+  .consent-text {
+    flex: 1 1 320px;
+    min-width: 0;
+  }
+  .consent-title {
+    display: block;
+    font-size: 0.95rem;
+    font-weight: 800;
+    margin-bottom: 0.25rem;
+  }
+  .consent-desc {
+    margin: 0;
+    font-size: 0.82rem;
+    line-height: 1.55;
+    color: #4b5563;
+  }
+  .consent-desc a {
+    color: #b5080f;
+    font-weight: 700;
+    text-decoration: none;
+  }
+  .consent-desc a:hover { text-decoration: underline; }
+
+  .consent-options {
+    flex: 1 1 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    background: #fff7f7;
+    padding: 0.8rem 1rem;
+    border-radius: 0.75rem;
+    border: 1px solid #f1dede;
+  }
+  .consent-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    color: #1f2933;
+  }
+  .consent-row input { margin-top: 0.25rem; }
+  .consent-row strong { color: #b5080f; }
+
+  .consent-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    justify-content: flex-end;
+  }
+  .consent-btn {
+    padding: 0.55rem 1rem;
+    border-radius: 0.65rem;
+    font-size: 0.82rem;
+    font-weight: 800;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .consent-btn-primary {
+    background: #e30a17;
+    color: #ffffff;
+  }
+  .consent-btn-primary:hover { background: #b5080f; }
+  .consent-btn-outline {
+    background: #ffffff;
+    color: #1f2933;
+    border-color: #d6dce3;
+  }
+  .consent-btn-outline:hover { border-color: #e30a17; color: #e30a17; }
+  .consent-btn-ghost {
+    background: transparent;
+    color: #6c757d;
+  }
+  .consent-btn-ghost:hover { color: #1f2933; }
+
+  @media (max-width: 640px) {
+    .consent-banner { left: 8px; right: 8px; bottom: 8px; padding: 0.85rem 1rem; }
+    .consent-actions { width: 100%; justify-content: stretch; }
+    .consent-btn { flex: 1 1 0; min-width: 0; }
+  }
+</style>

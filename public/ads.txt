@@ -1,0 +1,10 @@
+# SporNerede.net ads.txt
+# IAB Tech Lab: https://iabtechlab.com/ads-txt/
+#
+# Bu dosya site sahibinin yetkili reklam satıcılarını listeler.
+# Henuz aktif bir reklam ortagi yok. Reklam yayinina geciste (Faz 13)
+# AdSense / DV360 / Index Exchange gibi ortaklarin DIRECT veya RESELLER
+# satirlari buraya eklenir.
+#
+# Ornek (AdSense):
+# google.com, pub-XXXXXXXXXXXXXXXX, DIRECT, f08c47fec0942fa0

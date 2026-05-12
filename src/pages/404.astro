@@ -1,0 +1,189 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getAllBranches } from '../lib/repositories/catalog';
+
+Astro.response.status = 404;
+
+let popularBranches: Array<{ slug: string; isim: string; emoji: string }> = [];
+try {
+  const branches = await getAllBranches();
+  popularBranches = branches.slice(0, 8);
+} catch {
+  popularBranches = [];
+}
+---
+
+<BaseLayout
+  title="Sayfa Bulunamadi (404)"
+  description="Aradiginiz sayfa kaldirilmis veya tasinmis olabilir. Spor kulupleri ve kurslar icin arama yapin."
+  noIndex={true}
+>
+  <section class="not-found-section">
+    <div class="container nf-container">
+      <div class="nf-card">
+        <div class="nf-code" aria-hidden="true">404</div>
+        <h1 class="nf-title">Aradiginiz sayfa bulunamadi</h1>
+        <p class="nf-desc">
+          Bu sayfa kaldirilmis, tasinmis ya da URL hatali yazilmis olabilir.
+          Asagidaki secenekler ihtiyacinizi karsilayabilir.
+        </p>
+
+        <form action="/ara" method="get" class="nf-search">
+          <label for="nf-q" class="sr-only">Arama</label>
+          <input
+            id="nf-q"
+            type="text"
+            name="q"
+            placeholder="Sehir, brans ya da kulup ara..."
+            class="nf-input"
+            autocomplete="off"
+          />
+          <button type="submit" class="btn btn-primary nf-submit">Ara</button>
+        </form>
+
+        <div class="nf-actions">
+          <a class="btn btn-outline btn-sm" href="/">Ana sayfaya don</a>
+          <a class="btn btn-outline btn-sm" href="/branslar">Tum branslar</a>
+          <a class="btn btn-outline btn-sm" href="/haberler">Haberler</a>
+          <a class="btn btn-outline btn-sm" href="/iletisim">Iletisim</a>
+        </div>
+
+        {popularBranches.length > 0 && (
+          <div class="nf-branches">
+            <h2 class="nf-branches-title">Populer branslar</h2>
+            <ul class="nf-branches-list" role="list">
+              {popularBranches.map((branch) => (
+                <li>
+                  <a class="nf-branch" href={`/branslar/${branch.slug}`}>
+                    <span class="nf-branch-emoji" aria-hidden="true">{branch.emoji}</span>
+                    <span>{branch.isim}</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .not-found-section {
+    min-height: 70vh;
+    background:
+      radial-gradient(circle at 18% 22%, rgba(227, 10, 23, 0.08), transparent 38%),
+      radial-gradient(circle at 82% 78%, rgba(227, 10, 23, 0.06), transparent 36%),
+      #fff7f7;
+    padding: 4rem 1rem;
+    display: flex;
+    align-items: center;
+  }
+  .nf-container { max-width: 760px; }
+  .nf-card {
+    background: #fff;
+    border: 1px solid #f1dede;
+    border-radius: 1.25rem;
+    padding: clamp(1.5rem, 3vw, 2.5rem);
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.05);
+    text-align: center;
+  }
+  .nf-code {
+    font-size: clamp(4rem, 14vw, 6.5rem);
+    font-weight: 900;
+    color: #e30a17;
+    line-height: 1;
+    letter-spacing: -0.05em;
+    margin-bottom: 0.6rem;
+  }
+  .nf-title {
+    font-size: clamp(1.5rem, 3.5vw, 2rem);
+    font-weight: 900;
+    color: #1f2933;
+    margin: 0 0 0.6rem;
+  }
+  .nf-desc {
+    color: #4b5563;
+    line-height: 1.7;
+    max-width: 520px;
+    margin: 0 auto 1.5rem;
+  }
+  .nf-search {
+    display: flex;
+    gap: 0.5rem;
+    max-width: 480px;
+    margin: 0 auto 1.4rem;
+  }
+  .nf-input {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    border: 1px solid #e5e9ef;
+    border-radius: 0.75rem;
+    font-size: 1rem;
+    background: #fbfcfd;
+  }
+  .nf-input:focus {
+    outline: none;
+    border-color: #e30a17;
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(227, 10, 23, 0.1);
+  }
+  .nf-submit { padding-inline: 1.4rem; }
+  .nf-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: center;
+    margin-bottom: 1.6rem;
+  }
+  .nf-branches {
+    border-top: 1px solid #f1dede;
+    padding-top: 1.4rem;
+    margin-top: 1rem;
+  }
+  .nf-branches-title {
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: #1f2933;
+    margin: 0 0 0.8rem;
+  }
+  .nf-branches-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0.5rem;
+  }
+  .nf-branch {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.55rem 0.85rem;
+    background: #fbfcfd;
+    border: 1px solid #e8ecf1;
+    border-radius: 999px;
+    color: #1f2933;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 0.88rem;
+    transition: all 0.15s ease;
+  }
+  .nf-branch:hover {
+    border-color: #e30a17;
+    color: #e30a17;
+    background: #fff;
+  }
+  .nf-branch-emoji { font-size: 1rem; }
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+</style>

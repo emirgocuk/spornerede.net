@@ -1,13 +1,92 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import Breadcrumb from '../../components/Breadcrumb.astro';
 import { getClubById, getClubProgramsByClubId } from '../../lib/repositories/catalog';
+import {
+  sportsActivityLocationSchema,
+  courseSchema,
+  SITE_URL,
+} from '../../lib/seo/jsonld';
+import { extractIdFromSlug, clubSlug, listingSlug, isPureNumericSlug } from '../../lib/seo/slug';
 
-const id = Number(Astro.params.id);
-const club = await getClubById(id);
+// URL segmenti hem "42" hem "atakoy-spor-kulubu-42" olabilir.
+const rawSlug = String(Astro.params.id ?? '').trim();
+const id = extractIdFromSlug(rawSlug);
+const club = id !== null ? await getClubById(id) : null;
 if (!club) {
-  return Astro.redirect('/ara');
+  return new Response(null, { status: 404 });
 }
+
+// Kanonik kulup slug
+const expectedSlug = clubSlug({ id: club.id, ad: club.ad });
+
+// Gelen slug pure-numeric veya yanlis ise 301
+if (isPureNumericSlug(rawSlug) || rawSlug !== expectedSlug) {
+  return Astro.redirect(`/kulupler/${expectedSlug}`, 301);
+}
+
 const programs = await getClubProgramsByClubId(club.id);
+
+const canonicalUrl = `${SITE_URL}/kulupler/${expectedSlug}`;
+
+// Yapisal veri: kulup -> SportsActivityLocation + LocalBusiness
+// + her aktif program -> Course
+const clubJsonLd = sportsActivityLocationSchema({
+  clubId: club.id,
+  name: club.ad,
+  url: canonicalUrl,
+  description: club.aciklama || `${club.ad} ${club.brans || 'spor'} branşında hizmet veren bir kuruluştur.`,
+  branch: club.brans,
+  emoji: club.emoji,
+  telephone: club.telefon || undefined,
+  address: club.adres || undefined,
+  addressLocality: club.ilce || undefined,
+  addressRegion: club.il || undefined,
+  latitude: club.enlem || undefined,
+  longitude: club.boylam || undefined,
+  priceRange: club.fiyat || undefined,
+  aggregateRating: club.yorumSayisi > 0
+    ? { ratingValue: club.puan, reviewCount: club.yorumSayisi }
+    : undefined,
+});
+
+const programCourses = programs
+  .filter((p) => p.aktif)
+  .map((program) =>
+    courseSchema({
+      url: `${SITE_URL}/ilanlar/${listingSlug({ id: program.id, ad: program.ad, clubAd: club.ad })}`,
+      name: program.ad,
+      description: program.aciklama || undefined,
+      providerName: club.ad,
+      providerUrl: canonicalUrl,
+      branch: club.brans,
+      level: program.seviye || undefined,
+      price: program.ucretBilgisi || undefined,
+      startDate: program.eventDate || undefined,
+      endDate: program.endDate || undefined,
+      isOngoing: program.isOngoing,
+      locationText: program.locationText || club.ilce || club.il || undefined,
+      latitude: club.enlem || undefined,
+      longitude: club.boylam || undefined,
+      image: program.gallery,
+    })
+  );
+
+const breadcrumbs = [
+  { name: 'Ana Sayfa', url: `${SITE_URL}/` },
+  { name: 'Arama', url: `${SITE_URL}/ara` },
+  ...(club.bransSlug
+    ? [{ name: club.brans, url: `${SITE_URL}/branslar/${club.bransSlug}` }]
+    : []),
+  { name: club.ad, url: canonicalUrl },
+];
+
+const clubOgParams = new URLSearchParams({
+  title: club.ad,
+  kicker: club.brans || 'Spor kulubu',
+  badge: club.ilce || club.il || '',
+});
+const clubOgImage = `${SITE_URL}/api/og.png?${clubOgParams.toString()}`;
 
 function getBodySections(bodyJson: unknown) {
   if (!bodyJson || typeof bodyJson !== 'object') return [];
@@ -45,12 +124,20 @@ function getBodySections(bodyJson: unknown) {
 ---
 
 <BaseLayout
-  title={`${club.ad} | ${club.ilce}`}
-  description={`${club.ad} ${club.brans} bransinda egitim veren bir spor kulubudur. Iletisim ve temel bilgiler bu sayfada.`}
-  keywords={`${club.bransSlug} kulubu turkiye, ${(club.ilce ?? '').toLowerCase()} spor kulubu`}
+  title={`${club.ad} | ${club.ilce || club.il}`}
+  description={club.aciklama
+    ? club.aciklama.slice(0, 160)
+    : `${club.ad}, ${club.ilce || club.il} bölgesinde ${club.brans?.toLowerCase() || 'spor'} branşında hizmet veren spor kulübü. Aktif ilanları, iletişim ve temel bilgiler.`}
+  keywords={`${club.bransSlug} kulubu turkiye, ${(club.ilce ?? '').toLowerCase()} spor kulubu, ${club.ad.toLowerCase()}`}
+  canonical={canonicalUrl}
+  ogType="article"
+  ogImage={clubOgImage}
+  breadcrumbs={breadcrumbs}
+  jsonLd={[clubJsonLd, ...programCourses]}
 >
   <section class="section detail-page">
     <div class="container detail">
+      <Breadcrumb items={breadcrumbs.map((b) => ({ name: b.name, url: b.url }))} />
       <a href={`/ara?brans=${club.bransSlug}`} class="back-link">← Arama sonuçlarına dön</a>
 
       <header class="hero">
@@ -64,8 +151,8 @@ function getBodySections(bodyJson: unknown) {
         </div>
         <div class="hero-badges">
           <span>{programs.length} aktif ilan</span>
-          <span>Puan {club.puan} / 5</span>
-          <span>{club.yorumSayisi} yorum</span>
+          <span>{club.brans}</span>
+          <span>{club.ilce || club.il}</span>
         </div>
       </header>
 
@@ -103,17 +190,30 @@ function getBodySections(bodyJson: unknown) {
                   <h3>Galeri</h3>
                   {program.gallery.length > 0 ? (
                     <div class="gallery-grid">
-                      {program.gallery.map((imageUrl) => (
-                        <img src={imageUrl} alt={`${program.ad} görseli`} loading="lazy" />
+                      {program.gallery.map((imageUrl, idx) => (
+                        <button type="button" class="gallery-item" data-viewer-image={imageUrl}>
+                          <img
+                            src={imageUrl}
+                            alt={`${club.ad} - ${program.ad} görseli ${idx + 1}`}
+                            loading="lazy"
+                            decoding="async"
+                            width="640"
+                            height="480"
+                          />
+                        </button>
                       ))}
                     </div>
                   ) : (
                     <p class="muted">Bu ilan için galeri görseli eklenmedi.</p>
                   )}
                 </div>
-                <div class="listing-comments">
-                  <h3>Kullanıcı yorumları</h3>
-                  <p class="muted">Yorum alanı hazırlanıyor. Bu kulübün genel puanı {club.puan} ve toplam {club.yorumSayisi} yorumu var.</p>
+                <div class="listing-contact">
+                  <h3>İletişim Bilgileri</h3>
+                  <ul class="contact-list">
+                    <li><strong>Telefon:</strong> {club.telefon || 'Belirtilmedi'}</li>
+                    <li><strong>E-posta:</strong> {club.email || 'Belirtilmedi'}</li>
+                    <li><strong>Adres:</strong> {club.adres || program.locationText || club.ilce || club.il || 'Belirtilmedi'}</li>
+                  </ul>
                 </div>
               </li>
             ))}
@@ -124,6 +224,13 @@ function getBodySections(bodyJson: unknown) {
       </article>
     </div>
   </section>
+  <div class="image-viewer" aria-hidden="true">
+    <div class="image-viewer-backdrop" data-close-viewer></div>
+    <div class="image-viewer-dialog" role="dialog" aria-modal="true" aria-label="Görsel görüntüleyici">
+      <button type="button" class="image-viewer-close" data-close-viewer aria-label="Kapat">×</button>
+      <img class="image-viewer-img" src="" alt="Büyütülmüş ilan görseli" />
+    </div>
+  </div>
 </BaseLayout>
 
 <script is:inline>
@@ -155,6 +262,36 @@ function getBodySections(bodyJson: unknown) {
       );
     }
   }
+
+  const viewer = document.querySelector('.image-viewer');
+  const viewerImage = viewer?.querySelector('.image-viewer-img');
+  const closeTriggers = viewer ? Array.from(viewer.querySelectorAll('[data-close-viewer]')) : [];
+  const galleryButtons = Array.from(document.querySelectorAll('[data-viewer-image]'));
+
+  const closeViewer = () => {
+    if (!viewer || !viewerImage) return;
+    viewer.classList.remove('is-open');
+    viewer.setAttribute('aria-hidden', 'true');
+    viewerImage.setAttribute('src', '');
+    document.body.style.overflow = '';
+  };
+
+  galleryButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      if (!viewer || !viewerImage) return;
+      const imageUrl = button.getAttribute('data-viewer-image') || '';
+      if (!imageUrl) return;
+      viewerImage.setAttribute('src', imageUrl);
+      viewer.classList.add('is-open');
+      viewer.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+    });
+  });
+
+  closeTriggers.forEach((node) => node.addEventListener('click', closeViewer));
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') closeViewer();
+  });
 </script>
 
 <style>
@@ -346,13 +483,13 @@ function getBodySections(bodyJson: unknown) {
     line-height: 1.68;
   }
   .listing-gallery,
-  .listing-comments {
+  .listing-contact {
     margin-top: 0.85rem;
     border-top: 1px solid #edf0f2;
     padding-top: 0.75rem;
   }
   .listing-gallery h3,
-  .listing-comments h3 {
+  .listing-contact h3 {
     margin: 0;
     font-size: 1rem;
     color: #1f2933;
@@ -364,6 +501,13 @@ function getBodySections(bodyJson: unknown) {
     grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
     gap: 0.55rem;
   }
+  .gallery-item {
+    border: 0;
+    padding: 0;
+    width: 100%;
+    cursor: zoom-in;
+    background: transparent;
+  }
   .gallery-grid img {
     width: 100%;
     aspect-ratio: 4 / 3;
@@ -371,11 +515,71 @@ function getBodySections(bodyJson: unknown) {
     border-radius: 0.55rem;
     border: 1px solid #e9ecef;
   }
+  .contact-list {
+    list-style: none;
+    margin: 0.45rem 0 0;
+    padding: 0;
+    display: grid;
+    gap: 0.25rem;
+    color: #4b5563;
+    font-size: 0.92rem;
+  }
+  .contact-list strong {
+    color: #1f2933;
+  }
   .muted {
     margin-top: 0.35rem;
     color: #6c757d;
     font-size: 0.92rem;
     line-height: 1.6;
+  }
+  .image-viewer {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+  .image-viewer.is-open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .image-viewer-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.78);
+  }
+  .image-viewer-dialog {
+    position: relative;
+    z-index: 1;
+    margin: auto;
+    max-width: min(960px, calc(100% - 2rem));
+    max-height: calc(100% - 2rem);
+    top: 50%;
+    transform: translateY(-50%);
+  }
+  .image-viewer-img {
+    display: block;
+    width: 100%;
+    max-height: calc(100vh - 2rem);
+    object-fit: contain;
+    border-radius: 0.75rem;
+    background: #111;
+  }
+  .image-viewer-close {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    width: 2.2rem;
+    height: 2.2rem;
+    border: 0;
+    border-radius: 999px;
+    background: rgba(17, 24, 39, 0.85);
+    color: white;
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
   }
   @media (max-width: 760px) {
     .hero {

@@ -33,6 +33,10 @@
     "rollback:remote": "bash rollback.sh",
     "deploy:prod": "bash deploy/all-in-one.sh",
     "deploy:quick": "bash deploy.sh --update-nginx",
+    "logo:header-outline": "node scripts/outline-header-logo.mjs && node scripts/write-header-logo-canvas.mjs",
+    "logo:outfit-outline": "node scripts/outline-outfit-logo.mjs",
+    "og:generate": "node scripts/generate-og-image.mjs",
+    "fonts:copy": "node scripts/copy-fonts.mjs",
     "deploy:app": "bash deploy.sh",
     "rollback:prod": "bash rollback.sh"
   },
@@ -47,7 +51,9 @@
     "tinymce": "^8.4.0"
   },
   "devDependencies": {
+    "@fontsource/outfit": "^5.2.8",
     "@types/nodemailer": "^8.0.0",
+    "opentype.js": "^1.3.5",
     "tsx": "^4.21.0"
   }
 }

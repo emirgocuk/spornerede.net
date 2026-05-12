@@ -1,6 +1,9 @@
 ---
 import BaseLayout from '../../../../layouts/BaseLayout.astro';
+import Breadcrumb from '../../../../components/Breadcrumb.astro';
 import { getDistrictBranchLanding } from '../../../../lib/repositories/catalog';
+import { itemListSchema, SITE_URL } from '../../../../lib/seo/jsonld';
+import { clubSlug } from '../../../../lib/seo/slug';
 
 const ilSlug = Astro.params.il ?? '';
 const ilceSlug = Astro.params.ilce ?? '';
@@ -8,28 +11,209 @@ const bransSlug = Astro.params.brans ?? '';
 
 const landing = await getDistrictBranchLanding(ilSlug, ilceSlug, bransSlug);
 if (!landing.city || !landing.branch || !landing.district) {
-  return Astro.redirect('/ara');
+  return new Response(null, { status: 404 });
 }
+
+const canonical = `${SITE_URL}/sehirler/${landing.city.slug}/${landing.district.slug}/${landing.branch.slug}`;
+const clubCount = landing.clubs.length;
+const hasContent = clubCount > 0;
+
+const breadcrumbs = [
+  { name: 'Ana Sayfa', url: `${SITE_URL}/` },
+  { name: landing.city.ad, url: `${SITE_URL}/sehirler/${landing.city.slug}` },
+  { name: landing.district.ad, url: `${SITE_URL}/sehirler/${landing.city.slug}/${landing.district.slug}` },
+  { name: `${landing.branch.isim} Kursları`, url: canonical },
+];
+
+const heroDescription = hasContent
+  ? `${landing.city.ad} ${landing.district.ad}'da ${landing.branch.isim.toLowerCase()} branşında ${clubCount} kulüp ve kurs listelendi. Yaş aralığı, fiyat ve adres bilgilerini karşılaştırın, hızlıca iletişime geçin.`
+  : `${landing.city.ad} ${landing.district.ad} bölgesinde ${landing.branch.isim.toLowerCase()} kursu için henüz kayıt yok. Yakın bölgeler ve Türkiye geneli için arama sayfasını kullanabilirsiniz.`;
+
+const listJsonLd = hasContent
+  ? itemListSchema(
+      landing.clubs.slice(0, 20).map((club) => ({
+        url: `${SITE_URL}/kulupler/${clubSlug({ id: club.id, ad: club.ad })}`,
+        name: club.ad,
+      })),
+      {
+        name: `${landing.district.ad} ${landing.branch.isim} Kursları`,
+        description: heroDescription,
+      }
+    )
+  : undefined;
 ---
 
 <BaseLayout
-  title={`${landing.district.ad} ${landing.branch.isim} Kurslari`}
-  description={`${landing.city.ad} ${landing.district.ad} bolgesinde ${landing.branch.isim.toLowerCase()} kurslari ve spor kulupleri.`}
-  keywords={`${landing.district.slug} ${landing.branch.slug} kursu, ${landing.city.slug} ${landing.branch.slug}`}
-  canonical={`https://spornerede.net/sehirler/${landing.city.slug}/${landing.district.slug}/${landing.branch.slug}`}
+  title={`${landing.district.ad} ${landing.branch.isim} Kursları ve Kulüpleri`}
+  description={heroDescription}
+  keywords={`${landing.district.slug} ${landing.branch.slug} kursu, ${landing.city.slug} ${landing.branch.slug}, ${landing.district.ad.toLowerCase()} spor`}
+  canonical={canonical}
+  noIndex={!hasContent}
+  breadcrumbs={breadcrumbs}
+  jsonLd={listJsonLd}
 >
-  <section class="section seo-page">
-    <div class="container">
-      <h1>{landing.district.ad} {landing.branch.isim} Kurslari</h1>
-      <p>{landing.clubs.length} kulup bulundu. Ayrintili filtreleme icin arama sayfasina gecin.</p>
-      <a class="btn btn-primary btn-sm" href={`/ara?il=${landing.city.slug}&ilce=${landing.district.slug}&brans=${landing.branch.slug}`}>Filtreli Sonuclari Ac</a>
+  <section class="landing-section section">
+    <div class="container landing-container">
+      <Breadcrumb items={breadcrumbs.map((b) => ({ name: b.name, url: b.url }))} />
+
+      <header class="landing-hero">
+        <div class="landing-hero-emoji" aria-hidden="true">{landing.branch.emoji || '🏆'}</div>
+        <h1>{landing.district.ad} {landing.branch.isim} Kursları</h1>
+        <p class="landing-hero-desc">{heroDescription}</p>
+        <div class="landing-actions">
+          <a class="btn btn-primary" href={`/ara?il=${landing.city.slug}&ilce=${landing.district.slug}&brans=${landing.branch.slug}`}>
+            Detaylı Filtre ve Harita
+          </a>
+          <a class="btn btn-outline btn-sm" href={`/sehirler/${landing.city.slug}/${landing.branch.slug}`}>
+            Tüm {landing.city.ad} {landing.branch.isim}
+          </a>
+        </div>
+      </header>
+
+      {hasContent ? (
+        <section class="landing-block">
+          <h2>{landing.district.ad}'da listelenen kulüpler</h2>
+          <ul class="club-list" role="list">
+            {landing.clubs.map((club) => (
+              <li class="club-card">
+                <a class="club-link" href={`/kulupler/${clubSlug({ id: club.id, ad: club.ad })}`}>
+                  <div class="club-emoji" aria-hidden="true">{club.emoji || '🏅'}</div>
+                  <div class="club-info">
+                    <strong class="club-name">{club.ad}</strong>
+                    <span class="club-meta">{club.yasAraligi || 'Tüm yaşlar'} {club.fiyat ? `• ${club.fiyat}` : ''}</span>
+                    {club.aciklama && <p class="club-desc">{club.aciklama.slice(0, 120)}{club.aciklama.length > 120 ? '…' : ''}</p>}
+                  </div>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : (
+        <section class="landing-block landing-empty">
+          <p>Bu bölge için henüz kulüp listelenmedi. Yakın ilçeler ya da geniş arama denemek isteyebilirsiniz.</p>
+          <div class="landing-actions">
+            <a class="btn btn-outline btn-sm" href={`/sehirler/${landing.city.slug}/${landing.branch.slug}`}>
+              {landing.city.ad} {landing.branch.isim} kulüplerini gör
+            </a>
+            <a class="btn btn-primary btn-sm" href="/ara">Genel Arama</a>
+          </div>
+        </section>
+      )}
+
+      <section class="landing-block landing-info">
+        <h2>{landing.district.ad}'da {landing.branch.isim} kursu seçerken</h2>
+        <p>
+          {landing.district.ad} bölgesinde {landing.branch.isim.toLowerCase()} eğitimi alacak çocuklar veya yetişkinler
+          için kulüp seçerken adres, antrenör profili, ücret ve eğitim modelini karşılaştırmak önemlidir. Listelediğimiz
+          kulüpler bilgilerini panel üzerinden günceller; deneme dersi sunan kulüpler özellikle yeni başlayanlar için
+          değerli olabilir.
+        </p>
+      </section>
     </div>
   </section>
 </BaseLayout>
 
 <style>
-  .seo-page { min-height: 50vh; background: #F8F9FA; }
-  .seo-page h1 { font-size: clamp(1.6rem, 3vw, 2.2rem); font-weight: 900; color: #212529; }
-  .seo-page p { margin-top: .5rem; color: #6C757D; margin-bottom: 1rem; }
+  .landing-section {
+    background:
+      radial-gradient(circle at top left, rgba(227, 10, 23, 0.08), transparent 35%),
+      radial-gradient(circle at top right, rgba(22, 28, 36, 0.06), transparent 30%),
+      #f8f9fa;
+    min-height: 70vh;
+    padding: 1.6rem 0 4rem;
+  }
+  .landing-container { max-width: 980px; }
+  .landing-hero {
+    background: #fff;
+    border: 1px solid #f1dede;
+    border-radius: 1rem;
+    padding: 1.6rem 1.5rem;
+    margin-top: 1rem;
+    margin-bottom: 1.4rem;
+    text-align: center;
+  }
+  .landing-hero-emoji { font-size: 2.4rem; margin-bottom: 0.4rem; }
+  .landing-hero h1 {
+    font-size: clamp(1.5rem, 3.8vw, 2.1rem);
+    font-weight: 900;
+    color: #1f2933;
+    margin: 0;
+    letter-spacing: -0.02em;
+  }
+  .landing-hero-desc {
+    color: #4b5563;
+    line-height: 1.7;
+    margin: 0.8rem auto 1.2rem;
+    max-width: 640px;
+  }
+  .landing-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: center;
+  }
+  .landing-block {
+    background: #fff;
+    border: 1px solid #eef0f3;
+    border-radius: 1rem;
+    padding: 1.4rem;
+    margin-bottom: 1rem;
+  }
+  .landing-block h2 {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #1f2933;
+    margin: 0 0 0.8rem;
+  }
+  .club-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.8rem;
+  }
+  .club-card {
+    border: 1px solid #eef0f3;
+    border-radius: 0.8rem;
+    background: #fbfcfd;
+    transition: all 0.15s ease;
+  }
+  .club-card:hover {
+    border-color: #e30a17;
+    background: #fff;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+  }
+  .club-link {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+    padding: 0.85rem 1rem;
+    text-decoration: none;
+    color: #1f2933;
+  }
+  .club-emoji {
+    font-size: 1.4rem;
+    width: 40px;
+    height: 40px;
+    display: grid;
+    place-items: center;
+    background: #fff5f5;
+    border-radius: 0.6rem;
+    flex-shrink: 0;
+  }
+  .club-info {
+    min-width: 0;
+    flex: 1;
+  }
+  .club-name { display: block; font-weight: 800; color: #1f2933; font-size: 1rem; }
+  .club-meta { display: block; color: #6c757d; font-size: 0.85rem; margin-top: 0.15rem; }
+  .club-desc {
+    margin: 0.3rem 0 0;
+    color: #4b5563;
+    font-size: 0.88rem;
+    line-height: 1.55;
+  }
+  .landing-empty { text-align: center; }
+  .landing-empty p { color: #4b5563; margin-bottom: 1rem; }
+  .landing-info p { color: #4b5563; line-height: 1.7; margin: 0; }
 </style>
-

@@ -71,6 +71,7 @@ Current additional docs in this project:
 - `deploy-runbook.md` (deploy + rollback adimlari)
 - `mvp-metrics.md` (minimum basari metrikleri)
 - `security-privacy.md` (mini guvenlik/KVKK checklist)
+- `seo-ads-plan.md` (Faz 12: SEO guclendirme + reklam altyapisi hazirligi)
 
 ## Core Workflows
 

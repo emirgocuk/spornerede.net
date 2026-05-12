@@ -1,0 +1,95 @@
+---
+/**
+ * TrackingAutoListeners.astro
+ * Sayfada bulunan tum `tel:`, `mailto:`, Google Maps linklerini otomatik
+ * yakalar ve uygun event'i tetikler. Sayfa basina ekstra kod yazmaya gerek
+ * kalmaz.
+ *
+ * Ek olarak ConsentBanner'dan gelen consent durumunu dinler ve gerekirse
+ * UTM yakalama logic'ini calistirir.
+ */
+---
+
+<script is:inline>
+(function () {
+  // ===== UTM yakalama =====
+  // 30 gun boyunca cookie'de tut, form gizli alanlariyla server'a iletmek mumkun.
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const utm = {};
+    let hasUtm = false;
+    ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'gclid', 'fbclid'].forEach((key) => {
+      const value = params.get(key);
+      if (value) {
+        utm[key] = value;
+        hasUtm = true;
+      }
+    });
+    if (hasUtm) {
+      const maxAge = 30 * 24 * 60 * 60; // 30 gun
+      const payload = JSON.stringify({ ...utm, ts: Date.now() });
+      document.cookie = `sn_attribution=${encodeURIComponent(payload)}; path=/; max-age=${maxAge}; samesite=lax`;
+    }
+  } catch {}
+
+  // ===== Server-side beacon =====
+  function pushTrack(event, params) {
+    try {
+      window.dataLayer = window.dataLayer || [];
+      window.dataLayer.push({ event: event, ...(params || {}) });
+    } catch {}
+    try {
+      const body = JSON.stringify({
+        event: event,
+        params: params || {},
+        page: window.location.pathname + window.location.search,
+        referrer: document.referrer || null,
+        timestamp: Date.now(),
+      });
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon('/api/internal/track', new Blob([body], { type: 'application/json' }));
+      } else {
+        fetch('/api/internal/track', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: body,
+          keepalive: true,
+        }).catch(function () {});
+      }
+    } catch {}
+  }
+
+  // Globalde de erisilebilir olsun
+  window.spornereedeTrack = pushTrack;
+
+  // ===== Otomatik link click listener =====
+  document.addEventListener('click', function (event) {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const anchor = target.closest('a');
+    if (!anchor) return;
+    const href = anchor.getAttribute('href') || '';
+    if (!href) return;
+
+    if (href.startsWith('tel:')) {
+      pushTrack('lead_phone_click', { phone: href.replace('tel:', '') });
+    } else if (href.startsWith('mailto:')) {
+      pushTrack('lead_email_click', { email: href.replace('mailto:', '') });
+    } else if (/google\.[^/]+\/maps/i.test(href) || href.startsWith('https://maps.app.goo.gl')) {
+      pushTrack('lead_maps_click', { url: href });
+    }
+  }, { passive: true });
+
+  // ===== Otomatik form submit listener (basvuru, iletisim formlari) =====
+  document.addEventListener('submit', function (event) {
+    const form = event.target;
+    if (!(form instanceof HTMLFormElement)) return;
+    const action = (form.getAttribute('action') || '').toLowerCase();
+    if (action.includes('/basvuru') || form.id === 'basvuru-form') {
+      pushTrack('application_submit');
+    } else if (action.includes('/iletisim') || action.includes('/contact') || form.id === 'iletisim-form') {
+      pushTrack('contact_form_submit');
+    }
+  }, { passive: true });
+})();
+</script>

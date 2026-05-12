@@ -1,23 +1,42 @@
 import type { APIRoute } from 'astro';
-import { getAllCities, getAllBranches } from '../../lib/repositories/catalog';
+import { getAllCities, getAllBranches, searchClubs } from '../../lib/repositories/catalog';
+import { BASE_URL, sitemapResponse, type SitemapEntry } from '../../lib/seo/sitemap';
 
 export const GET: APIRoute = async () => {
-  const baseUrl = 'https://spornerede.net';
-  const cities = await getAllCities();
-  const branches = await getAllBranches();
-  
-  const urls = cities.flatMap((city) =>
-    branches.map((branch) => `${baseUrl}/sehirler/${city.slug}/${branch.slug}`)
-  );
+  const entries: SitemapEntry[] = [];
 
-  const safeUrls = urls.length > 0 ? urls : [`${baseUrl}/`];
-  const body = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${safeUrls.map((url) => `<url><loc>${url}</loc></url>`).join('\n')}
-</urlset>`;
+  try {
+    const [cities, branches, clubs] = await Promise.all([
+      getAllCities(),
+      getAllBranches(),
+      searchClubs({}),
+    ]);
 
-  return new Response(body, {
-    headers: { 'Content-Type': 'application/xml; charset=utf-8' },
-  });
+    // Sehir bazli kombinasyon uretiminden once kac kulup oldugunu say
+    // (bos sehir+brans kombinasyonlari sitemap'e girmesin)
+    const clubsByCityBranch = new Map<string, number>();
+    for (const club of clubs) {
+      if (!club.ilSlug || !club.bransSlug) continue;
+      const key = `${club.ilSlug}|${club.bransSlug}`;
+      clubsByCityBranch.set(key, (clubsByCityBranch.get(key) ?? 0) + 1);
+    }
+
+    for (const city of cities) {
+      for (const branch of branches) {
+        const key = `${city.slug}|${branch.slug}`;
+        const count = clubsByCityBranch.get(key) ?? 0;
+        // En az 1 kulup olan kombinasyonlari yaz
+        if (count === 0) continue;
+        entries.push({
+          loc: `${BASE_URL}/sehirler/${city.slug}/${branch.slug}`,
+          changefreq: 'weekly',
+          priority: count >= 5 ? 0.8 : 0.6,
+        });
+      }
+    }
+  } catch (error) {
+    console.error('Sitemap cities.xml olusturulamadi:', error);
+  }
+
+  return sitemapResponse(entries);
 };
-

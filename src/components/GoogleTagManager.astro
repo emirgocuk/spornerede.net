@@ -1,0 +1,51 @@
+---
+/**
+ * GoogleTagManager.astro
+ * Conditional GTM yukleyici (env-driven, consent-aware).
+ *
+ * - PUBLIC_GTM_ID set degilse hicbir sey enjekte etmez.
+ * - GTM tag'i her zaman yuklenir; consent state'i ConsentBanner tarafindan
+ *   set edildigi icin GA4/Ads tag'leri otomatik buna uyar.
+ * - GTM su anda BaseLayout <head> bolumunde calistirilir, <noscript> fallback
+ *   <body> hemen ardindan eklenir.
+ */
+const gtmId = (import.meta.env.PUBLIC_GTM_ID ?? '').trim();
+const ga4Id = (import.meta.env.PUBLIC_GA4_ID ?? '').trim();
+const hasGtm = /^GTM-[A-Z0-9]+$/.test(gtmId);
+const hasGa4 = /^G-[A-Z0-9]+$/.test(ga4Id);
+---
+
+{hasGtm && (
+  <Fragment>
+    {/* Google Tag Manager */}
+    <script is:inline define:vars={{ gtmId }}>
+      (function(w,d,s,l,i){
+        w[l]=w[l]||[];
+        w[l].push({'gtm.start': new Date().getTime(), event:'gtm.js'});
+        var f=d.getElementsByTagName(s)[0],
+            j=d.createElement(s),
+            dl=l!='dataLayer'?'&l='+l:'';
+        j.async=true;
+        j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;
+        f.parentNode.insertBefore(j,f);
+      })(window,document,'script','dataLayer', gtmId);
+    </script>
+  </Fragment>
+)}
+
+{!hasGtm && hasGa4 && (
+  <Fragment>
+    {/* GA4 (GTM yoksa dogrudan) */}
+    <script is:inline async src={`https://www.googletagmanager.com/gtag/js?id=${ga4Id}`}></script>
+    <script is:inline define:vars={{ ga4Id }}>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){ window.dataLayer.push(arguments); }
+      window.gtag = window.gtag || gtag;
+      gtag('js', new Date());
+      gtag('config', ga4Id, {
+        anonymize_ip: true,
+        send_page_view: true,
+      });
+    </script>
+  </Fragment>
+)}

@@ -1,0 +1,149 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Breadcrumb from '../components/Breadcrumb.astro';
+import { SITE_URL } from '../lib/seo/jsonld';
+
+const canonical = `${SITE_URL}/gizlilik-politikasi`;
+const breadcrumbs = [
+  { name: 'Ana Sayfa', url: `${SITE_URL}/` },
+  { name: 'Gizlilik Politikası', url: canonical },
+];
+const updatedAt = '12 Mayıs 2026';
+---
+
+<BaseLayout
+  title="Gizlilik Politikası"
+  description="SporNerede.net gizlilik politikası. Kişisel verilerinizi nasıl işlediğimiz, hangi çerezleri kullandığımız ve haklarınız hakkında bilgi alın."
+  canonical={canonical}
+  breadcrumbs={breadcrumbs}
+>
+  <section class="legal-section section">
+    <div class="container legal-container">
+      <Breadcrumb items={breadcrumbs.map((b) => ({ name: b.name, url: b.url }))} />
+      <article class="legal-article">
+        <header class="legal-head">
+          <h1>Gizlilik Politikası</h1>
+          <p class="legal-meta">Son güncelleme: {updatedAt}</p>
+        </header>
+
+        <h2>1. Veri Sorumlusu</h2>
+        <p>
+          SporNerede.net (<a href={SITE_URL}>spornerede.net</a>) işbu Gizlilik Politikası kapsamında veri sorumlusu sıfatıyla
+          hareket eder. Sorularınız için <a href="mailto:info@spornerede.net">info@spornerede.net</a> adresinden bize ulaşabilirsiniz.
+        </p>
+
+        <h2>2. Hangi Verileri İşliyoruz?</h2>
+        <ul>
+          <li><strong>Ziyaretçi verileri:</strong> sayfa görüntülemeleri, tıklama davranışı, cihaz/tarayıcı bilgisi, anonimleştirilmiş IP.</li>
+          <li><strong>Form verileri:</strong> başvuru, iletişim ve geribildirim formlarında verdiğiniz ad, e-posta, telefon, açıklama ve dosyalar.</li>
+          <li><strong>Hesap verileri (kulüp paneli):</strong> e-posta, hashlenmiş şifre, oturum bilgisi, kulüp profil verileri.</li>
+          <li><strong>Konum:</strong> sadece açıkça izin verdiğinizde tarayıcı konumunu yakına kulüp listelemek için kullanırız; sunucuda saklamayız.</li>
+          <li><strong>Reklam/atıf verileri:</strong> URL'deki <code>utm_*</code>, <code>gclid</code>, <code>fbclid</code> parametreleri 30 gün boyunca çerezde tutulur (kampanya performansı için).</li>
+        </ul>
+
+        <h2>3. Verilerinizi Hangi Amaçla Kullanıyoruz?</h2>
+        <ul>
+          <li>Platformu çalıştırmak, kulüp başvurularını yönetmek ve aileler ile kulüpleri buluşturmak.</li>
+          <li>Hizmet kalitesini ölçmek (sayfa hızı, hata, kullanım analizi).</li>
+          <li>Yasal yükümlülüklere uymak (KVKK m. 5/2-a, ç, e, f).</li>
+          <li>Onayınız varsa pazarlama ve yeniden hedefleme (örn. Google Ads, Meta).</li>
+        </ul>
+
+        <h2>4. Çerezler ve Üçüncü Taraf Servisler</h2>
+        <p>
+          Çerezler hakkında ayrıntılı bilgi için <a href="/cerez-politikasi">Çerez Politikası</a> sayfasını okuyun.
+          Çerez tercihlerinizi sayfanın alt kısmındaki bannerdan istediğiniz zaman güncelleyebilirsiniz.
+          Onay vermediğiniz sürece Google Ads, Meta Pixel ve Google Analytics tag'leri pazarlama amacıyla
+          ateşlenmez (Google Consent Mode v2 uyumlu).
+        </p>
+
+        <h2>5. Verilerin Saklanması ve Aktarımı</h2>
+        <p>
+          Veriler Türkiye'de barındırılan sunucularda işlenir. Servis sağlayıcılarımız (örn. Cloudflare CDN, Brevo SMTP)
+          ile sınırlı oranda paylaşım gerekebilir; bu sağlayıcılar yalnızca hizmetin işleyişi için gerekli verilere
+          erişir ve KVKK/GDPR uyumlu sözleşmeler kapsamında çalışır.
+        </p>
+
+        <h2>6. Saklama Süreleri</h2>
+        <ul>
+          <li>Başvuru formu verileri: onay/red kararı sonrası 24 ay.</li>
+          <li>İletişim formu mesajları: cevaplandı işaretlendikten 12 ay sonra anonimleştirilir.</li>
+          <li>Analitik veri: 14 ay (Google Analytics 4 varsayılan).</li>
+          <li>UTM/atıf çerezi: 30 gün.</li>
+        </ul>
+
+        <h2>7. Haklarınız (KVKK m. 11)</h2>
+        <p>Her zaman aşağıdaki haklara sahipsiniz:</p>
+        <ul>
+          <li>Verilerinizin işlenip işlenmediğini öğrenme</li>
+          <li>İşlenmişse buna ilişkin bilgi talep etme</li>
+          <li>İşlenme amacını ve amacına uygun kullanılıp kullanılmadığını öğrenme</li>
+          <li>Eksik veya yanlış işlenmişse düzeltilmesini isteme</li>
+          <li>Silinmesini veya yok edilmesini isteme</li>
+          <li>Aktarıldığı üçüncü kişilere bildirilmesini isteme</li>
+          <li>Otomatik analiz neticesinde aleyhinize bir sonuç doğmuşsa itiraz etme</li>
+          <li>Kanuna aykırı işlenmesi sebebiyle zarara uğramışsanız tazminat talep etme</li>
+        </ul>
+
+        <h2>8. Başvuru Yöntemi</h2>
+        <p>
+          Haklarınızı kullanmak için <a href="mailto:info@spornerede.net">info@spornerede.net</a> adresine
+          kimliğinizi doğrulayabileceğimiz bilgilerle birlikte e-posta gönderebilirsiniz. Başvurularınız en geç
+          30 gün içinde sonuçlandırılır.
+        </p>
+
+        <h2>9. Değişiklikler</h2>
+        <p>
+          Bu politika gerektiğinde güncellenebilir. Önemli değişikliklerde site üzerinden bilgilendirme yapılır.
+          Yürürlük tarihi her güncellemede yukarıda belirtilir.
+        </p>
+      </article>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .legal-section { background: #fff8f8; min-height: 60vh; padding: 2rem 0 4rem; }
+  .legal-container { max-width: 820px; }
+  .legal-article {
+    background: #fff;
+    border: 1px solid #f1dede;
+    border-radius: 1rem;
+    padding: clamp(1.2rem, 3vw, 2.4rem);
+    margin-top: 1rem;
+  }
+  .legal-head { margin-bottom: 1.4rem; }
+  .legal-head h1 {
+    font-size: clamp(1.6rem, 4vw, 2.4rem);
+    font-weight: 900;
+    margin: 0;
+    color: #1f2933;
+  }
+  .legal-meta { color: #6c757d; font-size: 0.85rem; margin-top: 0.4rem; }
+  .legal-article h2 {
+    font-size: 1.15rem;
+    font-weight: 800;
+    margin: 1.6rem 0 0.6rem;
+    color: #1f2933;
+  }
+  .legal-article p, .legal-article li {
+    color: #374151;
+    line-height: 1.75;
+    font-size: 1rem;
+  }
+  .legal-article ul { padding-left: 1.2rem; margin: 0.5rem 0; }
+  .legal-article a {
+    color: #b5080f;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .legal-article a:hover { text-decoration: underline; }
+  .legal-article code {
+    font-family: ui-monospace, SFMono-Regular, 'SF Mono', Consolas, monospace;
+    background: #fff5f5;
+    border: 1px solid #f1dede;
+    border-radius: 0.35rem;
+    padding: 0.1rem 0.35rem;
+    font-size: 0.9em;
+  }
+</style>

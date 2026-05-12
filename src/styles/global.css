@@ -1,9 +1,10 @@
 @import "tailwindcss";
+@import "./fonts.css";
 
 /* ============================================================
    SPORNEREDE.NET — Global Design Token Sistemi
    Renk: Türk Bayrağı Kırmızısı (#E30A17) + Beyaz
-   Font: Outfit (Google Fonts)
+   Font: Outfit (self-hosted woff2)
    ============================================================ */
 
 @theme {

@@ -1,0 +1,85 @@
+---
+/**
+ * Breadcrumb.astro
+ * Goruntulenebilen breadcrumb + erisilebilir biti.
+ * BreadcrumbList JSON-LD'yi BaseLayout otomatik enjekte eder (breadcrumbs prop'u).
+ */
+
+export type BreadcrumbItem = {
+  name: string;
+  url?: string;
+};
+
+interface Props {
+  items: BreadcrumbItem[];
+  ariaLabel?: string;
+}
+
+const { items, ariaLabel = 'Sayfa konumu' } = Astro.props;
+---
+
+{items.length > 0 && (
+  <nav class="breadcrumb-nav" aria-label={ariaLabel}>
+    <ol class="breadcrumb-list">
+      {items.map((item, idx) => {
+        const isLast = idx === items.length - 1;
+        return (
+          <li class="breadcrumb-item">
+            {item.url && !isLast ? (
+              <a href={item.url} class="breadcrumb-link">{item.name}</a>
+            ) : (
+              <span class="breadcrumb-current" aria-current={isLast ? 'page' : undefined}>{item.name}</span>
+            )}
+            {!isLast && <span class="breadcrumb-sep" aria-hidden="true">›</span>}
+          </li>
+        );
+      })}
+    </ol>
+  </nav>
+)}
+
+<style>
+  .breadcrumb-nav {
+    width: 100%;
+  }
+  .breadcrumb-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.85rem;
+    color: #6c757d;
+  }
+  .breadcrumb-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-width: 0;
+  }
+  .breadcrumb-link {
+    color: #b5080f;
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.15s ease;
+    white-space: nowrap;
+  }
+  .breadcrumb-link:hover {
+    color: #e30a17;
+    text-decoration: underline;
+  }
+  .breadcrumb-current {
+    color: #1f2933;
+    font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 36ch;
+  }
+  .breadcrumb-sep {
+    color: #cbd5dd;
+    user-select: none;
+  }
+</style>

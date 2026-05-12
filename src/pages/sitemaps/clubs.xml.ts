@@ -1,24 +1,23 @@
 import type { APIRoute } from 'astro';
 import { searchClubs } from '../../lib/repositories/catalog';
+import { BASE_URL, sitemapResponse, type SitemapEntry } from '../../lib/seo/sitemap';
+import { clubSlug } from '../../lib/seo/slug';
 
 export const GET: APIRoute = async () => {
-  const baseUrl = 'https://spornerede.net';
-  let urls: string[] = [];
+  const entries: SitemapEntry[] = [];
 
   try {
     const clubs = await searchClubs({});
-    urls = clubs.map((club) => `${baseUrl}/kulupler/${club.id}`);
+    for (const club of clubs) {
+      entries.push({
+        loc: `${BASE_URL}/kulupler/${clubSlug({ id: club.id, ad: club.ad })}`,
+        changefreq: 'weekly',
+        priority: 0.7,
+      });
+    }
   } catch (error) {
     console.error('Sitemap clubs.xml olusturulamadi:', error);
   }
 
-  const safeUrls = urls.length > 0 ? urls : [`${baseUrl}/`];
-  const body = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${safeUrls.map((url) => `<url><loc>${url}</loc></url>`).join('\n')}
-</urlset>`;
-
-  return new Response(body, {
-    headers: { 'Content-Type': 'application/xml; charset=utf-8' },
-  });
+  return sitemapResponse(entries);
 };

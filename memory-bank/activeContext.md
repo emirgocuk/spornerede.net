@@ -224,8 +224,16 @@ Aktif hedef: Canlı operasyonu tamamlamak; sunucu pull modeli, canlı SMTP ve ad
   - `npm run smoke:check` deep health `ok`
   - Canlı mail queue testinde `processed:1`, `sent:1`, `failed:0`
 
-### 📋 Sıradaki (Faz 4 ve İyileştirmeler)
+### 📋 Sıradaki (Faz 12 → Faz 4 ve İyileştirmeler)
 
+> **Öncelik:** Faz 12 (SEO + Reklam Hazırlığı) Faz 4 önüne alındı. Detaylı plan: `memory-bank/seo-ads-plan.md`.
+
+0. **Faz 12 — SEO Güçlendirme + Reklam Altyapısı (yeni, öncelikli):**
+   - **Sprint 12.1 (Paket A — SEO Temeli):** Slug tabanlı URL'ler + 301 redirect, global JSON-LD (Organization/WebSite/Breadcrumb), kulüp/ilan/FAQ/ItemList şemaları, OG image altyapısı (statik + dinamik), gerçek 404, sıkı `robots.txt`, sitemap'e `lastmod`/`priority`/`changefreq` + boş kombinasyonları çıkarma.
+   - **Sprint 12.2 (Paket B — Reklama Hazırlık):** KVKK çerez banner + Consent Mode v2, GA4 + GTM (consent'e bağlı, server-side event mirror), 4 yasal sayfa (gizlilik/çerez/KVKK/kullanım), CLS-safe `AdSlot` rezervleri, `ads.txt` placeholder, UTM yakalama + form atıfı.
+   - **Sprint 12.3 (Paket C — Performans + İçerik):** `astro:assets` migration, Outfit font self-host + preload, network ipuçları, SSR sayfaları için Cloudflare cache, şehir/ilçe + branş landing'lerini zenginleştirme (boşları `noindex`), görsel alt text denetimi.
+   - **Sprint 12.4 (Devam eden):** Long-tail rehber/blog içerik üretimi (`/rehber` veya `haberler` rehber kategorisi), hreflang, trailing slash + canonical disiplini, monitoring + alarm.
+   - **Kabul Kriterleri:** PageSpeed mobil ≥ 90, Rich Results Test yeşil, GA4 DebugView'da tüm event'ler, KVKK reddinde GA hiç ateşlenmiyor.
 1. **Arama ve Filtreleme:** Arama filtrelerinin URL + veri sorgu katmanını optimize etme, harita entegrasyonu (örn. Mapbox veya Leaflet ile ilanları haritada gösterme).
 2. **Monetizasyon (Gelir Modeli):** Ücretli üyelik paketleri, premium ilan öne çıkarma, online ödeme/tahsilat akışları (örn. Iyzico/Stripe entegrasyonu).
 3. **Akıllı Eşleştirme:** Kullanıcıların beklentilerine göre kurs/kulüp eşleştirme testi (Quiz akışı).
@@ -239,18 +247,23 @@ Aktif hedef: Canlı operasyonu tamamlamak; sunucu pull modeli, canlı SMTP ve ad
    - Yapısal veri genişletme: mevcut `NewsArticle` şemasına ek olarak `Organization` ve `BreadcrumbList` tamamlama.
    - Aylık backlink kalite kontrolü (toxicity/spam kaynak izleme, gerekirse disavow değerlendirmesi).
 
-### 📈 SEO İzleme Planı (Yeni)
+### 📈 SEO İzleme Planı
+
+> Detaylı yol haritası: `memory-bank/seo-ads-plan.md`. Aşağıdaki bölüm operasyonel rutin içindir.
 
 1. **Haftalık teknik kontrol (30 dk):**
    - Sitemap erişim/boş içerik kontrolü
    - 404/500 ve crawl anomaly kontrolü
    - robots/canonical/noindex hızlı tarama
+   - PageSpeed Insights API ile Core Web Vitals snapshot (Faz 12 sonrası)
 2. **Aylık içerik + keşif kontrolü:**
-   - Hangi içerik tipleri daha hızlı index alıyor (haber/ilan/kulüp)
+   - Hangi içerik tipleri daha hızlı index alıyor (haber/ilan/kulüp/rehber)
    - İç linkleme ve başlık/meta iyileştirme adaylarının listelenmesi
+   - Search Console click/impression deltası → `mvp-metrics.md`
 3. **Operasyonel alarm yaklaşımı:**
    - Deploy sonrası `sitemap-index.xml` + 5 alt sitemap smoke check
    - Her deploy sonrası servis ayakta mı + XML içinde en az bir `<url>` var mı doğrulama
+   - (Faz 12 sonrası) GA4 DebugView'da kritik event'lerin (`view_listing`, `application_submit`, `lead_phone_click`) hâlâ akıyor olduğu kontrolü
 
 ## Faz Sırasına Göre Uygulama Akışı
 
@@ -318,7 +331,13 @@ Aktif hedef: Canlı operasyonu tamamlamak; sunucu pull modeli, canlı SMTP ve ad
 
 ## Bir Sonraki Konuşmada Yapılacaklar
 
-1. Gerçek veritabanı entegrasyonu için şema tasarımı
-2. Arama filtrelerinin veritabanı sorgusuna taşınması
-3. Admin paneli için temel yetkilendirme planı
-4. Harita entegrasyonu için kütüphane seçimi (Leaflet vs Mapbox)
+1. **Faz 12 Sprint 12.1 (Paket A — SEO Temeli) başlat:** Bkz. `memory-bank/seo-ads-plan.md` §1.
+   - İlk pratik commit önerisi (`seo-ads-plan.md` §9):
+     1. `public/og-image.png` üret (1200×630)
+     2. `BaseLayout.astro` → `Organization` + `WebSite` JSON-LD
+     3. `robots.txt` sıkılaştırma
+     4. `404.astro` özelleştir + `Astro.redirect('/ara')` çağrılarını gerçek 404'e çevir
+     5. Sitemap endpoint'lerine `lastmod` ekle, boş kombinasyonları çıkar
+2. **Sprint 12.2 hazırlık:** KVKK çerez banner copy + 4 yasal sayfa metinleri (legal review için taslak)
+3. **Sprint 12.3 hazırlık:** PocketBase'de `slug` alanı migration planı (kulüp + program)
+4. Harita entegrasyonu (Faz 4) — Mapbox vs Leaflet karşılaştırması, ileride

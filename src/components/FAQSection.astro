@@ -2,7 +2,10 @@
 /**
  * FAQSection.astro
  * Landing page Sıkça Sorulan Sorular bölümü.
+ * FAQPage JSON-LD bilgisi de bu bilesenden enjekte edilir.
  */
+import { faqPageSchema, jsonLdScript } from '../lib/seo/jsonld';
+
 const faqItems = [
   {
     soru: 'Spornerede.net nedir, ne işe yarar?',
@@ -30,7 +33,13 @@ const faqItems = [
       'Evet, profilinizi daha görünür hale getirmek için öne çıkarma ve editör onaylı seçenekler sunulur. Bu sayede hedef kitlenize daha hızlı ulaşabilir, başvuru dönüşlerinizi artırabilirsiniz.',
   },
 ];
+
+const faqJsonLd = jsonLdScript(
+  faqPageSchema(faqItems.map((item) => ({ question: item.soru, answer: item.cevap })))
+);
 ---
+
+<script type="application/ld+json" set:html={faqJsonLd} is:inline></script>
 
 <section class="faq-section section" aria-labelledby="faq-baslik">
   <div class="container faq-container">

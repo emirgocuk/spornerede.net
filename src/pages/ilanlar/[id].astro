@@ -1,11 +1,29 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import Breadcrumb from '../../components/Breadcrumb.astro';
 import { getProgramListingById } from '../../lib/repositories/catalog';
+import { courseSchema, SITE_URL } from '../../lib/seo/jsonld';
+import { extractIdFromSlug, listingSlug, isPureNumericSlug, clubSlug } from '../../lib/seo/slug';
 
-const id = Number(Astro.params.id);
-const listing = await getProgramListingById(id);
+// URL segmenti hem "42" hem "yuzme-kursu-istanbul-42" olabilir.
+// Numerik id'yi her zaman sondan parse ederiz.
+const rawSlug = String(Astro.params.id ?? '').trim();
+const id = extractIdFromSlug(rawSlug);
+const listing = id !== null ? await getProgramListingById(id) : null;
 if (!listing) {
-  return Astro.redirect('/ara');
+  return new Response(null, { status: 404 });
+}
+
+// Kanonik slug'i uret
+const expectedSlug = listingSlug({
+  id: listing.id,
+  ad: listing.ad,
+  clubAd: listing.club.ad,
+});
+
+// Gelen slug pure-numeric VEYA yanlis ise kanonik URL'ye 301 yonlendir
+if (isPureNumericSlug(rawSlug) || rawSlug !== expectedSlug) {
+  return Astro.redirect(`/ilanlar/${expectedSlug}`, 301);
 }
 
 function escapeHtml(value: unknown) {
@@ -87,21 +105,75 @@ function scheduleText() {
 }
 
 const bodyHtml = renderRichTextHtml(listing.bodyJson);
+
+const canonicalUrl = `${SITE_URL}/ilanlar/${expectedSlug}`;
+const ilanDescription = listing.aciklama
+  ? listing.aciklama.slice(0, 160)
+  : `${listing.ad} - ${listing.club.ad} (${listing.club.ilce || listing.club.il}). ${listing.club.brans || 'Spor'} ilanı, tarih, saat, konum ve detaylar.`;
+
+const listingJsonLd = courseSchema({
+  url: canonicalUrl,
+  name: listing.ad,
+  description: ilanDescription,
+  providerName: listing.club.ad,
+  providerUrl: `${SITE_URL}/kulupler/${clubSlug({ id: listing.club.id, ad: listing.club.ad })}`,
+  branch: listing.club.brans || undefined,
+  level: listing.seviye || undefined,
+  price: listing.ucretBilgisi || undefined,
+  startDate: listing.eventDate || undefined,
+  endDate: listing.endDate || undefined,
+  isOngoing: listing.isOngoing,
+  locationText:
+    listing.locationText || listing.club.ilce || listing.club.il || undefined,
+  latitude: listing.club.enlem || undefined,
+  longitude: listing.club.boylam || undefined,
+  image: listing.gallery,
+});
+
+const breadcrumbs = [
+  { name: 'Ana Sayfa', url: `${SITE_URL}/` },
+  { name: 'Arama', url: `${SITE_URL}/ara` },
+  ...(listing.club.bransSlug
+    ? [{ name: listing.club.brans, url: `${SITE_URL}/branslar/${listing.club.bransSlug}` }]
+    : []),
+  {
+    name: listing.club.ad,
+    url: `${SITE_URL}/kulupler/${clubSlug({ id: listing.club.id, ad: listing.club.ad })}`,
+  },
+  { name: listing.ad, url: canonicalUrl },
+];
+
+// OG image: ilan galerisi varsa ilk goruntu, yoksa dinamik endpoint
+const ogParams = new URLSearchParams({
+  title: listing.ad,
+  kicker: listing.club.brans || 'Spor ilani',
+  badge: listing.club.ilce || listing.club.il || '',
+});
+const ogImage = listing.gallery?.[0] || `${SITE_URL}/api/og.png?${ogParams.toString()}`;
 ---
 
 <BaseLayout
   title={`${listing.ad} | ${listing.club.ad}`}
-  description={`${listing.ad} spor ilanı. Tarih, saat, konum ve ilan detaylarını inceleyin.`}
-  keywords={`${listing.club.bransSlug} ilanı, ${listing.club.ilce} spor kursu`}
+  description={ilanDescription}
+  keywords={`${listing.club.bransSlug} ilanı, ${listing.club.ilce} spor kursu, ${listing.ad.toLowerCase()}`}
+  canonical={canonicalUrl}
+  ogType="article"
+  ogImage={ogImage}
+  breadcrumbs={breadcrumbs}
+  jsonLd={listingJsonLd}
 >
   <div class="page-background"></div>
   <section class="section listing-page relative z-10">
     <div class="container listing-wrap" data-club-lat={listing.club.enlem || ''} data-club-lng={listing.club.boylam || ''}>
-      
+
+      <div class="mb-3 animate-fade-in-up">
+        <Breadcrumb items={breadcrumbs.map((b) => ({ name: b.name, url: b.url }))} />
+      </div>
+
       <!-- Back Link -->
       <div class="mb-6 animate-fade-in-up">
         <a href={`/ara?brans=${listing.club.bransSlug || ''}`} class="back-link group">
-          <span class="back-icon group-hover:-translate-x-1 transition-transform">←</span> 
+          <span class="back-icon group-hover:-translate-x-1 transition-transform">←</span>
           <span>Arama sonuçlarına dön</span>
         </a>
       </div>
@@ -127,17 +199,6 @@ const bodyHtml = renderRichTextHtml(listing.bodyJson);
             </div>
           </div>
         </div>
-        
-        <div class="hero-actions">
-          <div class="rating-box">
-            <span class="rating-label">Değerlendirme</span>
-            <div class="rating-score">
-              <span class="star">★</span>
-              <strong>{listing.club.puan}</strong>
-              <span class="max-score">/ 5</span>
-            </div>
-          </div>
-        </div>
       </header>
 
       <!-- Details Grid -->
@@ -145,7 +206,7 @@ const bodyHtml = renderRichTextHtml(listing.bodyJson);
         <!-- Main Content -->
         <div class="main-column">
           <article class="content-card card-glass">
-            <h2 class="card-title">İlan Detayları</h2>
+            <h2 class="card-title">Kurs Detayları</h2>
             <ul class="meta-grid">
               <li class="meta-item">
                 <div class="meta-icon">📅</div>
@@ -187,16 +248,18 @@ const bodyHtml = renderRichTextHtml(listing.bodyJson);
             )}
             
             {bodyHtml && <div class="body-content" set:html={bodyHtml} />}
-          </article>
 
-          <article class="content-card card-glass">
-            <h2 class="card-title">Kullanıcı Yorumları</h2>
-            <div class="empty-state">
-              <div class="empty-icon">💬</div>
-              <p>Bu kulübün genel puanı <strong>{listing.club.puan}</strong> ve toplam <strong>{listing.club.yorumSayisi}</strong> yorumu var.</p>
-              <span class="empty-hint">Yorum alanı yakında aktif olacak.</span>
+            <div class="cta-box mt-6">
+              <h3 class="cta-title">Kulüple İletişime Geç</h3>
+              <p class="cta-desc">Bu ilanla ilgileniyorsanız aşağıdaki bilgilerden hemen ulaşabilirsiniz.</p>
+              <ul class="contact-list">
+                <li><strong>Telefon:</strong> {listing.club.telefon || 'Belirtilmedi'}</li>
+                <li><strong>E-posta:</strong> {listing.club.email || 'Belirtilmedi'}</li>
+                <li><strong>Adres:</strong> {listing.club.adres || listing.locationText || listing.club.ilce || listing.club.il || 'Belirtilmedi'}</li>
+              </ul>
             </div>
           </article>
+
         </div>
 
         <!-- Sidebar -->
@@ -205,11 +268,18 @@ const bodyHtml = renderRichTextHtml(listing.bodyJson);
             <h2 class="card-title">Galeri</h2>
             {listing.gallery.length > 0 ? (
               <div class="gallery-grid">
-                {listing.gallery.map((imageUrl) => (
-                  <a href={imageUrl} target="_blank" class="gallery-item">
-                    <img src={imageUrl} alt={`${listing.ad} görseli`} loading="lazy" />
+                {listing.gallery.map((imageUrl, idx) => (
+                  <button type="button" class="gallery-item" data-viewer-image={imageUrl}>
+                    <img
+                      src={imageUrl}
+                      alt={`${listing.ad} - ${listing.club.brans || 'spor'} ilanı görseli ${idx + 1}`}
+                      loading={idx === 0 ? 'eager' : 'lazy'}
+                      decoding="async"
+                      width="800"
+                      height="600"
+                    />
                     <div class="gallery-overlay"><span>Büyüt</span></div>
-                  </a>
+                  </button>
                 ))}
               </div>
             ) : (
@@ -219,16 +289,18 @@ const bodyHtml = renderRichTextHtml(listing.bodyJson);
               </div>
             )}
             
-            <div class="cta-box mt-6">
-              <h3 class="cta-title">Kulüple İletişime Geç</h3>
-              <p class="cta-desc">Bu ilanla ilgileniyorsanız kulüp yetkilisiyle görüşün.</p>
-              <button class="btn btn-primary w-full shadow-lg hover:shadow-xl transition-all">İletişim Bilgilerini Gör</button>
-            </div>
           </article>
         </div>
       </div>
     </div>
   </section>
+  <div class="image-viewer" aria-hidden="true">
+    <div class="image-viewer-backdrop" data-close-viewer></div>
+    <div class="image-viewer-dialog" role="dialog" aria-modal="true" aria-label="Görsel görüntüleyici">
+      <button type="button" class="image-viewer-close" data-close-viewer aria-label="Kapat">×</button>
+      <img class="image-viewer-img" src="" alt="Büyütülmüş ilan görseli" />
+    </div>
+  </div>
 </BaseLayout>
 
 <script is:inline>
@@ -262,6 +334,36 @@ const bodyHtml = renderRichTextHtml(listing.bodyJson);
       );
     }
   }
+
+  const viewer = document.querySelector('.image-viewer');
+  const viewerImage = viewer?.querySelector('.image-viewer-img');
+  const closeTriggers = viewer ? Array.from(viewer.querySelectorAll('[data-close-viewer]')) : [];
+  const galleryButtons = Array.from(document.querySelectorAll('[data-viewer-image]'));
+
+  const closeViewer = () => {
+    if (!viewer || !viewerImage) return;
+    viewer.classList.remove('is-open');
+    viewer.setAttribute('aria-hidden', 'true');
+    viewerImage.setAttribute('src', '');
+    document.body.style.overflow = '';
+  };
+
+  galleryButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      if (!viewer || !viewerImage) return;
+      const imageUrl = button.getAttribute('data-viewer-image') || '';
+      if (!imageUrl) return;
+      viewerImage.setAttribute('src', imageUrl);
+      viewer.classList.add('is-open');
+      viewer.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+    });
+  });
+
+  closeTriggers.forEach((node) => node.addEventListener('click', closeViewer));
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') closeViewer();
+  });
 </script>
 
 <style>
@@ -450,56 +552,6 @@ const bodyHtml = renderRichTextHtml(listing.bodyJson);
     color: #166534;
   }
   
-  .rating-box {
-    background: linear-gradient(135deg, #fff8ec 0%, #fff 100%);
-    border: 1px solid #ffe1b0;
-    padding: 1rem 1.5rem;
-    border-radius: 1rem;
-    text-align: center;
-    box-shadow: 0 4px 15px rgba(245, 158, 11, 0.08);
-    transform: rotate(2deg);
-    transition: transform 0.3s ease;
-  }
-  
-  .rating-box:hover {
-    transform: rotate(0deg) scale(1.02);
-  }
-  
-  .rating-label {
-    display: block;
-    font-size: 0.75rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    color: #b45309;
-    letter-spacing: 0.05em;
-    margin-bottom: 0.2rem;
-  }
-  
-  .rating-score {
-    display: flex;
-    align-items: baseline;
-    justify-content: center;
-    gap: 0.2rem;
-  }
-  
-  .star {
-    color: #f59e0b;
-    font-size: 1.2rem;
-  }
-  
-  .rating-score strong {
-    font-size: 2rem;
-    font-weight: 900;
-    color: #1f2937;
-    line-height: 1;
-  }
-  
-  .max-score {
-    font-size: 1rem;
-    color: #9ca3af;
-    font-weight: 600;
-  }
-  
   /* Layout Grid */
   .grid-layout {
     display: grid;
@@ -685,6 +737,10 @@ const bodyHtml = renderRichTextHtml(listing.bodyJson);
     overflow: hidden;
     aspect-ratio: 4/3;
     display: block;
+    border: 0;
+    padding: 0;
+    width: 100%;
+    cursor: zoom-in;
     box-shadow: 0 4px 10px rgba(0,0,0,0.05);
   }
   
@@ -783,6 +839,75 @@ const bodyHtml = renderRichTextHtml(listing.bodyJson);
     color: var(--color-brand-gray-300);
     margin-bottom: 1.2rem;
   }
+
+  .contact-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 0.5rem;
+    text-align: left;
+    font-size: 0.92rem;
+    color: var(--color-brand-gray-200);
+  }
+
+  .contact-list strong {
+    color: white;
+  }
+
+  .image-viewer {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+
+  .image-viewer.is-open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .image-viewer-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.78);
+  }
+
+  .image-viewer-dialog {
+    position: relative;
+    z-index: 1;
+    margin: auto;
+    max-width: min(960px, calc(100% - 2rem));
+    max-height: calc(100% - 2rem);
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  .image-viewer-img {
+    display: block;
+    width: 100%;
+    max-height: calc(100vh - 2rem);
+    object-fit: contain;
+    border-radius: 0.75rem;
+    background: #111;
+  }
+
+  .image-viewer-close {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    width: 2.2rem;
+    height: 2.2rem;
+    border: 0;
+    border-radius: 999px;
+    background: rgba(17, 24, 39, 0.85);
+    color: white;
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+  }
   
   .w-full { width: 100%; }
   .mt-6 { margin-top: 1.5rem; }
@@ -795,11 +920,6 @@ const bodyHtml = renderRichTextHtml(listing.bodyJson);
       flex-direction: column;
       align-items: flex-start;
       padding: 1.5rem;
-    }
-    
-    .rating-box {
-      width: 100%;
-      transform: none;
     }
     
     .content-card {

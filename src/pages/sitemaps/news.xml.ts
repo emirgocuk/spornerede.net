@@ -1,27 +1,25 @@
 import type { APIRoute } from 'astro';
 import { getActiveNews } from '../../lib/repositories/news';
+import { BASE_URL, sitemapResponse, type SitemapEntry } from '../../lib/seo/sitemap';
 
 export const GET: APIRoute = async () => {
-  const baseUrl = 'https://spornerede.net';
-  let urls: string[] = [];
+  const entries: SitemapEntry[] = [];
 
   try {
     const news = await getActiveNews();
-    urls = news
-      .map((item) => String(item.slug ?? '').trim())
-      .filter(Boolean)
-      .map((slug) => `${baseUrl}/haberler/${slug}`);
+    for (const item of news) {
+      const slug = String(item.slug ?? '').trim();
+      if (!slug) continue;
+      entries.push({
+        loc: `${BASE_URL}/haberler/${slug}`,
+        lastmod: item.tarihIso || undefined,
+        changefreq: 'monthly',
+        priority: 0.5,
+      });
+    }
   } catch (error) {
     console.error('Sitemap news.xml olusturulamadi:', error);
   }
 
-  const safeUrls = urls.length > 0 ? urls : [`${baseUrl}/`];
-  const body = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${safeUrls.map((url) => `<url><loc>${url}</loc></url>`).join('\n')}
-</urlset>`;
-
-  return new Response(body, {
-    headers: { 'Content-Type': 'application/xml; charset=utf-8' },
-  });
+  return sitemapResponse(entries);
 };

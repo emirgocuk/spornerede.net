@@ -8,28 +8,62 @@ import '../styles/global.css';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import PanelFeedback from '../components/PanelFeedback.astro';
+import ConsentBanner from '../components/ConsentBanner.astro';
+import GoogleTagManager from '../components/GoogleTagManager.astro';
+import GoogleTagManagerNoscript from '../components/GoogleTagManagerNoscript.astro';
+import TrackingAutoListeners from '../components/TrackingAutoListeners.astro';
+import {
+  organizationSchema,
+  websiteSchema,
+  jsonLdScript,
+  breadcrumbSchema,
+  SITE_OG_DEFAULT,
+} from '../lib/seo/jsonld';
+
+export type BreadcrumbProp = { name: string; url: string };
 
 interface Props {
   title: string;
   description: string;
   keywords?: string;
   ogImage?: string;
+  ogType?: 'website' | 'article' | 'product';
   canonical?: string;
   noIndex?: boolean;
+  /** Sayfa basina ek JSON-LD nodes (Course / SportsActivityLocation / ItemList vb.) */
+  jsonLd?: unknown | unknown[];
+  /** Sayfa basina breadcrumb (otomatik BreadcrumbList JSON-LD eklenir) */
+  breadcrumbs?: BreadcrumbProp[];
 }
 
 const {
   title,
   description,
-  keywords = 'turkiye spor kulüpleri, çocuk spor kursu, spor branşları, futbol kursu, yüzme kursu, karate kursu',
-  ogImage = '/og-image.png',
+  keywords = 'turkiye spor kulupleri, cocuk spor kursu, spor branslari, futbol kursu, yuzme kursu, karate kursu',
+  ogImage,
+  ogType = 'website',
   canonical,
   noIndex = false,
+  jsonLd,
+  breadcrumbs,
 } = Astro.props;
 
-const siteUrl  = 'https://spornerede.net';
+const siteUrl = 'https://spornerede.net';
 const fullTitle = `${title} | SporNerede.net`;
 const canonicalUrl = canonical ?? `${siteUrl}${Astro.url.pathname}`;
+const resolvedOgImage = ogImage
+  ? ogImage.startsWith('http')
+    ? ogImage
+    : `${siteUrl}${ogImage.startsWith('/') ? ogImage : `/${ogImage}`}`
+  : SITE_OG_DEFAULT;
+
+// Her sayfaya her zaman Organization + WebSite enjekte et
+const globalJsonLd: unknown[] = [organizationSchema(), websiteSchema()];
+if (breadcrumbs && breadcrumbs.length > 0) {
+  globalJsonLd.push(breadcrumbSchema(breadcrumbs));
+}
+const pageJsonLd: unknown[] = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];
+const combinedJsonLd = jsonLdScript([...globalJsonLd, ...pageJsonLd]);
 ---
 
 <!DOCTYPE html>
@@ -43,14 +77,21 @@ const canonicalUrl = canonical ?? `${siteUrl}${Astro.url.pathname}`;
   <meta name="description" content={description} />
   {keywords && <meta name="keywords" content={keywords} />}
   <link rel="canonical" href={canonicalUrl} />
-  {noIndex && <meta name="robots" content="noindex, nofollow" />}
+  <link rel="alternate" hreflang="tr-TR" href={canonicalUrl} />
+  <link rel="alternate" hreflang="x-default" href={canonicalUrl} />
+  {noIndex
+    ? <meta name="robots" content="noindex, nofollow" />
+    : <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+  }
 
   <!-- ===== OPEN GRAPH ===== -->
-  <meta property="og:type"        content="website" />
+  <meta property="og:type"        content={ogType} />
   <meta property="og:url"         content={canonicalUrl} />
   <meta property="og:title"       content={fullTitle} />
   <meta property="og:description" content={description} />
-  <meta property="og:image"       content={`${siteUrl}${ogImage}`} />
+  <meta property="og:image"       content={resolvedOgImage} />
+  <meta property="og:image:width"  content="1200" />
+  <meta property="og:image:height" content="630" />
   <meta property="og:locale"      content="tr_TR" />
   <meta property="og:site_name"   content="SporNerede.net" />
 
@@ -58,25 +99,47 @@ const canonicalUrl = canonical ?? `${siteUrl}${Astro.url.pathname}`;
   <meta name="twitter:card"        content="summary_large_image" />
   <meta name="twitter:title"       content={fullTitle} />
   <meta name="twitter:description" content={description} />
-  <meta name="twitter:image"       content={`${siteUrl}${ogImage}`} />
+  <meta name="twitter:image"       content={resolvedOgImage} />
+  <meta name="twitter:site"        content="@Spor_Nerede" />
 
-  <!-- ===== FAVICON (placeholder — ileride eklenecek) ===== -->
+  <!-- ===== FAVICON ===== -->
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="icon" type="image/x-icon" href="/favicon.ico" />
 
-  <!-- ===== GOOGLE FONTS — Outfit ===== -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <!-- ===== NETWORK IPUCLARI ===== -->
+  <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
+  <link rel="preconnect" href="https://www.googletagmanager.com" crossorigin />
+  <link rel="dns-prefetch" href="https://www.google-analytics.com" />
+
+  <!-- ===== SELF-HOSTED FONT PRELOAD — LCP icin ===== -->
   <link
-    href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap"
-    rel="stylesheet"
+    rel="preload"
+    href="/fonts/outfit/outfit-latin-700-normal.woff2"
+    as="font"
+    type="font/woff2"
+    crossorigin
+  />
+  <link
+    rel="preload"
+    href="/fonts/outfit/outfit-latin-400-normal.woff2"
+    as="font"
+    type="font/woff2"
+    crossorigin
   />
 
   <!-- ===== THEME COLOR (mobil tarayıcı üst bar) ===== -->
   <meta name="theme-color" content="#E30A17" />
+
+  <!-- ===== JSON-LD: Organization + WebSite + (sayfa bazli ek schema) ===== -->
+  <script type="application/ld+json" set:html={combinedJsonLd} is:inline></script>
+
+  <!-- ===== ANALYTICS: GTM / GA4 (consent-aware) ===== -->
+  <GoogleTagManager />
 </head>
 
 <body>
-  <!-- Skip to content (erişilebilirlik) -->
+  <GoogleTagManagerNoscript />
+
   <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 btn btn-primary z-[9999]">
     İçeriğe Geç
   </a>
@@ -89,11 +152,12 @@ const canonicalUrl = canonical ?? `${siteUrl}${Astro.url.pathname}`;
 
   <Footer />
   <PanelFeedback />
+  <ConsentBanner />
+  <TrackingAutoListeners />
 </body>
 </html>
 
 <style>
-  /* sr-only utility (Tailwind'e gerek kalmadan) */
   .sr-only {
     position: absolute;
     width: 1px;
