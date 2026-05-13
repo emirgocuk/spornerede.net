@@ -2,14 +2,16 @@
 /**
  * ClubCTA.astro
  * Landing page'deki kulüp başvuru CTA bölümü.
+ *
+ * Not: Astro <Image> componenti SSR modunda her istekte /_image runtime endpoint
+ * uretiyor (runtime sharp transform). Kaynak goseller zaten 1280x720 / ~41KB
+ * oldugu icin dogrudan asset import + <img> kullaniyoruz: Astro bu yolla
+ * hash'li filename + /_astro/ uzerinden 1y immutable cache verir, runtime
+ * dondurme maliyeti olmaz.
  */
-import { Image } from 'astro:assets';
 import footwearImage from '../assets/images/footwear.webp';
 import basketballImage from '../assets/images/basketball.webp';
 import voleyballImage from '../assets/images/voleyball.webp';
-
-const showcaseWidth = 1280;
-const showcaseHeight = 720;
 
 const faydalar = [
   { emoji: '🎯', baslik: 'Hedef Kitleye Ulaş', aciklama: 'Spor kursu veya kulüp arayan ailelere Türkiye genelinde ulaşın' },
@@ -67,42 +69,33 @@ const faydalar = [
   <div class="cta-visual" aria-hidden="true">
     <div class="visual-showcase" data-showcase>
       <div class="showcase-slide is-active">
-        <Image
-          src={footwearImage}
+        <img
+          src={footwearImage.src}
+          width={footwearImage.width}
+          height={footwearImage.height}
           alt=""
-          widths={[640, 960, 1280]}
-          sizes="(min-width: 1100px) 46vw, 0px"
-          width={showcaseWidth}
-          height={showcaseHeight}
           loading="lazy"
           decoding="async"
-          quality={75}
         />
       </div>
       <div class="showcase-slide">
-        <Image
-          src={basketballImage}
+        <img
+          src={basketballImage.src}
+          width={basketballImage.width}
+          height={basketballImage.height}
           alt=""
-          widths={[640, 960, 1280]}
-          sizes="(min-width: 1100px) 46vw, 0px"
-          width={showcaseWidth}
-          height={showcaseHeight}
           loading="lazy"
           decoding="async"
-          quality={75}
         />
       </div>
       <div class="showcase-slide">
-        <Image
-          src={voleyballImage}
+        <img
+          src={voleyballImage.src}
+          width={voleyballImage.width}
+          height={voleyballImage.height}
           alt=""
-          widths={[640, 960, 1280]}
-          sizes="(min-width: 1100px) 46vw, 0px"
-          width={showcaseWidth}
-          height={showcaseHeight}
           loading="lazy"
           decoding="async"
-          quality={75}
         />
       </div>
     </div>

@@ -1,0 +1,18 @@
+    # /fonts/* yollarinda Astro Node adapter'in default 4h Cache-Control
+    # degerini 1 yil immutable ile override eder. Self-hosted Outfit dosyalari
+    # icerik degismedikce ayni hash ile servis edildigi icin guvenli.
+    location ~* ^/fonts/.+\.(woff2?|ttf|otf)$ {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
+
+        proxy_hide_header Cache-Control;
+        add_header Cache-Control "public, max-age=31536000, immutable" always;
+    }
+
+    # Astro hashli build varliklari (/_astro/*) middleware tarafindan zaten
+    # 1y immutable ile sunuluyor; burada ekstra one cache fallback ekleyelim
+    # (proxy_hide_header gerekmiyor; degeri override etmek istemiyoruz).
