@@ -15,7 +15,7 @@ Mevcut durum: Faz 12 kodu `main` üzerinde; production'da `spornerede-autoupdate
 - Header CTA marka metni saf beyaz + Footer copyright/tagline WCAG AA kontrast.
 - Hero highlight shimmer animasyonu kaldırıldı (non-composited uyarısı).
 
-Sunucudaki repo-temiz olmayan ve `systemctl | grep` SIGPIPE senaryoları daha önce giderildi (`deploy/server-auto-update.sh`). Bu turda ayrıca **mid-stream `git pull` betiği bozma bug'ı** keşfedildi: bash, çalışırken kendi script dosyasını disktan satır satır okuduğu için `git pull` betiği değiştirdiğinde ofset kayması yaşıyordu (gerçek olay: pull sonrası bash yanlışlıkla eski `list-unit-files | grep` koduna kaydı, restart `Broken pipe` ile sessizce atlandı). Çözüm: `git pull` adımından hemen sonra `exec bash "$0"` ile script kendini yeniden başlatıyor, `AUTO_UPDATE_RESPAWNED=1` flag'i sonsuz döngü/çift pull'u engelliyor. `deploy/server-auto-update.sh` ve `memory-bank/deploy-runbook.md` güncellendi.
+Sunucudaki repo-temiz olmayan senaryolar giderildi. **Otomatik guncelleme betigi (`deploy/server-auto-update.sh`)**: `git pull` betigin kendisini guncellerken bash'in repo dosyasindan satir satir okumasi **inode/offset kaymasi** yaratiyordu (journal'da `Broken pipe` + yanlis `spornerede.service bulunamadi`). Cozum: calisma `/tmp` altina kopyalanan betikten yurur (`SN_AUTOUPDATE_TMP_RUN`); ardından `systemctl restart spornerede.service` dogrudan cagrılır. Eski `AUTO_UPDATE_RESPAWNED` + ayni yoldan `exec` kaldirildi.
 
 Beklenen (kullanıcı aksiyonu): **Cloudflare Dashboard → Bots → AI Audit / Content Signal Policy → "Append to robots.txt" kapat** — `Content-Signal: search=yes,ai-train=no` direktifi Cloudflare tarafından otomatik ekleniyor ve Lighthouse 13 "unknown directive" diyor. SEO skoru 92 → ~97 etkisi var.
 
