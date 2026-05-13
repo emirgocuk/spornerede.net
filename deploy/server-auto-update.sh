@@ -139,11 +139,14 @@ fi
 ln -sfn "${NEW_RELEASE}" "${CURRENT_LINK}"
 log "Release aktif: ${NEW_RELEASE}"
 
-if systemctl list-unit-files | grep -q "^${SYSTEMD_UNIT}\.service"; then
+# NOT: `systemctl list-unit-files | grep -q` pipefail altinda SIGPIPE/broken pipe
+# verebiliyor; unit varken bile restart atlanabiliyor. LoadState ile kontrol et.
+load_state="$(systemctl show "${SYSTEMD_UNIT}.service" --property=LoadState --value 2>/dev/null || true)"
+if [[ "${load_state}" == "loaded" ]]; then
   systemctl restart "${SYSTEMD_UNIT}"
   log "Servis restart: ${SYSTEMD_UNIT}"
 else
-  log "UYARI: ${SYSTEMD_UNIT}.service bulunamadi, restart atlandi."
+  log "UYARI: ${SYSTEMD_UNIT}.service yuklu degil (LoadState=${load_state:-yok}), restart atlandi."
 fi
 
 if [[ "${RUN_SMOKE_CHECK}" == "1" ]]; then

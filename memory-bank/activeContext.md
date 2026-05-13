@@ -2,10 +2,11 @@
 
 ## Şimdiki Çalışma Odağı
 
-**Faz 11: Canlıya alma, self-host operasyon ve sürdürülebilir güncelleme akışı**
+**Faz 12 (SEO + reklam altyapısı) canlıda; operasyon notları `deploy-runbook` içinde.**
 
-Mevcut durum: Landing, `/ara`, `/basvuru`, PocketBase veritabanı altyapısı, admin paneli (başvurular, haberler, kulüpler, iletişim, geribildirimler) ve kulüp paneli (kurs yönetimi, profil) canlı sunucuda çalışacak seviyeye getirildi.
-Aktif hedef: Canlı operasyonu tamamlamak; sunucu pull modeli, canlı SMTP ve admin panelden manuel backup indirme doğrulandı. Ürün/teknik çerçeve: `memory-bank/deploy-runbook.md`.
+Mevcut durum: Faz 12 kodu `main` üzerinde; production’da `spornerede-autoupdate` ile release alındı (ör. `20260512T194342Z`). Sunucuda repo kirli olduğunda autoupdate’in atlandığı ve eski script’te `systemctl | grep` SIGPIPE yüzünden restart’ın yanlışlıkla atlandığı senaryolar giderildi (`deploy/server-auto-update.sh` + runbook). Yeni release sonrası gerekirse bir kez `systemctl restart spornerede` ile Node’un `current` symlink’ini takip ettiğini doğrula.
+
+Sonraki adımlar: Faz 13 (reklam yayını / AdSense vb.), Bing–Yandex doğrulama, içerik uzun kuyruk. Detay: `memory-bank/progress.md`, `memory-bank/seo-ads-plan.md`.
 
 ## Güncel Görevler (Öncelik Sırasıyla)
 
@@ -224,16 +225,88 @@ Aktif hedef: Canlı operasyonu tamamlamak; sunucu pull modeli, canlı SMTP ve ad
   - `npm run smoke:check` deep health `ok`
   - Canlı mail queue testinde `processed:1`, `sent:1`, `failed:0`
 
-### 📋 Sıradaki (Faz 12 → Faz 4 ve İyileştirmeler)
+### 🆕 Son Tamamlanan (Faz 12 — SEO + Reklam Altyapısı — 2026-05-12)
 
-> **Öncelik:** Faz 12 (SEO + Reklam Hazırlığı) Faz 4 önüne alındı. Detaylı plan: `memory-bank/seo-ads-plan.md`.
+> Detaylı plan: `memory-bank/seo-ads-plan.md`. Tüm Sprint 12.1 → 12.3 ve Sprint 12.4'ün altyapı kısmı bu turda bitirildi.
 
-0. **Faz 12 — SEO Güçlendirme + Reklam Altyapısı (yeni, öncelikli):**
-   - **Sprint 12.1 (Paket A — SEO Temeli):** Slug tabanlı URL'ler + 301 redirect, global JSON-LD (Organization/WebSite/Breadcrumb), kulüp/ilan/FAQ/ItemList şemaları, OG image altyapısı (statik + dinamik), gerçek 404, sıkı `robots.txt`, sitemap'e `lastmod`/`priority`/`changefreq` + boş kombinasyonları çıkarma.
-   - **Sprint 12.2 (Paket B — Reklama Hazırlık):** KVKK çerez banner + Consent Mode v2, GA4 + GTM (consent'e bağlı, server-side event mirror), 4 yasal sayfa (gizlilik/çerez/KVKK/kullanım), CLS-safe `AdSlot` rezervleri, `ads.txt` placeholder, UTM yakalama + form atıfı.
-   - **Sprint 12.3 (Paket C — Performans + İçerik):** `astro:assets` migration, Outfit font self-host + preload, network ipuçları, SSR sayfaları için Cloudflare cache, şehir/ilçe + branş landing'lerini zenginleştirme (boşları `noindex`), görsel alt text denetimi.
-   - **Sprint 12.4 (Devam eden):** Long-tail rehber/blog içerik üretimi (`/rehber` veya `haberler` rehber kategorisi), hreflang, trailing slash + canonical disiplini, monitoring + alarm.
-   - **Kabul Kriterleri:** PageSpeed mobil ≥ 90, Rich Results Test yeşil, GA4 DebugView'da tüm event'ler, KVKK reddinde GA hiç ateşlenmiyor.
+**Sprint 12.1 — Paket A (SEO Temeli):**
+- `robots.txt` sıkılaştırıldı: `/admin`, `/panel`, `/api`, `/basvuru`, `?utm_*`, `?fbclid=`, `?gclid=` engellendi; GPTBot/CCBot/anthropic-ai/Google-Extended `Disallow: /`. Sitemap referansları (sitemap-index + 5 alt sitemap) eklendi.
+- `astro.config.mjs`: `trailingSlash: 'never'`, sitemap integration filter + `lastmod/changefreq/priority`.
+- Sitemap endpoint'leri yeniden yazıldı (`src/lib/seo/sitemap.ts` helper'ı ile):
+  - Boş kombinasyonlar (kulüpsüz şehir/branş) artık sitemap'e girmiyor.
+  - `clubs.xml` ve `listings.xml` slug'lı URL üretiyor.
+- Özel `404.astro` sayfası eklendi (arama formu, popüler branşlar, gerçek `status: 404`).
+- Tüm public detay sayfalarındaki `Astro.redirect('/ara')` kaldırıldı; bunun yerine gerçek 404 dönülüyor (`/kulupler/[id]`, `/ilanlar/[id]`, `/branslar/[brans]`, `/sehirler/.../[brans]`).
+- **Slug tabanlı URL'ler:**
+  - `src/lib/seo/slug.ts` — `clubSlug`, `listingSlug`, `extractIdFromSlug`, `isPureNumericSlug`.
+  - `/kulupler/[id]` ve `/ilanlar/[id]` slug-veya-id'yi kabul ediyor; pure numeric veya yanlış slug → 301 redirect canonical slug URL'ye. PocketBase şeması değişmedi (slug runtime'da üretiliyor, news repo pattern'i).
+  - `searchClubs` ve sitemap'lerdeki tüm internal linkler slug'lı.
+- **OG Image altyapısı:**
+  - `public/og-image.svg` + `scripts/generate-og-image.mjs` (sharp ile PNG'ye rasterize) — `npm run og:generate`. PNG zaten üretildi (~66 KB).
+  - `BaseLayout`'a `og:image` fallback (statik `/og-image.png`).
+  - Dinamik OG endpoint: `/api/og.png?title=&kicker=&badge=` — kulüp/ilan detay sayfaları otomatik bunu kullanıyor (kulüp galerisi varsa galeri ilk görsel önceliklenir).
+
+**Sprint 12.1 — JSON-LD (Paket A.2 + A.3):**
+- `src/lib/seo/jsonld.ts` — `organizationSchema`, `websiteSchema`, `breadcrumbSchema`, `faqPageSchema`, `sportsActivityLocationSchema`, `courseSchema`, `itemListSchema`, `jsonLdScript`.
+- `BaseLayout` her sayfaya Organization + WebSite + (varsa) BreadcrumbList JSON-LD enjekte ediyor; sayfa bazlı ek schema için `jsonLd` prop'u eklendi.
+- `/kulupler/[id]` → `SportsActivityLocation` + `LocalBusiness` (multi-type), her aktif program için `Course` schema.
+- `/ilanlar/[id]` → `Course` schema (provider + offer + courseInstance + locationText + geo).
+- `/ara` → `ItemList` (filtre uygulanmışsa `noindex`).
+- `/sehirler/.../[brans]` ve `/sehirler/.../[ilce]/[brans]` → `ItemList`; içerik yoksa `noindex`.
+- `FAQSection` → `FAQPage` schema (landing page).
+- `Breadcrumb.astro` component — görsel breadcrumb + ekran okuyucu friendly.
+
+**Sprint 12.2 — Paket B (Reklam altyapısı):**
+- `ConsentBanner.astro` — KVKK uyumlu, Google Consent Mode v2 default-denied state, 3 kategori (zorunlu/analiz/pazarlama), LocalStorage 12 ay, "Tümünü kabul / Reddet / Yönet" akışı.
+- `GoogleTagManager.astro` + `GoogleTagManagerNoscript.astro` — env-driven (`PUBLIC_GTM_ID`, `PUBLIC_GA4_ID`); ID set değilse hiçbir şey enjekte edilmiyor. Consent state'i Banner tarafından set ediliyor.
+- `TrackingAutoListeners.astro` — sayfa genelinde otomatik:
+  - `tel:` → `lead_phone_click`
+  - `mailto:` → `lead_email_click`
+  - Google Maps linkleri → `lead_maps_click`
+  - Başvuru/iletişim form submit → `application_submit` / `contact_form_submit`
+  - UTM/gclid/fbclid yakalama → 30 gün `sn_attribution` first-party cookie
+- `src/lib/analytics/track.ts` — programlı event API (`events.viewListing`, `events.viewClub`, ...).
+- `/api/internal/track` — server-side first-party event log (sendBeacon kabul ediyor; structured stdout JSON).
+- 4 yasal sayfa: `/gizlilik-politikasi`, `/cerez-politikasi`, `/kvkk-aydinlatma-metni`, `/kullanim-kosullari`. Footer'a tümü linklendi.
+- `AdSlot.astro` — CLS-safe placeholder (leaderboard / rectangle / skyscraper / feed). `PUBLIC_AD_PROVIDER` env aktif edilince görünür.
+- `public/ads.txt` — boş placeholder + IAB referansı.
+- `.env.example` — `PUBLIC_GTM_ID`, `PUBLIC_GA4_ID`, `INTERNAL_TRACK_TOKEN`, `PUBLIC_AD_PROVIDER` eklendi.
+
+**Sprint 12.3 — Paket C (Performans + İçerik):**
+- Outfit fontu self-hosted'a alındı:
+  - `scripts/copy-fonts.mjs` (`npm run fonts:copy`) — `@fontsource/outfit` woff2 dosyalarını `public/fonts/outfit/` altına kopyalar. 14 dosya kopyalandı (7 ağırlık × latin + latin-ext).
+  - `src/styles/fonts.css` — `@font-face` tanımları, `font-display: swap`, doğru unicode-range.
+  - `BaseLayout` Google Fonts `<link>` kaldırıldı; 400 + 700 woff2 dosyaları `<link rel="preload">` ile LCP için öncelikli.
+- Network ipuçları: `dns-prefetch` + `preconnect` for `googletagmanager.com` ve `google-analytics.com`.
+- Astro prefetch (`hover` strategy) açıldı: viewport içindeki internal link'ler hover'da preload edilir.
+- `src/middleware.ts` — global Cache-Control + güvenlik header'ları:
+  - Liste/landing sayfalar: `public, max-age=60, s-maxage=300-600, stale-while-revalidate=3600`.
+  - Detay sayfalar: `s-maxage=600, swr=3600`.
+  - Sitemap: `s-maxage=3600, swr=86400`.
+  - `/admin`, `/panel`, `/basvuru`, `/api/` → `private, no-store`.
+  - `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy` HTML response'lara eklendi.
+- Şehir/branş ve şehir/ilçe/branş landing'leri zenginleştirildi:
+  - Breadcrumb + hero + CTA + filtreli arama linki + popüler ilçeler chip listesi + kulüp kart listesi (slug URL'leri) + bilgilendirici metin.
+  - Boş kombinasyon → `noindex` (sitemap'te zaten yok, ama runtime emniyeti).
+- Galeri görsellerine `decoding="async"`, `width/height` ve daha açıklayıcı `alt` text (`{kulüp ad} - {ilan ad} görseli {idx}`) eklendi.
+
+**Sprint 12.4 — Paket D (kısmi):**
+- `hreflang` self-referencing eklendi (BaseLayout: `tr-TR` + `x-default`).
+- `trailingSlash: 'never'` ile canonical disiplini.
+- Monitoring / blog rehberi içerik üretimi bu sprint dışında kaldı (içerik işi, ayrıca planlanacak).
+
+**Build & Test:**
+- `npm run build` ✅ temiz tamamlandı (server build 21.4 s).
+- ReadLints tüm yeni/değişen dosyalarda 0 hata raporladı.
+
+### 📋 Sıradaki (Faz 13 + Faz 4)
+
+1. **Faz 13 — Reklam yayını (önkoşul: Faz 12 deploy edilip Search Console + GA4 ID set edilip stabil çalışınca):**
+   - GA4 + GTM gerçek property ID'leri (`PUBLIC_GA4_ID`, `PUBLIC_GTM_ID`) production'a girilecek.
+   - AdSense onayı için 25-50 günlük canlı içerik birikimi → `PUBLIC_AD_PROVIDER=adsense` aktif edilecek.
+   - `ads.txt` AdSense satırlarıyla doldurulacak.
+   - Sprint 12.4 long-tail rehber/blog içerik turu (haftada 1-2 rehber yazı).
+2. **Faz 4 — Harita ve gelişmiş filtreleme:** Leaflet/Mapbox harita, akıllı eşleştirme quiz, puanlama/yorum.
 1. **Arama ve Filtreleme:** Arama filtrelerinin URL + veri sorgu katmanını optimize etme, harita entegrasyonu (örn. Mapbox veya Leaflet ile ilanları haritada gösterme).
 2. **Monetizasyon (Gelir Modeli):** Ücretli üyelik paketleri, premium ilan öne çıkarma, online ödeme/tahsilat akışları (örn. Iyzico/Stripe entegrasyonu).
 3. **Akıllı Eşleştirme:** Kullanıcıların beklentilerine göre kurs/kulüp eşleştirme testi (Quiz akışı).

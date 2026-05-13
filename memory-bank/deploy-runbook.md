@@ -91,6 +91,11 @@ systemctl start spornerede-autoupdate.service
 journalctl -u spornerede-autoupdate.service -n 100 --no-pager
 ```
 
+### Autoupdate sorun giderme (pratik)
+
+- **`repo temiz degil, otomatik guncelleme atlandi`**: `/opt/spornerede/repo` icinde `git status --porcelain` bos olmali. Untracked veya degistirilmis dosya varsa script bilerek `git pull` yapmaz. Cozum: gereksiz dosyayi kaldir / commit et, sonra `systemctl start spornerede-autoupdate.service` veya timer'in bir sonraki calismasini bekle.
+- **`spornerede.service bulunamadi, restart atlandi` ama unit aslinda var**: Eski script `systemctl list-unit-files | grep -q` kullanirken `pipefail` altinda SIGPIPE / `Broken pipe` olusabiliyordu; restart yanlislikla atlaniyordu. Guncel `deploy/server-auto-update.sh` birimi `systemctl show ... LoadState` ile kontrol eder. Yeni release sonrasi bir kez `systemctl restart spornerede` ile dogrula.
+
 ### Geçici Elle Deploy
 
 Timer tamamen açılmadan önce elle deploy gerekirse:
