@@ -3,9 +3,13 @@
  * ClubCTA.astro
  * Landing page'deki kulüp başvuru CTA bölümü.
  */
+import { Image } from 'astro:assets';
 import footwearImage from '../assets/images/footwear.webp';
 import basketballImage from '../assets/images/basketball.webp';
 import voleyballImage from '../assets/images/voleyball.webp';
+
+const showcaseWidth = 1280;
+const showcaseHeight = 720;
 
 const faydalar = [
   { emoji: '🎯', baslik: 'Hedef Kitleye Ulaş', aciklama: 'Spor kursu veya kulüp arayan ailelere Türkiye genelinde ulaşın' },
@@ -63,13 +67,43 @@ const faydalar = [
   <div class="cta-visual" aria-hidden="true">
     <div class="visual-showcase" data-showcase>
       <div class="showcase-slide is-active">
-          <img src={footwearImage.src} alt="" loading="lazy" decoding="async" />
+        <Image
+          src={footwearImage}
+          alt=""
+          widths={[640, 960, 1280]}
+          sizes="(min-width: 1100px) 46vw, 0px"
+          width={showcaseWidth}
+          height={showcaseHeight}
+          loading="lazy"
+          decoding="async"
+          quality={75}
+        />
       </div>
       <div class="showcase-slide">
-          <img src={basketballImage.src} alt="" loading="lazy" decoding="async" />
+        <Image
+          src={basketballImage}
+          alt=""
+          widths={[640, 960, 1280]}
+          sizes="(min-width: 1100px) 46vw, 0px"
+          width={showcaseWidth}
+          height={showcaseHeight}
+          loading="lazy"
+          decoding="async"
+          quality={75}
+        />
       </div>
       <div class="showcase-slide">
-          <img src={voleyballImage.src} alt="" loading="lazy" decoding="async" />
+        <Image
+          src={voleyballImage}
+          alt=""
+          widths={[640, 960, 1280]}
+          sizes="(min-width: 1100px) 46vw, 0px"
+          width={showcaseWidth}
+          height={showcaseHeight}
+          loading="lazy"
+          decoding="async"
+          quality={75}
+        />
       </div>
     </div>
   </div>

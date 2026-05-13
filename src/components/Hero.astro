@@ -113,6 +113,7 @@ const seciliBransAdi = tumBranslar.find((b) => b.slug === seciliBrans)?.isim ?? 
               placeholder="Tüm Türkiye"
               value={seciliIlAdi}
               autocomplete="off"
+              role="combobox"
               aria-labelledby="hero-il-lbl"
               aria-autocomplete="list"
               aria-controls="hero-city-menu"
@@ -143,6 +144,7 @@ const seciliBransAdi = tumBranslar.find((b) => b.slug === seciliBrans)?.isim ?? 
               placeholder={seciliIl ? 'Tüm ilçeler' : 'Önce il seçin'}
               value={seciliIl ? (seciliIlce ? seciliIlceAdi : '') : ''}
               autocomplete="off"
+              role="combobox"
               aria-labelledby="hero-ilce-lbl"
               aria-autocomplete="list"
               aria-controls="hero-district-menu"
@@ -174,6 +176,7 @@ const seciliBransAdi = tumBranslar.find((b) => b.slug === seciliBrans)?.isim ?? 
               placeholder="Tüm Branşlar"
               value={seciliBransAdi}
               autocomplete="off"
+              role="combobox"
               aria-labelledby="hero-brans-lbl"
               aria-autocomplete="list"
               aria-controls="hero-branch-menu"
@@ -892,16 +895,9 @@ const seciliBransAdi = tumBranslar.find((b) => b.slug === seciliBrans)?.isim ?? 
     left: 0;
     width: 100%;
     height: 4px;
-    background: linear-gradient(90deg, #A30711, #C20C18, #A30711);
+    background: linear-gradient(90deg, #A30711, #C20C18 50%, #A30711);
     border-radius: 2px;
     opacity: 0.7;
-    background-size: 200%;
-    animation: shimmer 3s linear infinite;
-  }
-
-  @keyframes shimmer {
-    0%   { background-position: -200% 0; }
-    100% { background-position:  200% 0; }
   }
 
   /* ===== AÇIKLAMA ===== */

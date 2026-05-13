@@ -12,7 +12,15 @@
  */
 import { defineMiddleware, sequence } from 'astro:middleware';
 
+// Statik, surum versiyonlu varliklar icin uzun cache. Cloudflare bunlar zaten
+// hashli dosya isimlerinden dolayi guvenli sekilde 1y immutable saklayabilir.
+const STATIC_LONG_CACHE = 'public, max-age=31536000, immutable';
+
 const SSR_CACHE_PATHS: Array<{ test: RegExp; control: string }> = [
+  // Self-host edilen font dosyalari (icerik degismiyor, immutable)
+  { test: /^\/fonts\//i, control: STATIC_LONG_CACHE },
+  // Astro hashli build varliklari (filename hash icerir, immutable guvenli)
+  { test: /^\/_astro\//i, control: STATIC_LONG_CACHE },
   // Liste/landing sayfalari: 5 dk CDN cache + 1 saat SWR
   { test: /^\/$/i, control: 'public, max-age=60, s-maxage=300, stale-while-revalidate=3600' },
   { test: /^\/branslar$/i, control: 'public, max-age=60, s-maxage=600, stale-while-revalidate=3600' },
@@ -53,17 +61,25 @@ const cacheAndSecurityHeaders = defineMiddleware(async (context, next) => {
   const response = await next();
   const pathname = context.url.pathname;
 
-  // Cache-Control — sadece GET istekleri ve HTML/XML response'lara
   const method = context.request.method.toUpperCase();
   const contentType = response.headers.get('content-type') ?? '';
   const isCacheableMethod = method === 'GET' || method === 'HEAD';
+
+  // Statik immutable yollar (fonts, _astro) icin content-type whitelist'i
+  // gerekmez; her uzantida 1y immutable verilir.
+  const isImmutableStaticPath = pathname.startsWith('/fonts/') || pathname.startsWith('/_astro/');
+
   const isCacheableType =
+    isImmutableStaticPath ||
     contentType.includes('text/html') ||
     contentType.includes('application/xml') ||
     contentType.includes('text/xml') ||
     contentType.includes('image/png') ||
     contentType.includes('image/svg') ||
-    contentType.includes('text/plain');
+    contentType.includes('text/plain') ||
+    contentType.includes('font/') ||
+    contentType.includes('application/javascript') ||
+    contentType.includes('text/javascript');
 
   if (isCacheableMethod && isCacheableType && response.status >= 200 && response.status < 400) {
     const cacheControl = pickCacheControl(pathname);

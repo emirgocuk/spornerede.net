@@ -1,5 +1,5 @@
 import type { APIRoute } from 'astro';
-import { buildSessionCookie } from '../../../lib/auth/session';
+import { buildSessionCookie, buildSessionHintCookie } from '../../../lib/auth/session';
 import { createSession, findUserByEmail } from '../../../lib/repositories/auth';
 import { verifyPassword } from '../../../lib/auth/password';
 import { ensureApprovedClubMembershipPaidForUser } from '../../../lib/repositories/memberships';
@@ -32,7 +32,8 @@ export const POST: APIRoute = async ({ request }) => {
 
   const { token, expiresAt } = await createSession(user.id);
   const headers = new Headers();
-  headers.set('Set-Cookie', buildSessionCookie(token, expiresAt));
+  headers.append('Set-Cookie', buildSessionCookie(token, expiresAt));
+  headers.append('Set-Cookie', buildSessionHintCookie(expiresAt));
   const safeRedirect = redirectTo.startsWith('/') ? redirectTo : '/panel';
   const roleDefaultRedirect = user.rol === 'admin' ? '/admin' : safeRedirect;
   const nextPath = user.mustChangePassword ? '/panel/sifre-degistir' : roleDefaultRedirect;

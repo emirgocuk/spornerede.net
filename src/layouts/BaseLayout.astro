@@ -57,6 +57,12 @@ const resolvedOgImage = ogImage
     : `${siteUrl}${ogImage.startsWith('/') ? ogImage : `/${ogImage}`}`
   : SITE_OG_DEFAULT;
 
+// Analytics network ipuclari sadece GTM/GA gercekten enjekte ediliyorsa eklenir.
+// Aksi halde Lighthouse "Unused preconnect" uyarisi cikariyor.
+const gtmId = import.meta.env.PUBLIC_GTM_ID ?? '';
+const ga4Id = import.meta.env.PUBLIC_GA4_ID ?? '';
+const hasAnalytics = Boolean(gtmId || ga4Id);
+
 // Her sayfaya her zaman Organization + WebSite enjekte et
 const globalJsonLd: unknown[] = [organizationSchema(), websiteSchema()];
 if (breadcrumbs && breadcrumbs.length > 0) {
@@ -106,10 +112,14 @@ const combinedJsonLd = jsonLdScript([...globalJsonLd, ...pageJsonLd]);
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="icon" type="image/x-icon" href="/favicon.ico" />
 
-  <!-- ===== NETWORK IPUCLARI ===== -->
-  <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
-  <link rel="preconnect" href="https://www.googletagmanager.com" crossorigin />
-  <link rel="dns-prefetch" href="https://www.google-analytics.com" />
+  <!-- ===== NETWORK IPUCLARI (sadece analytics aktifse) ===== -->
+  {hasAnalytics && (
+    <>
+      <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
+      <link rel="preconnect" href="https://www.googletagmanager.com" crossorigin />
+      <link rel="dns-prefetch" href="https://www.google-analytics.com" />
+    </>
+  )}
 
   <!-- ===== SELF-HOSTED FONT PRELOAD — LCP icin ===== -->
   <link
