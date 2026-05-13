@@ -83,8 +83,15 @@ const cacheAndSecurityHeaders = defineMiddleware(async (context, next) => {
 
   if (isCacheableMethod && isCacheableType && response.status >= 200 && response.status < 400) {
     const cacheControl = pickCacheControl(pathname);
-    if (cacheControl && !response.headers.has('cache-control')) {
-      response.headers.set('Cache-Control', cacheControl);
+    if (cacheControl) {
+      // Immutable yollarda (fonts, _astro) Astro/Node adapter'in default 4h
+      // Cache-Control degeri 1 yil immutable ile override edilir. Diger
+      // yollarda Astro/route handler kendi degeri varsa o korunur.
+      if (isImmutableStaticPath) {
+        response.headers.set('Cache-Control', cacheControl);
+      } else if (!response.headers.has('cache-control')) {
+        response.headers.set('Cache-Control', cacheControl);
+      }
     }
   }
 
