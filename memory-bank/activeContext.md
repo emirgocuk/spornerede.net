@@ -2,9 +2,9 @@
 
 ## Şimdiki Çalışma Odağı
 
-**Faz 12 (SEO + reklam altyapısı) canlıda + PageSpeed-feedback iyileştirmeleri uygulandı.**
+**Faz 12 (SEO + reklam altyapısı) canlıda + PageSpeed-feedback iyileştirmeleri uygulandı + Consent banner Türkçe karakter düzeltmesi.**
 
-Mevcut durum: Faz 12 kodu `main` üzerinde; production'da `spornerede-autoupdate` ile release alındı (son release: `20260513T182151Z`). PageSpeed Lab raporundan gelen bulgular (Lighthouse 13 / Performance 100, A11y 91, BP 96, SEO 92) tek tek giderildi:
+Mevcut durum: Faz 12 kodu `main` üzerinde; production'da `spornerede-autoupdate` ile release alındı (son release: `20260513T185315Z`). ConsentBanner'da ASCII Türkçe yazılan tüm metinler doğru karakterlere çevrildi: "Çerez Tercihleri", "Yönet", "Tümünü Kabul Et", "Gerekli" (Zorunlu yerine), "devre dışı bırakılamaz", "kullanım verileri", "kampanyalarını", "Çerez/Gizlilik Politikamızı". PageSpeed Lab raporundan gelen bulgular (Lighthouse 13 / Performance 100, A11y 91, BP 96, SEO 92) tek tek giderildi:
 
 - ClubCTA görselleri sharp ile yeniden encode edildi (23 MB → 83 KB). Asset import + düz `<img>` ile `/_astro/<hash>.webp` üzerinden 1y immutable cache.
 - `/api/panel/session` çağrısı Header'da hint cookie + `requestIdleCallback` ile kritik yoldan çıktı; anonim ziyaretçide tetiklenmiyor (login/logout endpoint'leri non-HttpOnly `spornerede_session_hint` cookie set/clear ediyor).
@@ -15,7 +15,7 @@ Mevcut durum: Faz 12 kodu `main` üzerinde; production'da `spornerede-autoupdate
 - Header CTA marka metni saf beyaz + Footer copyright/tagline WCAG AA kontrast.
 - Hero highlight shimmer animasyonu kaldırıldı (non-composited uyarısı).
 
-Sunucudaki repo-temiz olmayan ve `systemctl | grep` SIGPIPE senaryoları daha önce giderildi (`deploy/server-auto-update.sh`).
+Sunucudaki repo-temiz olmayan ve `systemctl | grep` SIGPIPE senaryoları daha önce giderildi (`deploy/server-auto-update.sh`). Bu turda ayrıca **mid-stream `git pull` betiği bozma bug'ı** keşfedildi: bash, çalışırken kendi script dosyasını disktan satır satır okuduğu için `git pull` betiği değiştirdiğinde ofset kayması yaşıyordu (gerçek olay: pull sonrası bash yanlışlıkla eski `list-unit-files | grep` koduna kaydı, restart `Broken pipe` ile sessizce atlandı). Çözüm: `git pull` adımından hemen sonra `exec bash "$0"` ile script kendini yeniden başlatıyor, `AUTO_UPDATE_RESPAWNED=1` flag'i sonsuz döngü/çift pull'u engelliyor. `deploy/server-auto-update.sh` ve `memory-bank/deploy-runbook.md` güncellendi.
 
 Beklenen (kullanıcı aksiyonu): **Cloudflare Dashboard → Bots → AI Audit / Content Signal Policy → "Append to robots.txt" kapat** — `Content-Signal: search=yes,ai-train=no` direktifi Cloudflare tarafından otomatik ekleniyor ve Lighthouse 13 "unknown directive" diyor. SEO skoru 92 → ~97 etkisi var.
 
