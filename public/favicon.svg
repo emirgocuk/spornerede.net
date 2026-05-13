@@ -1,4 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
-  <rect width="64" height="64" rx="14" fill="#FFFFFF" />
-  <path d="M32.25 11.5c-9.7 0-16.1 5.7-16.6 14.4h8.5c.5-4.2 3.5-6.7 7.9-6.7 4.2 0 7 2.1 7 5.7 0 3.3-2.1 5-5.8 7.4-4.8 3.1-8.1 6.2-7.7 12.9h8.1c-.2-3.7 1.2-5.3 4.9-7.7 4.8-3 9-6.3 9-13.5 0-8.4-6.7-12.5-15.3-12.5Zm-2 36.5c0 2.9 2 5 5 5s5-2.1 5-5-2.1-5.1-5-5.1c-3 0-5 2.2-5 5.1Z" fill="#E30A17"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="SporNerede.net">
+  <rect width="64" height="64" rx="12" fill="#FFFFFF" />
+  <text
+    x="32"
+    y="41"
+    text-anchor="middle"
+    font-family="Georgia, 'Times New Roman', Times, serif"
+    font-size="28"
+    font-weight="700"
+    fill="#E30A17"
+  >SN</text>
 </svg>
