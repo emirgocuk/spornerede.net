@@ -81,21 +81,36 @@ if [[ -n "$(git status --porcelain)" ]]; then
   exit 0
 fi
 
-log "Fetch: ${APP_REMOTE}/${APP_BRANCH}"
-git fetch --quiet "${APP_REMOTE}" "${APP_BRANCH}"
+# Pull asamasi: sadece ilk calismada yapilir. Respawn sonrasi git pull
+# tekrar edilmez; cunku pull sonrasi betik kendini exec etti.
+if [[ -z "${AUTO_UPDATE_RESPAWNED:-}" ]]; then
+  log "Fetch: ${APP_REMOTE}/${APP_BRANCH}"
+  git fetch --quiet "${APP_REMOTE}" "${APP_BRANCH}"
 
-LOCAL_SHA="$(git rev-parse HEAD)"
-REMOTE_SHA="$(git rev-parse "${APP_REMOTE}/${APP_BRANCH}")"
+  LOCAL_SHA="$(git rev-parse HEAD)"
+  REMOTE_SHA="$(git rev-parse "${APP_REMOTE}/${APP_BRANCH}")"
 
-if [[ "${LOCAL_SHA}" == "${REMOTE_SHA}" ]]; then
-  log "Yeni commit yok, cikiliyor."
-  exit 0
+  if [[ "${LOCAL_SHA}" == "${REMOTE_SHA}" ]]; then
+    log "Yeni commit yok, cikiliyor."
+    exit 0
+  fi
+
+  log "Yeni commit bulundu: ${LOCAL_SHA} -> ${REMOTE_SHA}"
+
+  git checkout "${APP_BRANCH}" >/dev/null 2>&1
+  git pull --ff-only "${APP_REMOTE}" "${APP_BRANCH}"
+
+  # Bash betigi disktan satir satir okur. `git pull` betigin kendisini
+  # (deploy/server-auto-update.sh) degistirebilir; bash sonraki satirlari
+  # yeni dosyadan okurken ofsetler kayar, eski koda devam edebilir.
+  # Pull sonrasi yeni surumle betigi yeniden exec et. AUTO_UPDATE_RESPAWNED
+  # flag'i sonsuz dongunu ve tekrar pull'u engeller.
+  log "Pull sonrasi script yeniden baslatiliyor (mid-stream guard)."
+  export AUTO_UPDATE_RESPAWNED=1
+  exec bash "${APP_REPO_DIR}/deploy/server-auto-update.sh" "$@"
+else
+  log "Respawn modu: pull atlandi, build/release devam ediyor."
 fi
-
-log "Yeni commit bulundu: ${LOCAL_SHA} -> ${REMOTE_SHA}"
-
-git checkout "${APP_BRANCH}" >/dev/null 2>&1
-git pull --ff-only "${APP_REMOTE}" "${APP_BRANCH}"
 
 if [[ -f package-lock.json ]]; then
   npm ci
