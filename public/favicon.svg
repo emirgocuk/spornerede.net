@@ -2,11 +2,11 @@
   <rect width="64" height="64" rx="12" fill="#FFFFFF" />
   <text
     x="32"
-    y="41"
+    y="48"
     text-anchor="middle"
     font-family="Georgia, 'Times New Roman', Times, serif"
-    font-size="28"
+    font-size="48"
     font-weight="700"
     fill="#E30A17"
-  >SN</text>
+  >?</text>
 </svg>
