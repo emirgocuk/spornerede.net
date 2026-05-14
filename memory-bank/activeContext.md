@@ -19,7 +19,7 @@ Sunucudaki repo-temiz olmayan senaryolar giderildi. **Otomatik guncelleme betigi
 
 Beklenen (kullanıcı aksiyonu): **Cloudflare Dashboard → Bots → AI Audit / Content Signal Policy → "Append to robots.txt" kapat** — `Content-Signal: search=yes,ai-train=no` direktifi Cloudflare tarafından otomatik ekleniyor ve Lighthouse 13 "unknown directive" diyor. SEO skoru 92 → ~97 etkisi var.
 
-Sonraki adımlar: geliştirme sırası **Faz 13 → 14 → 15 → 16 → 17**, ardından veya paralel **Faz 4** (harita ve derin ürün epik). Checklist: `memory-bank/faz-gelistirme-checklist-tr.md`. Özet yol haritası: `memory-bank/progress.md`, `memory-bank/seo-ads-plan.md`, `memory-bank/growth-revenue-traffic-tr.md`. Operasyonel yükü düşürmeye yönelik aday backlog: bu dosyada **Operasyonel yükü düşüren backlog (öneri havuzu)**; özet: `memory-bank/progress.md`.
+Sonraki adımlar: geliştirme sırası **Faz 13 → 14 → 15 → 16 → 17**, ardından veya paralel **Faz 4** (harita ve derin ürün epik). Checklist: `memory-bank/faz-gelistirme-checklist-tr.md`. Özet yol haritası: `memory-bank/progress.md`, `memory-bank/seo-ads-plan.md`, `memory-bank/growth-revenue-traffic-tr.md`. Organik **sıra + CTR** (GSC, programatik meta, FAQ şema, görsel disiplin; LLM şart değil): `memory-bank/seo-ctr-organic-plan-tr.md`. Operasyonel yükü düşürmeye yönelik aday backlog: bu dosyada **Operasyonel yükü düşüren backlog (öneri havuzu)**; özet: `memory-bank/progress.md`.
 
 ## Güncel Görevler (Öncelik Sırasıyla)
 

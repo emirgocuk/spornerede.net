@@ -1,6 +1,6 @@
 # SporNerede.net — Gelir modelleri + SEO / trafik öneri havuzu
 
-Bu dosya **ürün stratejisi ve büyüme** için fikir bankasıdır; `seo-ads-plan.md` (Faz 12 uygulama planı) ve `mvp-metrics.md` ile birlikte okunmalıdır. Buradaki maddeler onay ve önceliklendirme sonrası sprinte veya `faz-gelistirme-checklist-tr.md` içine taşınır.
+Bu dosya **ürün stratejisi ve büyüme** için fikir bankasıdır; `seo-ads-plan.md` (Faz 12 uygulama planı), `mvp-metrics.md` ve **organik sıra + CTR için operasyonel çerçeve** `seo-ctr-organic-plan-tr.md` (LLM şart değil; GSC, şablon meta, FAQ/şema, görsel SEO) ile birlikte okunmalıdır. Buradaki maddeler onay ve önceliklendirme sonrası sprinte veya `faz-gelistirme-checklist-tr.md` içine taşınır.
 
 ## Faz planı ile eşleme
 

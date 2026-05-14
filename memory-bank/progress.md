@@ -77,7 +77,7 @@ Tekrarlayan manuel işi, destek talebini ve yoğun sorgu maliyetini düşürmeye
 
 ### Gelir ve trafik (strateji öneri havuzu)
 
-Satılabilir B2B/B2C paketler, pazar yeri fikirleri ve SEO ile siteye çekme taktikleri: `memory-bank/growth-revenue-traffic-tr.md`. Uygulama fazları ve sırası: **Faz 13 → 14 → 15 → 16 → 17** (+ Faz 4 epik); detaylı maddeler `memory-bank/faz-gelistirme-checklist-tr.md`.
+Satılabilir B2B/B2C paketler, pazar yeri fikirleri ve SEO ile siteye çekme taktikleri: `memory-bank/growth-revenue-traffic-tr.md`. Uygulama fazları ve sırası: **Faz 13 → 14 → 15 → 16 → 17** (+ Faz 4 epik); detaylı maddeler `memory-bank/faz-gelistirme-checklist-tr.md`. **Organik sıra ve SERP CTR** (GSC analizi, programatik meta şablonları, FAQ/şema, görsel SEO; LLM şart değil): `memory-bank/seo-ctr-organic-plan-tr.md`.
 
 ---
 
@@ -350,5 +350,6 @@ MVP odağını sade tutmak için aşağıdaki bilgilendirme dokumanlari eklendi:
 - `memory-bank/security-privacy.md`
 - `memory-bank/seo-ads-plan.md` (Faz 12: SEO + Reklam Hazırlığı tam yol haritası)
 - `memory-bank/growth-revenue-traffic-tr.md` (gelir + SEO/trafik taktikleri; Faz 14–17 ile eşlenen strateji havuzu)
+- `memory-bank/seo-ctr-organic-plan-tr.md` (organik sıra + CTR: GSC analizi, programatik meta şablonları, FAQ/şema disiplini, görsel SEO, ölçüm; **LLM şart değil**)
 
 Bu set, detayli kurumsal dokumantasyondan ziyade "hemen uygulanabilir adim" odaklidir.

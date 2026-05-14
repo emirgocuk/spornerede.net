@@ -74,6 +74,8 @@ Bu dosya, proje ilerlemesini tek yerden takip etmek için faz bazlı ana checkli
 
 ## Faz 14 — SEO: İndeks, İçerik, Programatik Sayfalar
 
+> **CTR + organik sıra (bütçesiz çerçeve):** `memory-bank/seo-ctr-organic-plan-tr.md` — GSC “yüksek gösterim / düşük CTR” analizi, programatik title/description şablonları, FAQ/JSON-LD disiplini, görsel SEO, ölçüm; LLM sonraya bırakılabilir.
+
 - [ ] Bing Webmaster Tools doğrulama + sitemap gönderimi
 - [ ] Yandex Webmaster doğrulama + sitemap gönderimi
 - [ ] Search Console haftalık rutin şablonu (`mvp-metrics.md` veya operasyon notu ile hizalı)

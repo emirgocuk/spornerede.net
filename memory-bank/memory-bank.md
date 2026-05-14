@@ -73,6 +73,7 @@ Current additional docs in this project:
 - `security-privacy.md` (mini guvenlik/KVKK checklist)
 - `seo-ads-plan.md` (Faz 12: SEO guclendirme + reklam altyapisi hazirligi)
 - `growth-revenue-traffic-tr.md` (gelir modeli adaylari + SEO ve trafik taktikleri; Faz 13-17 plani ile eslenir; `faz-gelistirme-checklist-tr.md` ile birlikte)
+- `seo-ctr-organic-plan-tr.md` (organik sira + CTR: GSC, programatik meta, FAQ/schema, goruntu SEO, olcum; LLM sart degil)
 
 ## Core Workflows
 
