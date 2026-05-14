@@ -8,6 +8,50 @@ if (!siteUrl || !siteUrl.trim()) {
 const base = siteUrl.replace(/\/+$/, "");
 const routes = ["/", "/ara", "/basvuru", "/api/health?deep=1"];
 
+async function checkSitemapAliases() {
+  const sm = `${base}/sitemap.xml`;
+  const smUnderscore = `${base}/sitemap_index.xml`;
+  const idx = `${base}/sitemap-index.xml`;
+  const out = [];
+  for (const [label, url, expectRedirect] of [
+    ["sitemap.xml", sm, true],
+    ["sitemap_index.xml", smUnderscore, true],
+  ]) {
+    const startedAt = Date.now();
+    const response = await fetch(url, { redirect: "manual" });
+    const elapsedMs = Date.now() - startedAt;
+    const loc = response.headers.get("location");
+    const ok =
+      response.status === 301 &&
+      Boolean(loc) &&
+      loc.includes("sitemap-index.xml");
+    out.push({
+      route: `/${label}`,
+      url,
+      status: response.status,
+      ok,
+      elapsedMs,
+      extra: loc ? `Location=${loc}` : "",
+    });
+  }
+  const startedAt = Date.now();
+  const r = await fetch(idx, { redirect: "follow" });
+  const ct = r.headers.get("content-type") ?? "";
+  const xmlOk =
+    r.ok &&
+    (ct.includes("application/xml") || ct.includes("text/xml")) &&
+    (await r.text()).includes("<sitemapindex");
+  out.push({
+    route: "/sitemap-index.xml",
+    url: idx,
+    status: r.status,
+    ok: xmlOk,
+    elapsedMs: Date.now() - startedAt,
+    extra: ct ? `Content-Type=${ct}` : "",
+  });
+  return out;
+}
+
 async function checkRoute(route) {
   const url = `${base}${route}`;
   const startedAt = Date.now();
@@ -36,6 +80,22 @@ for (const route of routes) {
   }
 }
 
+try {
+  const smResults = await checkSitemapAliases();
+  for (const item of smResults) {
+    results.push(item);
+  }
+} catch (error) {
+  results.push({
+    route: "/sitemap aliases",
+    url: base,
+    status: 0,
+    ok: false,
+    elapsedMs: 0,
+    error: error instanceof Error ? error.message : String(error),
+  });
+}
+
 let deepHealthPayload = null;
 const deepHealthResult = results.find((item) => item.route === "/api/health?deep=1");
 if (deepHealthResult?.ok && deepHealthResult.response) {
@@ -49,7 +109,7 @@ if (deepHealthResult?.ok && deepHealthResult.response) {
 console.log("Smoke check sonucu");
 for (const result of results) {
   const mark = result.ok ? "OK " : "ERR";
-  const extra = result.error ? ` error=${result.error}` : "";
+  const extra = result.error ? ` error=${result.error}` : result.extra ? ` ${result.extra}` : "";
   console.log(`- [${mark}] ${result.route} status=${result.status} ${result.elapsedMs}ms${extra}`);
 }
 
