@@ -38,12 +38,10 @@ Sonraki adımlar: geliştirme sırası **Faz 13 → 14 → 15 → 16 → 17**, a
 
 ### 🚧 Devam Eden
 
-- Hero autocomplete davranışını klavye (yukarı/aşağı/enter) ile tamamlamak
-- CTA sağ medya geçişini son dokunuşlarla finalize etmek
-- **Faz 11: Deploy** — Build testi ve server transferi
-- **Faz 2** — Veriyi veritabani katmanina tasima (mock -> PocketBase)
-- **Faz 3** — `club-auth-admin-plan.md`: kullanıcılar/oturum, başvuru dosyaları, admin liste+detay+onay, `/panel` giriş ve header oturum UI
-- **Faz 4** — Harita ve gelişmiş filtreleme entegrasyonları, akıllı eşleştirme quiz'i.
+- Hero autocomplete: klavye ile tamamlama (yukarı/aşağı/enter)
+- Club CTA sağ medya geçişi: son dokunuşlar
+
+**Ana geliştirme sırası:** Faz **13** (reklam yayını ve ölçüm) → 14 → 15 → 16 → 17; ardından veya paralel **Faz 4** (harita, tam quiz, yorum, derin filtre). Faz 11 deploy omurgası, Faz 2–3 veri/panel/admin işleri tamamlandı; ayrıntılı `[ ]` maddeler: `memory-bank/faz-gelistirme-checklist-tr.md`.
 
 ### 🆕 Son Tamamlanan (UI Revizyon Paketi)
 
@@ -451,13 +449,10 @@ Tam `[ ]` checklist: `memory-bank/faz-gelistirme-checklist-tr.md`. Strateji ve t
 
 ## Bir Sonraki Konuşmada Yapılacaklar
 
-1. **Faz 12 Sprint 12.1 (Paket A — SEO Temeli) başlat:** Bkz. `memory-bank/seo-ads-plan.md` §1.
-   - İlk pratik commit önerisi (`seo-ads-plan.md` §9):
-     1. `public/og-image.png` üret (1200×630)
-     2. `BaseLayout.astro` → `Organization` + `WebSite` JSON-LD
-     3. `robots.txt` sıkılaştırma
-     4. `404.astro` özelleştir + `Astro.redirect('/ara')` çağrılarını gerçek 404'e çevir
-     5. Sitemap endpoint'lerine `lastmod` ekle, boş kombinasyonları çıkar
-2. **Sprint 12.2 hazırlık:** KVKK çerez banner copy + 4 yasal sayfa metinleri (legal review için taslak)
-3. **Sprint 12.3 hazırlık:** PocketBase'de `slug` alanı migration planı (kulüp + program)
-4. Harita entegrasyonu (Faz 4) — Mapbox vs Leaflet karşılaştırması, ileride
+1. **Faz 13 — Reklam yayını ve ölçüm** (`progress.md`, `faz-gelistirme-checklist-tr.md`):
+   - Production’da `PUBLIC_GTM_ID` / `PUBLIC_GA4_ID` netleştir; GA4 DebugView ile temel event’leri doğrula (`view_listing`, `view_club`, formlar, lead tıkları).
+   - Google Ads hesabı + GA4 dönüşüm içe aktarma; ilk kampanya taslağı (şehir+branş arama → landing, PMax veya Search → `/basvuru`, remarketing kitleleri).
+   - AdSense için içerik hacmi / `ads.txt` / `PUBLIC_AD_PROVIDER` hazırlığını checklist ile hizala (içerik yeterliyse başvuru).
+2. **Faz 12 kapanış doğrulamaları (canlı):** Rich Results / PageSpeed hedefleri, KVKK reddinde analitik tetiklenmemesi — `progress.md` kabul kriterleri.
+3. **İsteğe bağlı polish:** Hero klavye typeahead, CTA medya geçişi.
+4. **Faz 4** harita ve derin ürün epik — kaynak planına göre 13–17 ile paralel veya sonrası; teknik seçim notu (Leaflet vs Mapbox) ayrı sprintte.

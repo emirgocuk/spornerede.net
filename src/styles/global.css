@@ -1,5 +1,6 @@
 @import "tailwindcss";
-@import "./fonts.css";
+
+/* Outfit @font-face: public/fonts/outfit-fonts.css (BaseLayout — async yukleme; kritik yolu kisaltir) */
 
 /* ============================================================
    SPORNEREDE.NET — Global Design Token Sistemi

@@ -120,7 +120,7 @@ const combinedJsonLd = jsonLdScript([...globalJsonLd, ...pageJsonLd]);
     </>
   )}
 
-  <!-- ===== SELF-HOSTED FONT PRELOAD — LCP icin ===== -->
+  <!-- ===== SELF-HOSTED FONT PRELOAD — LCP + Turkce (latin-ext) ===== -->
   <link
     rel="preload"
     href="/fonts/outfit/outfit-latin-700-normal.woff2"
@@ -135,6 +135,31 @@ const combinedJsonLd = jsonLdScript([...globalJsonLd, ...pageJsonLd]);
     type="font/woff2"
     crossorigin
   />
+  <link
+    rel="preload"
+    href="/fonts/outfit/outfit-latin-ext-700-normal.woff2"
+    as="font"
+    type="font/woff2"
+    crossorigin
+  />
+  <link
+    rel="preload"
+    href="/fonts/outfit/outfit-latin-ext-400-normal.woff2"
+    as="font"
+    type="font/woff2"
+    crossorigin
+  />
+
+  <!-- @font-face kurallari ayri dosyada; render-blocking global CSS zincirini uzatmaz -->
+  <link
+    rel="stylesheet"
+    href="/fonts/outfit-fonts.css"
+    media="print"
+    onload="this.onload=null;this.removeAttribute('media')"
+  />
+  <noscript>
+    <link rel="stylesheet" href="/fonts/outfit-fonts.css" />
+  </noscript>
 
   <!-- ===== THEME COLOR (mobil tarayıcı üst bar) ===== -->
   <meta name="theme-color" content="#E30A17" />

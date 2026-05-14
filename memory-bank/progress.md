@@ -33,29 +33,30 @@ Ana takip dosyasi: `memory-bank/faz-gelistirme-checklist-tr.md` (faz bazli [x]/[
 
 - `BaseLayout.astro`: Tam SEO ve meta tag desteği
 - `index.astro`: Dinamik landing page (Hero, News, FAQ, CTA, Footer)
-- `/ara`: Arama sonuçları sayfası (Filtreleme, Mock veri, Responsive kartlar)
+- `/ara`: Arama sonuçları sayfası (Filtreleme, PocketBase verisi, Responsive kartlar)
 - `/basvuru`: Kulüp kayıt formu (Validation, Success state, API entegrasyonu)
-- Header: Sticky, sade menü (Haberler/Hakkımızda/İletişim), mobil hamburger desteği; **Üye girişi** → `/panel/giris` (CTA’nın solunda)
-- Placeholder: `/panel/giris` (kulüp paneli girişi için zemin)
-- Plan: `memory-bank/club-auth-admin-plan.md` (admin shell, onay, belgeler, referans veri CRUD)
+- Header: Sticky, sade menü (Haberler/Hakkımızda/İletişim), mobil hamburger desteği; **Üye girişi** → `/panel/giris` (form + korumalı `/panel`; CTA’nın solunda)
+- Mimari / genişleme planı: `memory-bank/club-auth-admin-plan.md` (admin shell, onay, belgeler, referans veri CRUD)
 - Tasarım: Kırmızı-Beyaz marka kimliği, Outfit font, Modern animasyonlar
 - Hero: Şehir rotator badge + yazı tabanlı autocomplete öneri paneli (ilk 3 tahmin)
 - Club CTA: Sağ medya vitrin alanı, arka planla geçişli harmanlama
+
+### Veri, backend ve canlı operasyon
+
+- PocketBase veritabanı kurulumu ve canlı çalışma (`spornerede-pocketbase`)
+- Kullanıcı oturumu: PocketBase `users` / oturumlar ve kulüp üyelikleri
+- Başvuru ekleri: belge yükleme, multipart, güvenli depolama ve admin tarafı
+- Admin arayüzü: başvuru listesi + detay + onay/red + onayda kulüp oluşturma
+- Kulüp paneli: kurs/program CRUD, profil, geribildirim
+- GitHub deploy key; sunucuda `/opt/spornerede/repo` ve `spornerede-autoupdate.timer`
+- Offsite backup: ilk aşamada admin panelden manuel indirme; sunucu `spornerede-backup.timer` aktif
+- Canlı SMTP (Brevo); mail deep health `ok`
 
 ---
 
 ## ❌ Ne Henüz Yok / Yapılmadı
 
-### Veri ve Backend
-
-- PocketBase veritabanı kurulumu (Tamamlandı)
-- Kullanıcı oturumu: `users`, `sessions`, `club_memberships` (Tamamlandı)
-- Başvuru ekleri: `application_documents`, multipart yükleme, güvenli depolama (Tamamlandı)
-- Admin arayüzü: başvuru sağ liste + detay + onay/red + onayda kulüp oluşturma (Tamamlandı)
-- Kulüp paneli: kurslar, profil yönetimi, geribildirim sistemi (Tamamlandı)
-- GitHub deploy key eklendi; sunucuda `/opt/spornerede/repo` clone edildi ve `spornerede-autoupdate.timer` aktif.
-- Offsite backup yerine ilk aşamada admin panelden manuel backup indirme modeli seçildi; lokal sunucu backup timer da çalışmaya devam ediyor.
-- Canlı SMTP Brevo ile doğrulandı; mail deep health `ok`.
+> Temel veri ve panel omurgası yukarıda **Ne çalışıyor** altında; aşağıdakiler yol haritası (Faz 4 ve 13–17) ve backlog.
 
 ### Ürün Özellikleri
 
