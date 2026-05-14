@@ -54,6 +54,21 @@ function Require-Cmd([string] $name) {
   }
 }
 
+# Git Bash / MSYS: `bash D:\foo\deploy.sh` Windows yolunu kirpar; Unix yolu + cd kullan.
+function ConvertToGitBashPath([string] $WindowsPath) {
+  $full = (Resolve-Path -LiteralPath $WindowsPath).Path
+  $cygpath = Get-Command cygpath -ErrorAction SilentlyContinue
+  if ($cygpath) {
+    return (& cygpath -u $full).Trim()
+  }
+  if ($full -match '^([A-Za-z]):\\(.*)$') {
+    $drive = $Matches[1].ToLowerInvariant()
+    $rest = $Matches[2] -replace '\\', '/'
+    return "/$drive/$rest"
+  }
+  return ($full -replace '\\', '/')
+}
+
 Require-Cmd "ssh"
 Require-Cmd "scp"
 Require-Cmd "tar"
@@ -165,7 +180,8 @@ if (-not $NoUpdateNginx) {
     $env:DEPLOY_SSH = $DeploySsh
     if ($envMap["REMOTE_BASE"]) { $env:REMOTE_BASE = $envMap["REMOTE_BASE"] }
     if ($envMap["SYSTEMD_UNIT"]) { $env:SYSTEMD_UNIT = $envMap["SYSTEMD_UNIT"] }
-    & bash (Join-Path $Root "deploy.sh") --skip-build --update-nginx
+    $repoUnix = ConvertToGitBashPath $Root
+    & bash -lc "cd '$repoUnix' && ./deploy.sh --skip-build --update-nginx"
   } else {
     Write-Warning "bash yok (Git Bash kurun); nginx adimi atlandi. Sonra: npm run deploy:quick"
   }
