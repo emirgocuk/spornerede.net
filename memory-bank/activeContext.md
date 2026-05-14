@@ -19,7 +19,7 @@ Sunucudaki repo-temiz olmayan senaryolar giderildi. **Otomatik guncelleme betigi
 
 Beklenen (kullanıcı aksiyonu): **Cloudflare Dashboard → Bots → AI Audit / Content Signal Policy → "Append to robots.txt" kapat** — `Content-Signal: search=yes,ai-train=no` direktifi Cloudflare tarafından otomatik ekleniyor ve Lighthouse 13 "unknown directive" diyor. SEO skoru 92 → ~97 etkisi var.
 
-Sonraki adımlar: Faz 13 (reklam yayını / AdSense vb.), Bing–Yandex doğrulama, içerik uzun kuyruk. Detay: `memory-bank/progress.md`, `memory-bank/seo-ads-plan.md`.
+Sonraki adımlar: geliştirme sırası **Faz 13 → 14 → 15 → 16 → 17**, ardından veya paralel **Faz 4** (harita ve derin ürün epik). Checklist: `memory-bank/faz-gelistirme-checklist-tr.md`. Özet yol haritası: `memory-bank/progress.md`, `memory-bank/seo-ads-plan.md`, `memory-bank/growth-revenue-traffic-tr.md`. Operasyonel yükü düşürmeye yönelik aday backlog: bu dosyada **Operasyonel yükü düşüren backlog (öneri havuzu)**; özet: `memory-bank/progress.md`.
 
 ## Güncel Görevler (Öncelik Sırasıyla)
 
@@ -312,28 +312,33 @@ Sonraki adımlar: Faz 13 (reklam yayını / AdSense vb.), Bing–Yandex doğrula
 - `npm run build` ✅ temiz tamamlandı (server build 21.4 s).
 - ReadLints tüm yeni/değişen dosyalarda 0 hata raporladı.
 
-### 📋 Sıradaki (Faz 13 + Faz 4)
+### 📋 Sıradaki (geliştirme sırası: Faz 13 → 17, sonra / paralel Faz 4)
 
-1. **Faz 13 — Reklam yayını (önkoşul: Faz 12 deploy edilip Search Console + GA4 ID set edilip stabil çalışınca):**
-   - GA4 + GTM gerçek property ID'leri (`PUBLIC_GA4_ID`, `PUBLIC_GTM_ID`) production'a girilecek.
-   - AdSense onayı için 25-50 günlük canlı içerik birikimi → `PUBLIC_AD_PROVIDER=adsense` aktif edilecek.
-   - `ads.txt` AdSense satırlarıyla doldurulacak.
-   - Sprint 12.4 long-tail rehber/blog içerik turu (haftada 1-2 rehber yazı).
-2. **Faz 4 — Harita ve gelişmiş filtreleme:** Leaflet/Mapbox harita, akıllı eşleştirme quiz, puanlama/yorum.
-1. **Arama ve Filtreleme:** Arama filtrelerinin URL + veri sorgu katmanını optimize etme, harita entegrasyonu (örn. Mapbox veya Leaflet ile ilanları haritada gösterme).
-2. **Monetizasyon (Gelir Modeli):** Ücretli üyelik paketleri, premium ilan öne çıkarma, online ödeme/tahsilat akışları (örn. Iyzico/Stripe entegrasyonu).
-3. **Akıllı Eşleştirme:** Kullanıcıların beklentilerine göre kurs/kulüp eşleştirme testi (Quiz akışı).
-4. **UX İyileştirmeleri:** Puanlama ve yorum sistemleri.
-5. **Teknik SEO Operasyonu (Search Console + keşif):**
-   - Haftalık: Search Console "Dizin > Sayfalar", "Core Web Vitals", manuel işlem/güvenlik kontrolleri.
-   - Yeni güçlü sayfalar için URL Denetimi ile manuel index talebi (özellikle haber ve ilan detayları).
-   - Canonical disiplinini güçlendirme (parametreli/filtreli URL'lerde tek canonical).
-   - `noindex` kapsamının net tutulması (`/admin`, `/panel`, şifre sıfırlama, iç operasyon sayfaları).
-   - İç linkleme planı: landing + şehir/branş sayfalarından yeni ilan/haber sayfalarına düzenli linkleme.
-   - Yapısal veri genişletme: mevcut `NewsArticle` şemasına ek olarak `Organization` ve `BreadcrumbList` tamamlama.
-   - Aylık backlink kalite kontrolü (toxicity/spam kaynak izleme, gerekirse disavow değerlendirmesi).
+Özet yol: **Faz 13** ücretli ölçüm ve reklam → **Faz 14** organik SEO (indeks, içerik, programatik kalite, şema) → **Faz 15** trafik kancaları (mini quiz, sezon sayfası, bülten) → **Faz 16** güven ve dağıtım (E-E-A-T, doğrulanmış kulüp taslağı, PR şablonu) → **Faz 17** gelir MVP (öne çıkarma, paket, kredi, ödeme iskeleti) → **Faz 4** harita, tam quiz, yorum ve derin filtre (büyük epik; kaynakla paralel planlanabilir).
 
-### 📈 SEO İzleme Planı
+Tam `[ ]` checklist: `memory-bank/faz-gelistirme-checklist-tr.md`. Strateji ve taktik detay: `memory-bank/growth-revenue-traffic-tr.md`.
+
+**Faz 13 — Reklam yayını (önkoşul: GA4/GTM production’da stabil):**
+
+- `PUBLIC_GA4_ID` / `PUBLIC_GTM_ID` production; AdSense yolunda içerik birikimi ve `ads.txt`.
+- Google Ads / dönüşüm içe aktarma; ilk kampanya seti (`progress.md`).
+
+**Faz 14 — SEO (içerik + indeks):**
+
+- Bing ve Yandex doğrulama + sitemap; Search Console rutini; uzun kuyruk rehberler.
+- Programatik landing zenginleştirme; haber/ilandan iç link; HowTo/Event/NewsArticle şema; görsel adlandırma + `alt`.
+
+**Faz 15 — Organik trafik ürünleri:** mini test → `/ara` URL; sezon hub; bülten + lead magnet MVP; UTM ve kanal ölçümü.
+
+**Faz 16 — E-E-A-T ve dağıtım:** Hakkımızda/İletişim; yazar/tarih; doğrulanmış kulüp süreci; ortaklık ve topluluk kılavuzu.
+
+**Faz 17 — Gelir MVP:** sponsor sıralama; kulüp paket kotası; lead/tıklama kredisi; panel özeti; ödeme sağlayıcı iskeleti.
+
+**Faz 4 — Gelişmiş ürün:** harita; tam eşleştirme quiz’i; yorum/puanlama; URL ile derin filtre (Faz 15 mini testinden ayrı).
+
+**Sürekli operasyon (tüm fazlar boyunca):**
+
+- Search Console: dizin, CWV, URL denetimi; canonical/`noindex` disiplini; iç linkleme ve backlink kalite kontrolü (`mvp-metrics.md` ile hizalı).
 
 > Detaylı yol haritası: `memory-bank/seo-ads-plan.md`. Aşağıdaki bölüm operasyonel rutin içindir.
 
@@ -351,14 +356,43 @@ Sonraki adımlar: Faz 13 (reklam yayını / AdSense vb.), Bing–Yandex doğrula
    - Her deploy sonrası servis ayakta mı + XML içinde en az bir `<url>` var mı doğrulama
    - (Faz 12 sonrası) GA4 DebugView'da kritik event'lerin (`view_listing`, `application_submit`, `lead_phone_click`) hâlâ akıyor olduğu kontrolü
 
+### Operasyonel yükü düşüren backlog (öneri havuzu)
+
+> Amaç: admin ve kulüp tarafında **tekrarlayan manuel işi**, **destek / düzeltme talebini** ve **sunucu-maliyet baskını** azaltmak. Ana faz yolunu değiştirmez; onay sonrası sprint veya `faz-gelistirme-checklist-tr.md` içine taşınır.
+
+**Kulüp paneli — branş ve profil verisi**
+
+- **Profil doluluk göstergesi:** Branş, adres, galeri, program vb. için yüzde veya checklist; eksik alanlara tek tıkla yönlendirme. Daha tam profiller → daha az “neden çıkmıyorum?” sorusu ve daha iyi SEO sinyali.
+- **Branş seçim UX:** Uzun listede arama kutusu; “son seçtiklerin” veya sık kullanılanlar (aynı oturumda bile yeter); alfabetik atlama veya gruplama isteğe bağlı.
+- **Tutarlılık uyarıları:** Aynı branşın iki kez eklenmesini engelleme veya uyarı; birbirine çok yakın etiketler (“Futbol” / “Futbol okulu”) için yumuşak uyarı — admin birleştirme politikasıyla birlikte düşünülebilir.
+- **Branş ↔ program bağlantısı:** “Bu branşta henüz yayında program yok” panel ipucu; boş arama sonucu ve kızgın kullanıcı e-postası azalır.
+- **Hafif toplu düzenleme:** Mevcut branşları tek ekranda sıralama; şema uygunsa geçici “yayında değil” veya taslak — tek tek kart gezme süresini kısaltır.
+
+**Performans ve barındırma maliyeti**
+
+- **Panel yüklemeleri — görsel pipeline:** Yüklenen fotoğraflarda sunucu tarafı yeniden boyutlandırma + WebP/AVIF (mevcut sharp/optimizasyon kültürüyle uyumlu). Depolama, bant genişliği ve LCP için net kazanç; büyük dosya destek talebi azalır.
+- **Sıcak sorgular:** `/ara` ve şehir/branş landing’lerinde en çok kullanılan filtreler için kısa TTL önbellek veya PocketBase tarafında index / sorgu ince ayarı — tepe yükte CPU ve yanıt süresi stabil kalır.
+- **Liste sayfaları — ilk ekran:** Mobilde daha az kart + sayfalama veya “daha fazla yükle”; scroll jank ve bellek baskısı azalır, düşük cihazlarda şikayet düşer.
+
+**Ürün — dönüşüm ve destek yükü**
+
+- **Kayıtlı arama / yeni eşleşme bildirimi:** Filtreye uygun yeni kulüp veya ilan için e-posta (ileride push). Kullanıcı tekrar siteye dönmeden lead üretimi; “haber var mı?” tipi iletişim azalır.
+- **Mini kulüp karşılaştırma:** İki–üç kulübü program, konum, (varsa) fiyat bandı ile yan yana. Karar süresi kısalır, “hangisini seçeyim?” destek yükü hafifler.
+
+**Güvenlik ve operasyon**
+
+- **Başvuru çakışması:** Aynı telefon veya e-posta ile ikinci başvuruda uyarı veya mevcut kayda yönlendirme. Admin’de mükerrer inceleme ve gereksiz provisioning azalır.
+- **Panel / login hız sınırı ve basit güvenlik log’u:** Brute force ve bot form spam ayrımı; olayları yapılandırılmış log veya mevcut iç track ile sınırlı tutarak inceleme süresi kısalır.
+
 ## Faz Sırasına Göre Uygulama Akışı
 
-1. **Faz 2.1 (ilk adım):** PocketBase geçişi, şema/migration kurulumları (Tamamlandı)
-2. **Faz 2.2:** `/ara` filtrelerinin gerçek veri sorgusuna taşınması (Tamamlandı)
-3. **Faz 3:** Admin Paneli, Kulüp Yetki Yönetimi, Belge Yüklemeleri, Geribildirimler (Büyük oranda tamamlandı)
-4. **Faz 4:** Harita görünümü, ödeme/üyelik altyapıları, puanlama ve akıllı quiz (Sırada)
-5. **Faz 11:** `deploy-runbook.md` ile production deploy + hızlı sağlık kontrolleri
-6. **Operasyonel takip:** `mvp-metrics.md` haftalık/aylık izleme
+1. **Faz 2.1–2.2:** PocketBase ve `/ara` veri sorgusu (Tamamlandı)
+2. **Faz 3:** Admin, kulüp paneli, belgeler (Büyük oranda tamamlandı)
+3. **Faz 11:** Deploy ve operasyon (Sürekli)
+4. **Faz 12:** SEO + reklam altyapısı (Tamamlandı)
+5. **Faz 13 → 17:** Reklam ölçümü → organik SEO → trafik ürünleri → E-E-A-T → gelir MVP — sıra ve `[ ]` maddeler: `faz-gelistirme-checklist-tr.md`
+6. **Faz 4:** Harita, tam quiz, yorum, derin filtre (büyük epik; 13–17 ile paralel veya sonrası)
+7. **Operasyonel takip:** `mvp-metrics.md` haftalık/aylık izleme
 
 ## Son Kararlar
 

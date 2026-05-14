@@ -72,6 +72,7 @@ Current additional docs in this project:
 - `mvp-metrics.md` (minimum basari metrikleri)
 - `security-privacy.md` (mini guvenlik/KVKK checklist)
 - `seo-ads-plan.md` (Faz 12: SEO guclendirme + reklam altyapisi hazirligi)
+- `growth-revenue-traffic-tr.md` (gelir modeli adaylari + SEO ve trafik taktikleri; Faz 13-17 plani ile eslenir; `faz-gelistirme-checklist-tr.md` ile birlikte)
 
 ## Core Workflows
 

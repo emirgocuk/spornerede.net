@@ -2,7 +2,7 @@
 
 ## Özet Durum
 
-**Faz: Faz 12 (SEO + reklam altyapısı) canlıda; sonraki Faz 13 (reklam yayını)**
+**Faz: Faz 12 (SEO + reklam altyapısı) canlıda; sıradaki geliştirme sırası: Faz 13 → 14 → 15 → 16 → 17, ardından veya paralel Faz 4 (harita ve derin ürün).** Checklist: `faz-gelistirme-checklist-tr.md`.
 **Versiyon:** 0.4.0
 
 Ana takip dosyasi: `memory-bank/faz-gelistirme-checklist-tr.md` (faz bazli [x]/[ ] durum takibi)
@@ -69,6 +69,14 @@ Ana takip dosyasi: `memory-bank/faz-gelistirme-checklist-tr.md` (faz bazli [x]/[
 - Ücretli üyelik paketleri (Sırada)
 - Premium öne çıkarma akışı (Sırada)
 - Lead komisyon akışı (Sırada)
+
+### Operasyonel yükü azaltma (backlog önerileri)
+
+Tekrarlayan manuel işi, destek talebini ve yoğun sorgu maliyetini düşürmeye yönelik aday özellikler; ana faz yolu (13–17, Faz 4) ile çakışmadan onay sonrası sprinte alınır. Tam liste ve gerekçeler: `memory-bank/activeContext.md` → bölüm **Operasyonel yükü düşüren backlog (öneri havuzu)**. Özet: kulüp panelinde profil doluluğu + branş seçim/uyarı UX’i; görsel encode ve liste/arama performansı; kayıtlı arama bildirimi ve mini karşılaştırma; başvuru çakışması uyarısı + panel rate limit / güvenlik log’u.
+
+### Gelir ve trafik (strateji öneri havuzu)
+
+Satılabilir B2B/B2C paketler, pazar yeri fikirleri ve SEO ile siteye çekme taktikleri: `memory-bank/growth-revenue-traffic-tr.md`. Uygulama fazları ve sırası: **Faz 13 → 14 → 15 → 16 → 17** (+ Faz 4 epik); detaylı maddeler `memory-bank/faz-gelistirme-checklist-tr.md`.
 
 ---
 
@@ -278,15 +286,7 @@ Detaylı plan: `memory-bank/seo-ads-plan.md`. Tüm altyapı turu tek seferde tam
 - [x] `ads.txt` placeholder erişilebilir
 - [x] UTM cookie + auto track listener çalışıyor (`/api/internal/track` log basıyor)
 
-### Faz 4 — Gelişmiş Özellikler & Monetizasyon (Faz 12 sonrası)
-
-- Gelişmiş Arama ve Harita entegrasyonu (Mapbox / Leaflet)
-- Akıllı eşleştirme quiz'i (Kullanıcılara uygun kurs/kulüp önerisi)
-- Yorum/puanlama sistemi (Kulüpler için geri bildirimler)
-- Premium profil sistemi (Öne çıkanlar) ve online ödeme altyapısı (Stripe/Iyzico)
-- Arama filtrelerinin URL tabanlı sorgu ile derinleştirilmesi
-
-### Faz 13 — Reklam Yayını (Faz 12 ön-koşulları sonrası)
+### Faz 13 — Reklam yayını ve ölçüm (sıradaki)
 
 - Google Ads hesabı + GA4 conversion import
 - AdSense başvurusu (içerik hacmi yeterli olduğunda)
@@ -294,6 +294,48 @@ Detaylı plan: `memory-bank/seo-ads-plan.md`. Tüm altyapı turu tek seferde tam
   - Search: "[şehir] [branş] kursu" → ilgili landing
   - Performance Max: kulüp başvuru CTA → `/basvuru`
   - Remarketing: `view_listing` + `view_club` görmüş dönüşmemiş kullanıcılar
+
+### Faz 14 — SEO: indeks, içerik, programatik sayfalar
+
+- Bing ve Yandex doğrulama + sitemap; Search Console haftalık rutin (operasyon şablonu)
+- Uzun kuyruk rehber mimarisi + ilk içerik seti
+- Şehir / ilçe / branş landing zenginleştirme (benzersiz blok + SSS + iç link)
+- Haber ve ilanlardan hub sayfalarına iç linkleme
+- JSON-LD: NewsArticle, HowTo/FAQ, Event (içerik tiplerine göre)
+- Görsel arama: dosya adı + `alt` disiplini (kod veya yayın kuralı)
+
+### Faz 15 — Organik trafik ürünleri
+
+- Mini branş / uygunluk testi → paylaşılabilir `/ara` URL
+- Sezonluk hub sayfası + sahiplik notu
+- Bülten kayıt + lead magnet + gönderim MVP
+- UTM şablonları ve GA4 kanal raporlaması (`mvp-metrics.md` ile hizalı)
+
+### Faz 16 — E-E-A-T, güven, dağıtım
+
+- Hakkımızda / İletişim güven sinyali (kim, nasıl ulaşılır)
+- Rehber/haber: yazar ve tarih alanları
+- Doğrulanmış kulüp süreci taslağı (Faz 17 ile faturalandırma bağlanır)
+- İş ortaklığı / basın şablonu; topluluk ve QR için iç kılavuz (etik dağıtım)
+
+### Faz 17 — Gelir modeli MVP
+
+- Öne çıkan / sponsor sıralama + ölçüm
+- Kulüp paket kotası ve özellik bayrakları
+- Lead veya tıklama kredisi (sayaç ve rapor MVP)
+- Panelde trafik/lead özeti; Iyzico veya Stripe iskeleti
+- İsteğe bağlı: kayıtlı arama uyarısı, 2–3 kulüp karşılaştırma MVP
+
+### Faz 4 — Gelişmiş ürün (büyük epik; 13–17 sonrası veya paralel)
+
+> Premium öne çıkarma ve ödeme iskeleti **Faz 17**ye taşındı; Faz 4 ağırlık olarak harita, tam quiz, yorum ve derin filtre.
+
+- Gelişmiş Arama ve Harita entegrasyonu (Mapbox / Leaflet)
+- Tam kapsamlı akıllı eşleştirme quiz'i (Faz 15’teki mini testten ayrı)
+- Yorum/puanlama sistemi (moderasyon + KVKK)
+- Arama filtrelerinin URL tabanlı sorgu ile derinleştirilmesi
+
+**Önerilen sıra (özet):** 13 → 14 → 15 → 16 → 17 → (kaynak planına göre) Faz 4. Ayrıntılı `[ ]` maddeler: `memory-bank/faz-gelistirme-checklist-tr.md`. Strateji ve taktik havuzu: `memory-bank/growth-revenue-traffic-tr.md`.
 
 ---
 
@@ -306,5 +348,6 @@ MVP odağını sade tutmak için aşağıdaki bilgilendirme dokumanlari eklendi:
 - `memory-bank/mvp-metrics.md`
 - `memory-bank/security-privacy.md`
 - `memory-bank/seo-ads-plan.md` (Faz 12: SEO + Reklam Hazırlığı tam yol haritası)
+- `memory-bank/growth-revenue-traffic-tr.md` (gelir + SEO/trafik taktikleri; Faz 14–17 ile eşlenen strateji havuzu)
 
 Bu set, detayli kurumsal dokumantasyondan ziyade "hemen uygulanabilir adim" odaklidir.
