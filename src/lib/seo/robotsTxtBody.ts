@@ -1,4 +1,8 @@
-User-agent: *
+/**
+ * robots.txt govdesi — tek kaynak (public/ yerine route ile sunulur;
+ * Content-Type ve cache tutarli kalir, GSC/Cloudflare belirsizligi azalir).
+ */
+export const ROBOTS_TXT_BODY = `User-agent: *
 Allow: /
 Disallow: /api/
 Disallow: /admin
@@ -34,3 +38,4 @@ Sitemap: https://spornerede.net/sitemaps/districts.xml
 Sitemap: https://spornerede.net/sitemaps/news.xml
 Sitemap: https://spornerede.net/sitemaps/clubs.xml
 Sitemap: https://spornerede.net/sitemaps/listings.xml
+`;

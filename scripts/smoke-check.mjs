@@ -6,7 +6,7 @@ if (!siteUrl || !siteUrl.trim()) {
 }
 
 const base = siteUrl.replace(/\/+$/, "");
-const routes = ["/", "/ara", "/basvuru", "/api/health?deep=1"];
+const routes = ["/", "/ara", "/basvuru", "/api/health?deep=1", "/robots.txt"];
 
 async function checkSitemapAliases() {
   const sm = `${base}/sitemap.xml`;
@@ -57,6 +57,20 @@ async function checkRoute(route) {
   const startedAt = Date.now();
   const response = await fetch(url, { redirect: "follow" });
   const elapsedMs = Date.now() - startedAt;
+
+  if (route === "/robots.txt") {
+    const ct = response.headers.get("content-type") ?? "";
+    const text = await response.text();
+    const bodyOk =
+      text.trimStart().startsWith("User-agent:") && text.includes("Sitemap:");
+    const ok =
+      response.status >= 200 &&
+      response.status < 400 &&
+      ct.includes("text/plain") &&
+      bodyOk;
+    return { route, url, status: response.status, ok, elapsedMs, response: null };
+  }
+
   const ok = response.status >= 200 && response.status < 400;
   return { route, url, status: response.status, ok, elapsedMs, response };
 }
