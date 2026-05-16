@@ -49,7 +49,7 @@ export const POST: APIRoute = async ({ request }) => {
   const body = await request.json().catch(() => null);
   const id = Number(body?.id);
   const status = body?.status as 'pending' | 'approved' | 'rejected';
-  const membershipPeriod = (body?.membershipPeriod as MembershipPeriod | undefined) ?? 'monthly';
+  const membershipPeriod = body?.membershipPeriod;
   const adminNote = body?.adminNote?.toString?.() ?? '';
   const assignedAdminEmail = body?.assignedAdminEmail?.toString?.() ?? '';
   if (!id || !['pending', 'approved', 'rejected'].includes(status)) {
@@ -59,7 +59,12 @@ export const POST: APIRoute = async ({ request }) => {
   const updated = await updateApplicationStatus(id, status, {
     adminNote: adminNote.slice(0, 5000),
     assignedAdminEmail: assignedAdminEmail.slice(0, 180),
-    membershipPeriod: membershipPeriod === 'yearly' ? 'yearly' : 'monthly',
+    membershipPeriod:
+      membershipPeriod === 'yearly' || membershipPeriod === 'six_month'
+        ? membershipPeriod
+        : membershipPeriod === 'monthly'
+          ? 'six_month'
+          : undefined,
   });
   if (!updated) {
     return new Response(JSON.stringify({ error: 'Application not found' }), { status: 404 });

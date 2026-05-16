@@ -4,6 +4,7 @@ import {
   deleteAdminClubProgram,
   getApprovedAdminClubById,
   listApprovedAdminClubs,
+  revokeApprovedAdminClub,
   updateAdminClubProgram,
   updateApprovedAdminClub,
 } from '../../../lib/repositories/adminClubs';
@@ -103,6 +104,20 @@ export const DELETE: APIRoute = async ({ request }) => {
   const body = await request.json().catch(() => null);
   const clubId = Number(body?.clubId);
   const programId = Number(body?.programId);
+  const revokeClub = body?.revokeClub === true;
+
+  if (revokeClub) {
+    if (!clubId) {
+      return new Response(JSON.stringify({ error: 'Invalid payload' }), { status: 400 });
+    }
+    const revoked = await revokeApprovedAdminClub(clubId, body?.adminNote?.toString?.());
+    if (!revoked) {
+      return new Response(JSON.stringify({ error: 'Club not found' }), { status: 404 });
+    }
+    return new Response(JSON.stringify({ data: revoked }), {
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
 
   if (!clubId || !programId) {
     return new Response(JSON.stringify({ error: 'Invalid payload' }), { status: 400 });

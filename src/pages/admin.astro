@@ -168,6 +168,12 @@ const summary = await getAdminClubSummary();
               <input id="contact-search" type="text" placeholder="Ad soyad, e-posta, konu ile ara..." />
             </div>
             <div class="filter-box">
+              <select id="contact-view" class="modern-select" aria-label="Mesaj görünümü">
+                <option value="inbox">Gelen Kutusu</option>
+                <option value="trash">Çöp Kutusu</option>
+              </select>
+            </div>
+            <div class="filter-box">
               <select id="contact-filter" class="modern-select">
                 <option value="all">Tüm Mesajlar</option>
                 <option value="unread">Okunmamış</option>
@@ -180,9 +186,10 @@ const summary = await getAdminClubSummary();
           <div class="admin-columns">
             <aside class="admin-list-container">
               <div class="list-header">
-                <h2>İletişim Mesajları</h2>
-                <span class="badge badge-gray">Form kayıtları</span>
+                <h2 id="contact-list-title">İletişim Mesajları</h2>
+                <span id="contact-list-badge" class="badge badge-gray">Form kayıtları</span>
               </div>
+              <p id="contact-trash-hint" class="contact-trash-hint is-hidden">Çöp kutusundaki mesajlar 30 gün sonra otomatik silinir.</p>
               <ul id="contact-messages-list" class="admin-list custom-scrollbar"></ul>
             </aside>
 
@@ -320,7 +327,11 @@ const summary = await getAdminClubSummary();
     const clubDetailEl = document.getElementById('club-detail');
     const loadClubsButton = document.getElementById('load-clubs');
     const contactSearchInput = document.getElementById('contact-search');
+    const contactViewSelect = document.getElementById('contact-view');
     const contactFilter = document.getElementById('contact-filter');
+    const contactListTitle = document.getElementById('contact-list-title');
+    const contactListBadge = document.getElementById('contact-list-badge');
+    const contactTrashHint = document.getElementById('contact-trash-hint');
     const contactListEl = document.getElementById('contact-messages-list');
     const contactDetailEl = document.getElementById('contact-message-detail');
     const loadContactButton = document.getElementById('load-contact-messages');
@@ -348,6 +359,8 @@ const summary = await getAdminClubSummary();
     let selectedClubId = 0;
     let cachedContactMessages = [];
     let selectedContactMessageId = 0;
+    let contactView = 'inbox';
+    let contactInboxUnreadCount = 0;
     let cachedFeedbacks = [];
     let selectedFeedbackId = 0;
     let cachedNews = [];
@@ -588,6 +601,7 @@ const summary = await getAdminClubSummary();
     function logActionTitle(action) {
       if (action === 'application_created') return 'Başvuru oluşturuldu';
       if (action === 'status_update') return 'Durum güncellendi';
+      if (action === 'club_revoked') return 'Onaylı listeden kaldırıldı';
       return action || 'İşlem';
     }
 
@@ -678,10 +692,9 @@ const summary = await getAdminClubSummary();
         applicationsTabBadge.classList.toggle('is-hidden', pendingApps === 0);
       }
 
-      const unreadMessages = cachedContactMessages.filter((item) => !item.okundu).length;
       if (contactTabBadge) {
-        contactTabBadge.textContent = String(unreadMessages);
-        contactTabBadge.classList.toggle('is-hidden', unreadMessages === 0);
+        contactTabBadge.textContent = String(contactInboxUnreadCount);
+        contactTabBadge.classList.toggle('is-hidden', contactInboxUnreadCount === 0);
       }
 
       const unreadFeedbacks = cachedFeedbacks.filter((item) => item.durum === 'yeni').length;
@@ -703,11 +716,23 @@ const summary = await getAdminClubSummary();
       });
     }
 
+    function syncContactViewChrome() {
+      const isTrash = contactView === 'trash';
+      if (contactListTitle) contactListTitle.textContent = isTrash ? 'Çöp Kutusu' : 'İletişim Mesajları';
+      if (contactListBadge) {
+        contactListBadge.textContent = isTrash ? '30 gün saklanır' : 'Form kayıtları';
+        contactListBadge.className = isTrash ? 'badge badge-gray' : 'badge badge-gray';
+      }
+      contactTrashHint?.classList.toggle('is-hidden', !isTrash);
+      contactFilter?.closest('.filter-box')?.classList.toggle('is-hidden', isTrash);
+    }
+
     function renderContactMessagesList() {
       if (!contactListEl) return;
+      syncContactViewChrome();
       const filtered = getFilteredContactMessages();
       if (!filtered.length) {
-        contactListEl.innerHTML = '<li class="empty-list">Mesaj bulunamadı.</li>';
+        contactListEl.innerHTML = `<li class="empty-list">${contactView === 'trash' ? 'Çöp kutusu boş.' : 'Mesaj bulunamadı.'}</li>`;
         return;
       }
 
@@ -742,10 +767,11 @@ const summary = await getAdminClubSummary();
       renderContactDetailLoading();
       try {
         const message = await apiGet(`/api/admin/contact-messages?id=${messageId}`);
-        if (!message.okundu) {
+        if (!message.okundu && !message.copKutusu) {
           await apiPost('/api/admin/contact-messages', { id: messageId, okundu: true });
           const cached = cachedContactMessages.find((item) => item.id === messageId);
           if (cached) cached.okundu = true;
+          contactInboxUnreadCount = Math.max(0, contactInboxUnreadCount - 1);
           updateNotificationBadges();
           renderContactMessagesList();
           message.okundu = true;
@@ -805,10 +831,15 @@ const summary = await getAdminClubSummary();
                 </div>
               </div>
               <div class="contact-actions">
-                <button id="toggle-contact-answered" class="btn btn-primary" type="button">
+                ${
+                  message.copKutusu
+                    ? `<button id="restore-contact-message" class="btn btn-primary" type="button">Gelen Kutusuna Geri Al</button>`
+                    : `<button id="toggle-contact-answered" class="btn btn-primary" type="button">
                   ${message.cevaplandi ? 'Cevaplandı Etiketini Kaldır' : 'Cevaplandı Olarak İşaretle'}
                 </button>
                 <button id="mark-contact-unread" class="btn btn-outline" type="button">Okunmadı Yap</button>
+                <button id="trash-contact-message" class="btn btn-outline btn-danger-outline" type="button">Çöp Kutusuna Taşı</button>`
+                }
               </div>
             </section>
           </div>
@@ -826,8 +857,32 @@ const summary = await getAdminClubSummary();
           await apiPost('/api/admin/contact-messages', { id: messageId, okundu: false });
           const cached = cachedContactMessages.find((item) => item.id === messageId);
           if (cached) cached.okundu = false;
+          contactInboxUnreadCount = Math.max(0, contactInboxUnreadCount + 1);
           updateNotificationBadges();
           renderContactMessagesList();
+        });
+
+        document.getElementById('trash-contact-message')?.addEventListener('click', async () => {
+          if (!confirm('Bu mesajı çöp kutusuna taşımak istiyor musunuz?')) return;
+          await apiPost('/api/admin/contact-messages', { id: messageId, trash: true });
+          selectedContactMessageId = 0;
+          if (contactDetailEl) {
+            contactDetailEl.innerHTML = `
+              <div class="empty-state">
+                <div class="empty-icon">🗑️</div>
+                <h3>Mesaj çöp kutusuna taşındı</h3>
+                <p>30 gün sonra otomatik silinecektir.</p>
+              </div>`;
+          }
+          await loadContactMessages();
+        });
+
+        document.getElementById('restore-contact-message')?.addEventListener('click', async () => {
+          await apiPost('/api/admin/contact-messages', { id: messageId, restore: true });
+          contactView = 'inbox';
+          if (contactViewSelect instanceof HTMLSelectElement) contactViewSelect.value = 'inbox';
+          await loadContactMessages();
+          await renderContactMessageDetail(messageId);
         });
       } catch (error) {
         if (contactDetailEl) {
@@ -906,6 +961,14 @@ const summary = await getAdminClubSummary();
                     <span class="value">${app.il || '-'} / ${app.ilce || '-'}</span>
                   </div>
                   <div class="info-item">
+                    <span class="label">Üyelik Paketi</span>
+                    <span class="value">${escapeHtml(app.paketAd || app.paketKod || '-')}</span>
+                  </div>
+                  <div class="info-item">
+                    <span class="label">Yayınlanacak Branş</span>
+                    <span class="value">${app.bransSayisi || 1} branş</span>
+                  </div>
+                  <div class="info-item">
                     <span class="label">Tam Adres</span>
                     <span class="value">${app.adres || '-'}</span>
                   </div>
@@ -963,8 +1026,8 @@ const summary = await getAdminClubSummary();
                   <div class="form-group">
                     <label>Üyelik Periyodu</label>
                     <select id="membership-period" class="modern-select">
-                      <option value="monthly">Aylık</option>
-                      <option value="yearly">Yıllık</option>
+                      <option value="six_month" ${app.membershipPeriod !== 'yearly' ? 'selected' : ''}>6 Aylık</option>
+                      <option value="yearly" ${app.membershipPeriod === 'yearly' ? 'selected' : ''}>Yıllık</option>
                     </select>
                   </div>
                   <div class="action-buttons">
@@ -1067,7 +1130,8 @@ const summary = await getAdminClubSummary();
             if (!nextStatus) return;
             const adminNote = document.getElementById('admin-note')?.value || '';
             const assignedAdminEmail = document.getElementById('assigned-admin-email')?.value?.trim() || '';
-            const membershipPeriod = document.getElementById('membership-period')?.value === 'yearly' ? 'yearly' : 'monthly';
+            const membershipPeriod =
+              document.getElementById('membership-period')?.value === 'yearly' ? 'yearly' : 'six_month';
             try {
               button.classList.add('loading');
               await apiPost('/api/admin/applications', {
@@ -1078,7 +1142,14 @@ const summary = await getAdminClubSummary();
                 membershipPeriod,
               });
               await loadApplications();
-              await renderDetail(appId);
+              if (nextStatus === 'approved') {
+                await loadClubs();
+                switchTab('clubs');
+                selectedClubId = appId;
+                await renderClubDetail(appId);
+              } else {
+                await renderDetail(appId);
+              }
             } catch (error) {
               button.classList.remove('loading');
               alert(error.message);
@@ -1210,7 +1281,11 @@ const summary = await getAdminClubSummary();
       if (!contactListEl) return;
       contactListEl.innerHTML = '<li class="loading-state"><div class="spinner-small"></div> Yükleniyor...</li>';
       try {
-        const rows = await apiGet('/api/admin/contact-messages');
+        if (contactView === 'inbox') {
+          const inboxRows = await apiGet('/api/admin/contact-messages');
+          contactInboxUnreadCount = (inboxRows || []).filter((item) => !item.okundu).length;
+        }
+        const rows = await apiGet(`/api/admin/contact-messages${contactView === 'trash' ? '?trash=1' : ''}`);
         cachedContactMessages = rows || [];
         updateNotificationBadges();
         if (selectedContactMessageId && !cachedContactMessages.some((message) => message.id === selectedContactMessageId)) {
@@ -1549,6 +1624,15 @@ const summary = await getAdminClubSummary();
                   <button id="save-club-btn" class="btn btn-primary w-full" type="button">Değişiklikleri Kaydet</button>
                 </div>
               </section>
+
+              <section class="card-section border-red">
+                <div class="section-head">
+                  <span class="icon">⛔</span>
+                  <h3>Onaylı Listeden Kaldır</h3>
+                </div>
+                <p class="section-help text-sm">Kulüp sitede görünmez; vitrin listesinden çıkar. Gerekirse başvurular sekmesinden yeniden onaylanabilir.</p>
+                <button id="revoke-club-btn" class="btn btn-outline btn-danger-outline w-full" type="button">Onaylı Listeden Kaldır</button>
+              </section>
             </div>
 
             <div class="detail-column">
@@ -1563,6 +1647,31 @@ const summary = await getAdminClubSummary();
             </div>
           </div>
         `;
+
+        const revokeBtn = document.getElementById('revoke-club-btn');
+        revokeBtn?.addEventListener('click', async () => {
+          const confirmed = confirm(
+            'Bu kulübü onaylı listeden kaldırmak istediğinize emin misiniz? Sitede görünmez olur.',
+          );
+          if (!confirmed) return;
+          try {
+            revokeBtn.textContent = 'Kaldırılıyor...';
+            await apiDelete('/api/admin/clubs', { clubId, revokeClub: true });
+            selectedClubId = 0;
+            await loadClubs();
+            if (clubDetailEl) {
+              clubDetailEl.innerHTML = `
+                <div class="empty-state">
+                  <div class="empty-icon">✅</div>
+                  <h3>Kulüp listeden kaldırıldı</h3>
+                  <p>Onaylı kulüpler listesinden çıkarıldı.</p>
+                </div>`;
+            }
+          } catch (error) {
+            revokeBtn.textContent = 'Onaylı Listeden Kaldır';
+            alert(error.message);
+          }
+        });
 
         const saveBtn = document.getElementById('save-club-btn');
         saveBtn?.addEventListener('click', async () => {
@@ -2070,6 +2179,20 @@ const summary = await getAdminClubSummary();
 
     contactFilter?.addEventListener('change', () => {
       renderContactMessagesList();
+    });
+
+    contactViewSelect?.addEventListener('change', async () => {
+      contactView = contactViewSelect instanceof HTMLSelectElement ? contactViewSelect.value : 'inbox';
+      selectedContactMessageId = 0;
+      if (contactDetailEl) {
+        contactDetailEl.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">✉️</div>
+            <h3>Mesaj Seçin</h3>
+            <p>İletişim formundan gelen mesajları görüntülemek için soldan bir kayıt seçin.</p>
+          </div>`;
+      }
+      await loadContactMessages();
     });
 
     feedbackFilter?.addEventListener('change', () => {
@@ -2654,6 +2777,28 @@ const summary = await getAdminClubSummary();
     .border-green {
       border-color: #bbf7d0;
       background: #f0fdf4;
+    }
+
+    .border-red {
+      border-color: #fecaca;
+      background: #fef2f2;
+    }
+
+    .btn-danger-outline {
+      border-color: #fca5a5;
+      color: #b91c1c;
+    }
+
+    .btn-danger-outline:hover {
+      background: #fef2f2;
+      border-color: #f87171;
+    }
+
+    .contact-trash-hint {
+      margin: 0 1rem 0.75rem;
+      font-size: 0.8rem;
+      color: #6b7280;
+      line-height: 1.4;
     }
 
     .section-head {

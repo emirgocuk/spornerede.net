@@ -328,22 +328,6 @@ const { iban, accountName, bankName, branch } = getBankTransferDisplay();
                             
                             <div class="membership-divider"></div>
                             
-                            <p class="membership-count-caption">
-                              1 branş dahildir, sonraki branşlar %50 indirimlidir.
-                            </p>
-                            <div class="membership-branch-count">
-                              <label for={`brans-sayisi-${plan.kod}`}>Eklenecek Branş Sayısı</label>
-                              <input
-                                id={`brans-sayisi-${plan.kod}`}
-                                type="number"
-                                min="1"
-                                step="1"
-                                value="1"
-                                class="form-input membership-branch-input"
-                                data-branch-input
-                              />
-                            </div>
-                            
                             <div class="membership-select-btn">Planı Seç</div>
                           </div>
                         </label>
@@ -353,6 +337,21 @@ const { iban, accountName, bankName, branch } = getBankTransferDisplay();
                         Üyelik paketleri şu an yüklenemedi. Lütfen daha sonra tekrar deneyin.
                       </div>
                     )}
+                  </div>
+                  <div class="membership-branch-global">
+                    <label for="brans-sayisi-global">Yayınlanacak Branş Sayısı</label>
+                    <p class="membership-branch-help">
+                      Seçtiğiniz pakete 1 branş dahildir. Ek yayınlanacak her branş %50 indirimlidir.
+                    </p>
+                    <input
+                      id="brans-sayisi-global"
+                      type="number"
+                      min="1"
+                      step="1"
+                      value="1"
+                      class="form-input membership-branch-input membership-branch-input--global"
+                      data-branch-input
+                    />
                   </div>
                   <input type="hidden" id="brans-sayisi-hidden" name="bransSayisi" value="1" />
 
@@ -1243,13 +1242,18 @@ const { iban, accountName, bankName, branch } = getBankTransferDisplay();
     flex-grow: 1;
   }
 
-  .membership-branch-count {
+  .membership-branch-global {
+    margin-top: 1.25rem;
+    padding: 1.1rem 1.25rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    background: #fff;
     display: grid;
-    gap: 0.4rem;
-    margin-bottom: 1rem;
+    gap: 0.5rem;
+    max-width: 420px;
   }
 
-  .membership-branch-count label {
+  .membership-branch-global label {
     font-size: 0.78rem;
     font-weight: 700;
     color: #4b5563;
@@ -1257,8 +1261,19 @@ const { iban, accountName, bankName, branch } = getBankTransferDisplay();
     letter-spacing: 0.04em;
   }
 
+  .membership-branch-help {
+    margin: 0;
+    font-size: 0.85rem;
+    color: #6b7280;
+    line-height: 1.45;
+  }
+
   .membership-branch-input {
     padding: 0.7rem 0.9rem;
+  }
+
+  .membership-branch-input--global {
+    max-width: 140px;
   }
 
   .payment-confirm {

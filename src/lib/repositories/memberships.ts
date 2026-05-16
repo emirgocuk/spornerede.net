@@ -1,6 +1,7 @@
 import { getDb, hasDatabaseUrl } from '../../db/client';
 
-export type MembershipPeriod = 'monthly' | 'yearly';
+/** Admin onayında seçilen üyelik süresi (başvuru formu: 6 aylık / yıllık). */
+export type MembershipPeriod = 'six_month' | 'yearly';
 
 function requireDatabase() {
   if (!hasDatabaseUrl()) {
@@ -10,20 +11,32 @@ function requireDatabase() {
 
 const DEFAULT_PLANS = [
   {
-    kod: 'aylik',
-    ad: 'Aylık',
-    ucret: 1500,
-    periyot: 'monthly',
-    aciklama: 'Aylık paket: 1500 TL.',
+    kod: 'alti-aylik',
+    ad: '6 Aylık',
+    ucret: 7500,
+    periyot: 'one_time' as const,
+    aciklama: '6 aylık paket: 7500 TL.',
   },
   {
     kod: 'on-iki-aylik',
-    ad: '12 Aylık (1000*12)',
+    ad: 'Yıllık',
     ucret: 12000,
-    periyot: 'yearly',
-    aciklama: '12 aylık paket: 1000*12 = 12000 TL.',
+    periyot: 'yearly' as const,
+    aciklama: 'Yıllık paket: 12000 TL.',
   },
 ];
+
+export function normalizeMembershipPeriod(value: unknown): MembershipPeriod {
+  if (value === 'yearly' || value === 'on-iki-aylik' || value === 'yillik') return 'yearly';
+  return 'six_month';
+}
+
+export function membershipPeriodFromPackageCode(kod: string | undefined): MembershipPeriod | null {
+  if (!kod) return null;
+  if (kod === 'on-iki-aylik' || kod === 'yillik') return 'yearly';
+  if (kod === 'alti-aylik' || kod === 'aylik') return 'six_month';
+  return null;
+}
 
 function addPeriod(startAt: Date, period: MembershipPeriod) {
   const next = new Date(startAt);
@@ -31,13 +44,13 @@ function addPeriod(startAt: Date, period: MembershipPeriod) {
     next.setFullYear(next.getFullYear() + 1);
     return next;
   }
-  next.setMonth(next.getMonth() + 1);
+  next.setMonth(next.getMonth() + 6);
   return next;
 }
 
 async function ensureMembershipPlan(period: MembershipPeriod) {
   const db = await getDb();
-  const preferredCode = period === 'yearly' ? 'on-iki-aylik' : 'aylik';
+  const preferredCode = period === 'yearly' ? 'on-iki-aylik' : 'alti-aylik';
   const fallbackCode = period === 'yearly' ? 'yillik' : 'aylik';
   const existing = await db
     .collection('uyelik_paketleri')
@@ -60,15 +73,25 @@ async function ensureMembershipPlan(period: MembershipPeriod) {
   return Number(created.legacyId);
 }
 
-async function ensureClubMembershipRow(clubId: number, period: MembershipPeriod) {
+async function getClubMembershipRow(clubId: number) {
   const db = await getDb();
-  const existing = await db
+  return db
     .collection('kulup_uyelikleri')
     .getFirstListItem(`kulupLegacyId = ${clubId}`, { sort: '-legacyId' })
     .catch(() => null);
-  if (existing) return existing;
+}
 
+async function ensureClubMembershipRow(clubId: number, period: MembershipPeriod) {
+  const db = await getDb();
+  const existing = await getClubMembershipRow(clubId);
   const planId = await ensureMembershipPlan(period);
+  if (existing) {
+    if (Number(existing.paketLegacyId) !== planId) {
+      await db.collection('kulup_uyelikleri').update(existing.id, { paketLegacyId: planId });
+    }
+    return existing;
+  }
+
   return db.collection('kulup_uyelikleri').create({
     legacyId: Date.now() + 1,
     kulupLegacyId: clubId,
@@ -132,10 +155,7 @@ export async function hasActiveMembership(clubId: number) {
   requireDatabase();
   await expireDueMemberships();
   const db = await getDb();
-  const row = await db
-    .collection('kulup_uyelikleri')
-    .getFirstListItem(`kulupLegacyId = ${clubId}`, { sort: '-legacyId' })
-    .catch(() => null);
+  const row = await getClubMembershipRow(clubId);
   if (!row) return false;
   if (row.odemeDurumu !== 'paid') return false;
   const endRaw = (row.bitisTarihi as string | undefined) ?? '';
@@ -149,7 +169,10 @@ export async function hasActiveMembership(clubId: number) {
  * Onaylı kulüpte üyelik satırı hâlâ `pending` ise (onay API'si kaçırdıysa veya eski veri) `paid` yapar.
  * Süresi dolmuş üyeliği bilinçli olarak yenilemez; yalnızca bekleyen ödeme satırını kapatır.
  */
-export async function ensureApprovedClubMembershipPaidForUser(userId: number, period: MembershipPeriod = 'monthly') {
+export async function ensureApprovedClubMembershipPaidForUser(
+  userId: number,
+  period: MembershipPeriod = 'six_month',
+) {
   requireDatabase();
   const db = await getDb();
   const link = await db
@@ -163,15 +186,22 @@ export async function ensureApprovedClubMembershipPaidForUser(userId: number, pe
     return { ok: false as const, reason: 'club_not_approved' };
   }
 
-  const sub = await db
-    .collection('kulup_uyelikleri')
-    .getFirstListItem(`kulupLegacyId = ${clubId}`, { sort: '-legacyId' })
-    .catch(() => null);
+  const sub = await getClubMembershipRow(clubId);
   if (!sub) return { ok: false as const, reason: 'no_membership_row' };
+
+  let effectivePeriod = period;
+  if (sub.paketLegacyId) {
+    const plan = await db
+      .collection('uyelik_paketleri')
+      .getFirstListItem(`legacyId = ${Number(sub.paketLegacyId)}`)
+      .catch(() => null);
+    const fromPackage = membershipPeriodFromPackageCode(plan?.kod as string | undefined);
+    if (fromPackage) effectivePeriod = fromPackage;
+  }
 
   if (sub.odemeDurumu === 'pending') {
     try {
-      await activateClubMembership(clubId, period);
+      await activateClubMembership(clubId, effectivePeriod);
     } catch {
       return { ok: false as const, reason: 'activate_failed' };
     }
@@ -182,4 +212,3 @@ export async function ensureApprovedClubMembershipPaidForUser(userId: number, pe
   }
   return { ok: false as const, reason: 'membership_not_active' };
 }
-

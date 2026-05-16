@@ -98,6 +98,7 @@ const COLLECTIONS: CollectionDef[] = [
       { name: 'durum', type: 'text' },
       { name: 'adminNotu', type: 'text' },
       { name: 'sorumluAdminEmail', type: 'text' },
+      { name: 'bransSayisi', type: 'number' },
       { name: 'enlem', type: 'number' },
       { name: 'boylam', type: 'number' },
     ],
@@ -199,6 +200,8 @@ const COLLECTIONS: CollectionDef[] = [
       { name: 'mesaj', type: 'text', required: true },
       { name: 'okundu', type: 'bool' },
       { name: 'cevaplandi', type: 'bool' },
+      { name: 'copKutusu', type: 'bool' },
+      { name: 'silindiAt', type: 'date' },
     ],
   },
   {

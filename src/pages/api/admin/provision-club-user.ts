@@ -33,7 +33,8 @@ export const POST: APIRoute = async ({ request }) => {
     membershipRole,
   });
 
-  const membershipPeriod = body?.membershipPeriod === 'yearly' ? 'yearly' : 'monthly';
+  const membershipPeriod =
+    body?.membershipPeriod === 'yearly' ? 'yearly' : ('six_month' as const);
   await ensureApprovedClubMembershipPaidForUser(provisioned.userId, membershipPeriod).catch(() => undefined);
 
   let mailWarning = '';

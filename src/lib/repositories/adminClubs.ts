@@ -191,6 +191,48 @@ export async function updateAdminClubProgram(clubId: number, programId: number, 
   };
 }
 
+/** Onaylı kulübü vitrinden kaldırır (durum: rejected, üyelik süresi sonlandırılır). */
+export async function revokeApprovedAdminClub(clubId: number, adminNote?: string) {
+  requireDatabase();
+  const db = await getDb();
+
+  const row = await db
+    .collection('kulupler')
+    .getFirstListItem(`legacyId = ${clubId} && durum = "approved"`)
+    .catch(() => null);
+  if (!row) return null;
+
+  const note = adminNote?.trim() || 'Onaylı listeden kaldırıldı.';
+  const updated = await db.collection('kulupler').update(row.id, {
+    durum: 'rejected',
+    adminNotu: note.slice(0, 5000),
+  });
+
+  const membership = await db
+    .collection('kulup_uyelikleri')
+    .getFirstListItem(`kulupLegacyId = ${clubId}`, { sort: '-legacyId' })
+    .catch(() => null);
+  if (membership && membership.odemeDurumu === 'paid') {
+    await db.collection('kulup_uyelikleri').update(membership.id, { odemeDurumu: 'expired' }).catch(() => undefined);
+  }
+
+  await db.collection('admin_basvuru_loglari').create({
+    legacyId: Date.now(),
+    basvuruLegacyId: clubId,
+    aksiyon: 'club_revoked',
+    oncekiDurum: 'approved',
+    yeniDurum: 'rejected',
+    notMetni: note,
+    atananAdminEmail: (row.sorumluAdminEmail as string) ?? '',
+    islemYapanEmail: '',
+  });
+
+  return {
+    id: Number(updated.legacyId),
+    status: 'rejected' as const,
+  };
+}
+
 export async function deleteAdminClubProgram(clubId: number, programId: number) {
   requireDatabase();
   const db = await getDb();

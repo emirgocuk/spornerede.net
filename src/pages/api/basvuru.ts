@@ -73,6 +73,8 @@ export const POST: APIRoute = async ({ request }) => {
     const telefon = formData.get('telefon')?.toString().trim() || '';
     const email = formData.get('email')?.toString().trim() || '';
     const odemeOnay = formData.get('odemeOnay')?.toString().trim() || '';
+    const bransSayisiRaw = Number(formData.get('bransSayisi')?.toString().trim() || '1');
+    const bransSayisi = Number.isFinite(bransSayisiRaw) ? Math.max(1, Math.floor(bransSayisiRaw)) : 1;
     const dekontFile = formData.get('dekont');
 
     if (!kulupad || !il || !ilce || !brans || !paket || !yetkili || !telefon) {
@@ -101,6 +103,7 @@ export const POST: APIRoute = async ({ request }) => {
       telefon,
       email,
       paket,
+      bransSayisi,
     });
 
     const uploadRoot = path.resolve(process.cwd(), 'uploads', 'applications', String(applicationResult.id));

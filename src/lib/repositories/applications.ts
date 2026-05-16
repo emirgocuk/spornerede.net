@@ -1,6 +1,12 @@
 import { getDb, hasDatabaseUrl } from '../../db/client';
 import { displayIlAd } from '../turkishIlDisplay';
-import { activateClubMembership, hasActiveMembership, type MembershipPeriod } from './memberships';
+import {
+  activateClubMembership,
+  hasActiveMembership,
+  membershipPeriodFromPackageCode,
+  normalizeMembershipPeriod,
+  type MembershipPeriod,
+} from './memberships';
 
 export type ClubApplicationInput = {
   kulupad: string;
@@ -15,6 +21,7 @@ export type ClubApplicationInput = {
   telefon: string;
   email: string;
   paket: string;
+  bransSayisi?: number;
 };
 
 function requireDatabase() {
@@ -77,7 +84,11 @@ export async function createClubApplication(input: ClubApplicationInput) {
     .getFirstListItem(`ilLegacyId = ${Number(city.legacyId)} && slug = "${slugify(input.ilce)}"`)
     .catch(() => null);
 
-  const club = await db.collection('kulupler').create({
+  const bransSayisi = Number.isFinite(input.bransSayisi)
+    ? Math.max(1, Math.floor(Number(input.bransSayisi)))
+    : 1;
+
+  const clubPayload: Record<string, unknown> = {
     legacyId: Date.now(),
     ad: input.kulupad,
     slug: slugify(input.kulupad),
@@ -95,7 +106,16 @@ export async function createClubApplication(input: ClubApplicationInput) {
     oneCikan: false,
     puan: 0,
     yorumSayisi: 0,
-  });
+    bransSayisi,
+  };
+
+  let club;
+  try {
+    club = await db.collection('kulupler').create(clubPayload);
+  } catch {
+    delete clubPayload.bransSayisi;
+    club = await db.collection('kulupler').create(clubPayload);
+  }
 
   const branch = await db.collection('branslar').getFirstListItem(`slug = "${slugify(input.brans)}"`).catch(() => null);
   if (branch) {
@@ -166,6 +186,24 @@ export async function getAdminApplicationById(id: number) {
     db.collection('ilceler').getFirstListItem(`legacyId = ${Number(row.ilceLegacyId)}`).catch(() => null),
   ]);
 
+  const membership = await db
+    .collection('kulup_uyelikleri')
+    .getFirstListItem(`kulupLegacyId = ${id}`, { sort: '-legacyId' })
+    .catch(() => null);
+  let paketKod = '';
+  let paketAd = '';
+  if (membership?.paketLegacyId) {
+    const plan = await db
+      .collection('uyelik_paketleri')
+      .getFirstListItem(`legacyId = ${Number(membership.paketLegacyId)}`)
+      .catch(() => null);
+    paketKod = (plan?.kod as string) ?? '';
+    paketAd = (plan?.ad as string) ?? '';
+  }
+
+  const bransSayisiRaw = row.bransSayisi as number | undefined;
+  const bransSayisi = Number.isFinite(bransSayisiRaw) && bransSayisiRaw > 0 ? Math.floor(bransSayisiRaw) : 1;
+
   return {
     id: Number(row.legacyId),
     ad: row.ad as string,
@@ -180,6 +218,10 @@ export async function getAdminApplicationById(id: number) {
     aciklama: row.aciklama as string,
     adminNotu: (row.adminNotu as string) ?? '',
     sorumluAdminEmail: (row.sorumluAdminEmail as string) ?? '',
+    paketKod,
+    paketAd,
+    bransSayisi,
+    membershipPeriod: membershipPeriodFromPackageCode(paketKod) ?? 'six_month',
   };
 }
 
@@ -211,18 +253,40 @@ export async function updateApplicationStatus(
   });
 
   if (status === 'approved') {
-    const period = options?.membershipPeriod ?? 'monthly';
     const newlyApproved = before.durum !== 'approved';
-    let shouldActivate = newlyApproved;
-    if (!shouldActivate) {
-      try {
-        shouldActivate = !(await hasActiveMembership(id));
-      } catch {
-        shouldActivate = true;
+    const explicitPeriod = options?.membershipPeriod
+      ? normalizeMembershipPeriod(options.membershipPeriod)
+      : null;
+
+    if (newlyApproved || explicitPeriod) {
+      let period = explicitPeriod;
+      if (!period) {
+        const membership = await db
+          .collection('kulup_uyelikleri')
+          .getFirstListItem(`kulupLegacyId = ${id}`, { sort: '-legacyId' })
+          .catch(() => null);
+        if (membership?.paketLegacyId) {
+          const plan = await db
+            .collection('uyelik_paketleri')
+            .getFirstListItem(`legacyId = ${Number(membership.paketLegacyId)}`)
+            .catch(() => null);
+          period = membershipPeriodFromPackageCode(plan?.kod as string | undefined) ?? 'six_month';
+        } else {
+          period = 'six_month';
+        }
       }
-    }
-    if (shouldActivate) {
-      await activateClubMembership(id, period);
+
+      let shouldActivate = newlyApproved;
+      if (!shouldActivate) {
+        try {
+          shouldActivate = !(await hasActiveMembership(id));
+        } catch {
+          shouldActivate = true;
+        }
+      }
+      if (shouldActivate) {
+        await activateClubMembership(id, period);
+      }
     }
   }
 
