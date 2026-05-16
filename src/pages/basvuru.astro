@@ -378,16 +378,16 @@ const { iban, accountName, bankName, branch } = getBankTransferDisplay();
                       </div>
                       <div class="payment-item payment-item--iban">
                         <span class="payment-label">Gönderilecek Tutar</span>
-                        <strong id="dyn-payment-total">Paket seçin</strong>
+                        <strong id="dyn-payment-total" class="payment-total-pending" data-empty="1">—</strong>
                       </div>
                     </div>
                     <div class="payment-reference">
                       <label for="dyn-payment-ref">Banka Açıklama</label>
-                      <input id="dyn-payment-ref" type="text" readonly value="Kulüp adı girildiğinde otomatik doldurulur" />
+                      <input id="dyn-payment-ref" type="text" readonly value="Kulüp veya Kurs Adınızı -" />
                     </div>
                     <ol class="payment-steps">
                       <li><strong id="dyn-payment-amount">Paket tutarını</strong> yukarıdaki IBAN hesabına gönderin.</li>
-                      <li>Açıklama alanına <strong id="dyn-payment-desc">kulüp adınızı</strong> yazın.</li>
+                      <li>Açıklama alanına <strong id="dyn-payment-desc">Kulüp veya Kurs Adınızı</strong> yazın.</li>
                       <li>Ödeme onay kutusunu işaretleyip başvuruyu tamamlayın.</li>
                     </ol>
                     <label class="payment-confirm">
@@ -497,34 +497,47 @@ const { iban, accountName, bankName, branch } = getBankTransferDisplay();
     const formatTL = (amount) => `${new Intl.NumberFormat('tr-TR').format(amount)} TL`;
     const getSelectedPlan = () => Array.from(radios).find((radio) => radio.checked);
 
+    const CLUB_PAYMENT_LABEL = 'Kulüp veya Kurs Adınızı';
+
+    function displayClubLabel(clubName) {
+      return clubName || CLUB_PAYMENT_LABEL;
+    }
+
+    function setPaymentTotalPending(pending) {
+      if (!(dynTotal instanceof HTMLElement)) return;
+      dynTotal.dataset.empty = pending ? '1' : '0';
+      dynTotal.classList.toggle('payment-total-pending', pending);
+    }
+
     function updatePaymentInfo() {
       const selected = getSelectedPlan();
       const clubName = kulupInput instanceof HTMLInputElement ? kulupInput.value.trim() : '';
-      const safeClubName = clubName || 'kulüp adınızı';
+      const clubLabel = displayClubLabel(clubName);
       const branchCountRaw = branchCountHidden instanceof HTMLInputElement ? Number(branchCountHidden.value || 1) : 1;
       const branchCount = Number.isFinite(branchCountRaw) ? Math.max(1, Math.floor(branchCountRaw)) : 1;
       const extraCount = Math.max(0, branchCount - 1);
 
-      if (dynDesc) dynDesc.textContent = `"${safeClubName}"`;
+      if (dynDesc) dynDesc.textContent = `"${clubLabel}"`;
 
       if (!selected) {
         if (dynAmount) dynAmount.textContent = 'Paket tutarını';
-        if (dynTotal) dynTotal.textContent = 'Paket seçin';
+        if (dynTotal) dynTotal.textContent = '—';
+        setPaymentTotalPending(true);
         if (dynReference instanceof HTMLInputElement) {
-          dynReference.value = `${safeClubName} - Paket Seçilmedi`;
+          dynReference.value = `${clubLabel} -`;
         }
         return;
       }
 
       const basePrice = Number(selected.dataset.planPrice || 0);
-      const planName = selected.dataset.planName || 'Paket';
-      const totalAmount = basePrice + (extraCount * basePrice * 0.5);
+      const totalAmount = basePrice + extraCount * basePrice * 0.5;
       const totalText = formatTL(totalAmount);
 
       if (dynAmount) dynAmount.textContent = `${totalText} tutarını`;
       if (dynTotal) dynTotal.textContent = totalText;
+      setPaymentTotalPending(false);
       if (dynReference instanceof HTMLInputElement) {
-        dynReference.value = `${safeClubName} - ${planName} - ${totalText}`;
+        dynReference.value = `${clubLabel} - ${totalText}`;
       }
     }
 
@@ -1177,6 +1190,11 @@ const { iban, accountName, bankName, branch } = getBankTransferDisplay();
     font-size: 0.92rem;
     color: #111827;
     word-break: break-word;
+  }
+
+  #dyn-payment-total.payment-total-pending {
+    color: #9ca3af;
+    font-weight: 600;
   }
 
   .payment-steps {
