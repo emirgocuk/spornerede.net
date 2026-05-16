@@ -99,9 +99,8 @@ const summary = await getAdminClubSummary();
             </div>
             <div class="filter-box">
               <select id="status-filter" class="modern-select">
-                <option value="all">Tüm Durumlar</option>
+                <option value="all">Tüm Başvurular</option>
                 <option value="pending">⏳ Bekliyor</option>
-                <option value="approved">✅ Onaylı</option>
                 <option value="rejected">❌ Reddedildi</option>
               </select>
             </div>
@@ -667,6 +666,7 @@ const summary = await getAdminClubSummary();
       const query = searchInput?.value?.trim()?.toLowerCase() || '';
       const status = statusFilter?.value || 'all';
       return cachedApps.filter((item) => {
+        if (item.durum === 'approved') return false;
         const statusOk = status === 'all' ? true : item.durum === status;
         if (!statusOk) return false;
         if (!query) return true;
@@ -1141,13 +1141,23 @@ const summary = await getAdminClubSummary();
                 assignedAdminEmail,
                 membershipPeriod,
               });
-              await loadApplications();
               if (nextStatus === 'approved') {
+                selectedAppId = 0;
+                if (detailEl) {
+                  detailEl.innerHTML = `
+                    <div class="empty-state">
+                      <div class="empty-icon">✅</div>
+                      <h3>Başvuru onaylandı</h3>
+                      <p>Kulüp onaylı listede. Onaylı Kulüpler sekmesinden yönetebilirsiniz.</p>
+                    </div>`;
+                }
+                await loadApplications();
                 await loadClubs();
                 switchTab('clubs');
                 selectedClubId = appId;
                 await renderClubDetail(appId);
               } else {
+                await loadApplications();
                 await renderDetail(appId);
               }
             } catch (error) {
@@ -1262,8 +1272,22 @@ const summary = await getAdminClubSummary();
         const rows = await apiGet('/api/admin/applications');
         cachedApps = rows || [];
         updateNotificationBadges();
+        if (selectedAppId && !cachedApps.some((item) => item.id === selectedAppId)) {
+          selectedAppId = cachedApps[0]?.id ?? 0;
+        }
         if (!selectedAppId && cachedApps.length) {
           selectedAppId = cachedApps[0].id;
+        }
+        if (!cachedApps.length) {
+          selectedAppId = 0;
+          if (detailEl) {
+            detailEl.innerHTML = `
+              <div class="empty-state">
+                <div class="empty-icon">📋</div>
+                <h3>Bekleyen başvuru yok</h3>
+                <p>Onaylanan kulüpler Onaylı Kulüpler sekmesindedir.</p>
+              </div>`;
+          }
         }
         renderList();
         if (selectedAppId) {
@@ -1508,11 +1532,52 @@ const summary = await getAdminClubSummary();
       clubDetailEl.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Detay yükleniyor...</p></div>';
     }
 
+    function renderNewProgramForm() {
+      return `<article class="admin-program-editor admin-program-editor--new" data-program-editor="new">
+        <div class="program-editor-head">
+          <div>
+            <span class="kicker">YENİ İLAN</span>
+            <strong>Admin panelden ilan ekle</strong>
+          </div>
+        </div>
+        <div class="form-layout">
+          <div class="form-group">
+            <label>Program / Kurs Adı</label>
+            <input class="modern-input" data-new-program-field="ad" type="text" placeholder="Örn: Hafta içi futbol akademisi" />
+          </div>
+          <div class="form-row-2">
+            <div class="form-group">
+              <label>Gün / Saat</label>
+              <input class="modern-input" data-new-program-field="gunSaat" type="text" />
+            </div>
+            <div class="form-group">
+              <label>Seviye</label>
+              <input class="modern-input" data-new-program-field="seviye" type="text" />
+            </div>
+          </div>
+          <div class="form-row-2">
+            <div class="form-group">
+              <label>Ücret Bilgisi</label>
+              <input class="modern-input" data-new-program-field="ucretBilgisi" type="text" />
+            </div>
+            <label class="program-active-toggle">
+              <input data-new-program-field="aktif" type="checkbox" checked />
+              <span>Yayında / Aktif</span>
+            </label>
+          </div>
+          <div class="form-group">
+            <label>Açıklama</label>
+            <textarea class="modern-textarea" data-new-program-field="aciklama" rows="3"></textarea>
+          </div>
+          <button id="create-program-btn" class="btn btn-primary w-full" type="button">İlanı Yayınla</button>
+        </div>
+      </article>`;
+    }
+
     function renderClubPrograms(programs) {
-      if (!programs.length) {
-        return '<div class="empty-hint">Kulübe ait ilan/program bulunmuyor.</div>';
-      }
-      return `<div class="admin-program-editor-list">
+      const listHtml = !programs.length
+        ? '<div class="empty-hint">Henüz yayınlanan ilan yok.</div>'
+        : `<div class="admin-program-editor-list">
         ${programs
           .map(
             (program) => `<article class="admin-program-editor" data-program-editor="${program.id}">
@@ -1561,6 +1626,7 @@ const summary = await getAdminClubSummary();
           )
           .join('')}
       </div>`;
+      return renderNewProgramForm() + listHtml;
     }
 
     async function renderClubDetail(clubId) {
@@ -1569,6 +1635,18 @@ const summary = await getAdminClubSummary();
       renderClubDetailLoading();
       try {
         const club = await apiGet(`/api/admin/clubs?id=${clubId}`);
+        const docsHtml = await loadDocuments(clubId);
+        const linkedUsersHtml =
+          club.linkedUsers?.length > 0
+            ? `<ul class="linked-users-list">
+            ${club.linkedUsers
+              .map(
+                (u) =>
+                  `<li><strong>${escapeHtml(u.email)}</strong> <span class="text-muted">(${escapeHtml(u.rol)})</span></li>`,
+              )
+              .join('')}
+          </ul>`
+            : '<p class="section-help text-sm">Henüz panel hesabı oluşturulmamış.</p>';
         if (!clubDetailEl) return;
         clubDetailEl.innerHTML = `
           <div class="detail-header">
@@ -1625,6 +1703,64 @@ const summary = await getAdminClubSummary();
                 </div>
               </section>
 
+              <section class="card-section">
+                <div class="section-head">
+                  <span class="icon">📦</span>
+                  <h3>Başvuru Özeti</h3>
+                </div>
+                <div class="info-list">
+                  <div class="info-item">
+                    <span class="label">Üyelik Paketi</span>
+                    <span class="value">${escapeHtml(club.paketAd || club.paketKod || '-')}</span>
+                  </div>
+                  <div class="info-item">
+                    <span class="label">Yayınlanacak Branş</span>
+                    <span class="value">${club.bransSayisi || 1} branş</span>
+                  </div>
+                  <div class="info-item">
+                    <span class="label">Konum</span>
+                    <span class="value">${escapeHtml(club.il || '-')} / ${escapeHtml(club.ilce || '-')}</span>
+                  </div>
+                </div>
+              </section>
+
+              <section class="card-section">
+                <div class="section-head">
+                  <span class="icon">📝</span>
+                  <h3>Yönetim Notları</h3>
+                </div>
+                <div class="form-group">
+                  <label>Sorumlu Admin E-posta</label>
+                  <input id="club-assigned-admin-email" class="modern-input" placeholder="admin@spornerede.net" value="${club.sorumluAdminEmail || ''}" />
+                </div>
+                <div class="form-group">
+                  <label>Admin Notu</label>
+                  <textarea id="club-admin-note" class="modern-textarea" rows="3" placeholder="Gerekçe, eksik evrak, kontrol notu...">${club.adminNotu || ''}</textarea>
+                </div>
+                <button id="save-club-note-btn" class="btn btn-dark w-full" type="button">Notları Kaydet</button>
+              </section>
+
+              <section class="card-section border-green">
+                <div class="section-head">
+                  <span class="icon">👤</span>
+                  <h3>Sorumlu Kişi Hesabı</h3>
+                </div>
+                <p class="section-help text-sm">Kulüp adına panele giriş yapacak yönetici hesabı.</p>
+                ${linkedUsersHtml}
+                <div class="form-group">
+                  <label>Hesap E-posta</label>
+                  <input id="club-provision-email" class="modern-input" type="email" value="${club.email || ''}" />
+                </div>
+                <div class="form-group">
+                  <label>Geçici Şifre</label>
+                  <div class="password-input-group">
+                    <input id="club-provision-password" class="modern-input" type="text" value="${draftProvisionPasswords.get(clubId) || ''}" placeholder="Şifre" />
+                    <button id="club-generate-password-btn" class="btn btn-outline-sm" type="button">Üret</button>
+                  </div>
+                </div>
+                <button id="club-provision-user-btn" class="btn btn-success w-full mt-2" type="button">Hesabı Oluştur / Güncelle</button>
+              </section>
+
               <section class="card-section border-red">
                 <div class="section-head">
                   <span class="icon">⛔</span>
@@ -1638,15 +1774,78 @@ const summary = await getAdminClubSummary();
             <div class="detail-column">
               <section class="card-section">
                 <div class="section-head">
+                  <span class="icon">📂</span>
+                  <h3>Belgeler</h3>
+                </div>
+                <div class="doc-section-body">
+                  ${docsHtml}
+                  <div class="upload-box mt-4">
+                    <h4>Dekont Yükle (PDF)</h4>
+                    <div class="upload-controls">
+                      <input id="club-doc-file" type="file" accept=".pdf,application/pdf" class="file-input" />
+                      <button id="club-upload-doc-btn" class="btn btn-outline" type="button">Yükle</button>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <section class="card-section">
+                <div class="section-head">
+                  <span class="icon">⏱️</span>
+                  <h3>İşlem Geçmişi</h3>
+                </div>
+                <div id="club-admin-log-timeline" class="log-timeline-container"><div class="spinner-small"></div></div>
+              </section>
+
+              <section class="card-section">
+                <div class="section-head">
                   <span class="icon">📋</span>
                   <h3>Yayınlanan İlanlar / Kurslar</h3>
                 </div>
-                <p class="section-help text-sm mb-4">Kulübün panelden eklediği ve vitrinde görünen programları.</p>
+                <p class="section-help text-sm mb-4">Vitrinde görünen programlar. Aşağıdan yeni ilan ekleyebilirsiniz.</p>
                 ${renderClubPrograms(club.programs || [])}
               </section>
             </div>
           </div>
         `;
+
+        const renderClubLogTimeline = async () => {
+          const logEl = document.getElementById('club-admin-log-timeline');
+          if (!logEl) return;
+          try {
+            const logs = await apiGet(`/api/admin/applications?logsForId=${clubId}`);
+            if (!logs.length) {
+              logEl.innerHTML = '<div class="empty-hint text-center py-4">Henüz işlem geçmişi yok.</div>';
+              return;
+            }
+            logEl.innerHTML = `
+              <ul class="timeline">
+                ${logs
+                  .map((log) => {
+                    const timeLine = formatLogDateTime(log.createdAt);
+                    const title = escapeHtml(logActionTitle(log.action));
+                    const actor = log.actorEmail ? escapeHtml(log.actorEmail) : 'Sistem';
+                    return `
+                    <li class="timeline-item">
+                      <div class="timeline-marker"></div>
+                      <div class="timeline-content">
+                        <div class="timeline-head">
+                          <span class="timeline-title">${title}</span>
+                          <span class="timeline-time">${timeLine}</span>
+                        </div>
+                        <div class="timeline-actor">👤 ${actor}</div>
+                        ${log.note ? `<div class="timeline-note">${escapeHtml(log.note)}</div>` : ''}
+                      </div>
+                    </li>`;
+                  })
+                  .join('')}
+              </ul>
+            `;
+          } catch {
+            logEl.innerHTML = '<div class="error-text">Geçmiş yüklenemedi.</div>';
+          }
+        };
+        await renderClubLogTimeline();
 
         const revokeBtn = document.getElementById('revoke-club-btn');
         revokeBtn?.addEventListener('click', async () => {
@@ -1737,6 +1936,130 @@ const summary = await getAdminClubSummary();
               alert(error.message);
             }
           });
+        });
+
+        const createProgramBtn = document.getElementById('create-program-btn');
+        createProgramBtn?.addEventListener('click', async () => {
+          const editor = clubDetailEl.querySelector('[data-program-editor="new"]');
+          if (!(editor instanceof HTMLElement)) return;
+          const fieldValue = (name) => editor.querySelector(`[data-new-program-field="${name}"]`)?.value || '';
+          const activeInput = editor.querySelector('[data-new-program-field="aktif"]');
+          const ad = fieldValue('ad').trim();
+          if (!ad) {
+            alert('Program adı zorunlu.');
+            return;
+          }
+          try {
+            createProgramBtn.textContent = 'Yayınlanıyor...';
+            await apiPost('/api/admin/clubs', {
+              id: clubId,
+              createProgram: true,
+              ad,
+              gunSaat: fieldValue('gunSaat'),
+              seviye: fieldValue('seviye'),
+              ucretBilgisi: fieldValue('ucretBilgisi'),
+              aciklama: fieldValue('aciklama'),
+              aktif: activeInput instanceof HTMLInputElement ? activeInput.checked : true,
+            });
+            await renderClubDetail(clubId);
+          } catch (error) {
+            createProgramBtn.textContent = 'İlanı Yayınla';
+            alert(error.message);
+          }
+        });
+
+        const saveClubNoteBtn = document.getElementById('save-club-note-btn');
+        saveClubNoteBtn?.addEventListener('click', async () => {
+          try {
+            saveClubNoteBtn.textContent = 'Kaydediliyor...';
+            await apiPost('/api/admin/clubs', {
+              id: clubId,
+              ad: club.ad,
+              telefon: club.telefon,
+              email: club.email,
+              adres: club.adres,
+              aciklama: club.aciklama,
+              yasAraligi: club.yasAraligi,
+              fiyatBilgisi: club.fiyatBilgisi,
+              adminNotu: document.getElementById('club-admin-note')?.value || '',
+              sorumluAdminEmail: document.getElementById('club-assigned-admin-email')?.value?.trim() || '',
+            });
+            await renderClubDetail(clubId);
+          } catch (error) {
+            saveClubNoteBtn.textContent = 'Notları Kaydet';
+            alert(error.message);
+          }
+        });
+
+        const clubProvisionBtn = document.getElementById('club-provision-user-btn');
+        const clubGeneratePasswordBtn = document.getElementById('club-generate-password-btn');
+        const clubProvisionPasswordInput = document.getElementById('club-provision-password');
+
+        clubProvisionPasswordInput?.addEventListener('input', () => {
+          draftProvisionPasswords.set(clubId, clubProvisionPasswordInput.value);
+        });
+
+        clubGeneratePasswordBtn?.addEventListener('click', () => {
+          const nextPassword = generateTemporaryPassword();
+          if (clubProvisionPasswordInput) clubProvisionPasswordInput.value = nextPassword;
+          draftProvisionPasswords.set(clubId, nextPassword);
+        });
+
+        clubProvisionBtn?.addEventListener('click', async () => {
+          const email = document.getElementById('club-provision-email')?.value?.trim() || '';
+          const password = document.getElementById('club-provision-password')?.value || '';
+          if (!email || !password) {
+            alert('E-posta ve geçici şifre zorunlu.');
+            return;
+          }
+          try {
+            clubProvisionBtn.textContent = 'İşleniyor...';
+            const result = await apiPost('/api/admin/provision-club-user', {
+              clubId,
+              email,
+              password,
+              membershipRole: 'owner',
+            });
+            alert(`Hesap başarıyla oluşturuldu/güncellendi.\nE-posta: ${result.email}`);
+            clubProvisionBtn.textContent = 'Hesabı Oluştur / Güncelle';
+            await renderClubDetail(clubId);
+          } catch (error) {
+            clubProvisionBtn.textContent = 'Hesabı Oluştur / Güncelle';
+            alert(error.message);
+          }
+        });
+
+        const clubUploadDocBtn = document.getElementById('club-upload-doc-btn');
+        clubUploadDocBtn?.addEventListener('click', async () => {
+          const fileInput = document.getElementById('club-doc-file');
+          if (!(fileInput instanceof HTMLInputElement) || !fileInput.files?.length) {
+            alert('Lütfen bir PDF dosyası seçin.');
+            return;
+          }
+          const file = fileInput.files[0];
+          const looksLikePdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+          if (!looksLikePdf) {
+            alert('Yalnızca PDF dekont yükleyebilirsiniz.');
+            return;
+          }
+          try {
+            clubUploadDocBtn.textContent = 'Yükleniyor...';
+            const formData = new FormData();
+            formData.append('applicationId', String(clubId));
+            formData.append('document', file);
+            const response = await fetch('/api/admin/application-documents-upload', {
+              method: 'POST',
+              body: formData,
+            });
+            if (!response.ok) {
+              const payload = await response.json().catch(() => ({}));
+              throw new Error(payload.error || `Request failed (${response.status})`);
+            }
+            await renderClubDetail(clubId);
+          } catch (error) {
+            clubUploadDocBtn.textContent = 'Yükle';
+            alert(error.message);
+          }
         });
       } catch (error) {
         renderDetailError(error.message);
@@ -2799,6 +3122,23 @@ const summary = await getAdminClubSummary();
       font-size: 0.8rem;
       color: #6b7280;
       line-height: 1.4;
+    }
+
+    .linked-users-list {
+      margin: 0 0 1rem;
+      padding-left: 1.1rem;
+      font-size: 0.88rem;
+      color: #374151;
+    }
+
+    .linked-users-list li {
+      margin-bottom: 0.35rem;
+    }
+
+    .admin-program-editor--new {
+      margin-bottom: 1rem;
+      border: 1px dashed #fca5a5;
+      background: #fffbfb;
     }
 
     .section-head {

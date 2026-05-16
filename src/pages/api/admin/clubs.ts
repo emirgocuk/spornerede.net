@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { isAdminAuthorized } from '../../../lib/adminAuth';
 import {
+  createAdminClubProgram,
   deleteAdminClubProgram,
   getApprovedAdminClubById,
   listApprovedAdminClubs,
@@ -45,6 +46,27 @@ export const POST: APIRoute = async ({ request }) => {
     return new Response(JSON.stringify({ error: 'Invalid payload' }), { status: 400 });
   }
 
+  if (body?.createProgram === true) {
+    const ad = body?.ad?.toString?.().trim() ?? '';
+    if (!ad) {
+      return new Response(JSON.stringify({ error: 'Program adı zorunlu' }), { status: 400 });
+    }
+    const created = await createAdminClubProgram(id, {
+      ad: ad.slice(0, 180),
+      aciklama: body?.aciklama?.toString?.().slice(0, 5000) ?? '',
+      gunSaat: body?.gunSaat?.toString?.().slice(0, 160) ?? '',
+      seviye: body?.seviye?.toString?.().slice(0, 120) ?? '',
+      ucretBilgisi: body?.ucretBilgisi?.toString?.().slice(0, 120) ?? '',
+      aktif: body?.aktif !== false,
+    });
+    if (!created) {
+      return new Response(JSON.stringify({ error: 'Club not found' }), { status: 404 });
+    }
+    return new Response(JSON.stringify({ data: created }), {
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
   const updated = await updateApprovedAdminClub(id, {
     ad: body?.ad?.toString?.().slice(0, 160) ?? '',
     telefon: body?.telefon?.toString?.().slice(0, 30) ?? '',
@@ -53,6 +75,8 @@ export const POST: APIRoute = async ({ request }) => {
     aciklama: body?.aciklama?.toString?.().slice(0, 5000) ?? '',
     yasAraligi: body?.yasAraligi?.toString?.().slice(0, 50) ?? '',
     fiyatBilgisi: body?.fiyatBilgisi?.toString?.().slice(0, 120) ?? '',
+    adminNotu: body?.adminNotu?.toString?.(),
+    sorumluAdminEmail: body?.sorumluAdminEmail?.toString?.(),
   });
 
   if (!updated) {

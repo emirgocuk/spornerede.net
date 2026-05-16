@@ -154,7 +154,10 @@ export async function listAdminApplications() {
   requireDatabase();
   const db = await getDb();
   const [rows, cities, districts] = await Promise.all([
-    db.collection('kulupler').getList(1, 100, { sort: '-legacyId' }),
+    db.collection('kulupler').getList(1, 100, {
+      filter: 'durum != "approved"',
+      sort: '-legacyId',
+    }),
     db.collection('iller').getFullList(),
     db.collection('ilceler').getFullList(),
   ]);
