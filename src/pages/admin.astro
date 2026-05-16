@@ -1,8 +1,18 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import { getAdminClubSummary } from '../lib/repositories/catalog';
+import { getAdminClubSummary, getAllCities, getAllDistrictsWithCities } from '../lib/repositories/catalog';
 
 const summary = await getAdminClubSummary();
+const [cityRows, districtRows] = await Promise.all([getAllCities(), getAllDistrictsWithCities()]);
+const adminLocationData = {
+  cities: cityRows.map((c) => ({ ad: c.ad, slug: c.slug })),
+  districtsByCity: districtRows.reduce<Record<string, { ad: string; slug: string }[]>>((acc, district) => {
+    if (!district.il) return acc;
+    acc[district.il] ??= [];
+    acc[district.il].push({ ad: district.ad, slug: district.slug });
+    return acc;
+  }, {}),
+};
 ---
 
 <BaseLayout
@@ -83,6 +93,9 @@ const summary = await getAdminClubSummary();
             </button>
             <button type="button" class="admin-tab" data-tab-target="news">
               <span class="tab-icon">📰</span> Haberler
+            </button>
+            <button type="button" class="admin-tab" data-tab-target="pricing">
+              <span class="tab-icon">💰</span> Üyelik Fiyatları
             </button>
             <button type="button" class="admin-tab" data-tab-target="backups">
               <span class="tab-icon">💾</span> Yedekler
@@ -269,6 +282,20 @@ const summary = await getAdminClubSummary();
             </article>
           </div>
         </section>
+        <!-- Pricing Tab Panel -->
+        <section class="admin-shell is-hidden" data-tab-panel="pricing">
+          <div class="admin-toolbar">
+            <button id="load-pricing-btn" class="btn btn-primary shadow-sm" type="button">🔄 Yenile</button>
+          </div>
+          <div class="card-section">
+            <div class="section-head">
+              <span class="icon">💰</span>
+              <h2>Üyelik Paket Fiyatları</h2>
+            </div>
+            <p class="section-help text-sm mb-4">Başvuru sayfasındaki paket tutarları ve açıklamaları buradan güncellenir. Ek branş indirimi: %50.</p>
+            <div id="membership-plans-admin" class="membership-plans-admin"><div class="spinner-small"></div></div>
+          </div>
+        </section>
         <!-- Backups Tab Panel -->
         <section class="admin-shell is-hidden" data-tab-panel="backups">
           <div class="backup-panel">
@@ -299,8 +326,11 @@ const summary = await getAdminClubSummary();
     </main>
   </div>
 
+  <script type="application/json" id="admin-location-data" set:html={JSON.stringify(adminLocationData)} />
+
   <script>
     import tinymce from 'tinymce/tinymce';
+    import { buildClubProgramsSectionHtml, bindClubProgramEditor } from '../lib/admin/clubProgramEditorClient';
     import 'tinymce/icons/default';
     import 'tinymce/models/dom';
     import 'tinymce/themes/silver';
@@ -351,6 +381,12 @@ const summary = await getAdminClubSummary();
     const newsDetailEl = document.getElementById('news-detail');
     const downloadBackupBtn = document.getElementById('download-backup-btn');
     const backupStatus = document.getElementById('backup-status');
+    const loadPricingBtn = document.getElementById('load-pricing-btn');
+    const membershipPlansAdminEl = document.getElementById('membership-plans-admin');
+
+    const adminLocationData = JSON.parse(
+      document.getElementById('admin-location-data')?.textContent || '{"cities":[],"districtsByCity":{}}',
+    );
 
     let cachedApps = [];
     let selectedAppId = 0;
@@ -601,7 +637,36 @@ const summary = await getAdminClubSummary();
       if (action === 'application_created') return 'Başvuru oluşturuldu';
       if (action === 'status_update') return 'Durum güncellendi';
       if (action === 'club_revoked') return 'Onaylı listeden kaldırıldı';
+      if (action === 'club_approval_withdrawn') return 'Onay geri çekildi';
       return action || 'İşlem';
+    }
+
+    function formatMembershipLabel(kod, ad) {
+      if (kod === 'alti-aylik' || kod === 'aylik') return '6 Aylık';
+      if (kod === 'on-iki-aylik' || kod === 'yillik') return 'Yıllık';
+      if (ad && /12\s*aylık|yıllık/i.test(ad)) return 'Yıllık';
+      if (ad && /6\s*aylık|aylık/i.test(ad) && !/12/i.test(ad)) return '6 Aylık';
+      return ad || kod || '—';
+    }
+
+    function renderCityOptions(selectedSlug) {
+      return (adminLocationData.cities || [])
+        .map(
+          (city) =>
+            `<option value="${escapeHtml(city.slug)}" ${city.slug === selectedSlug ? 'selected' : ''}>${escapeHtml(city.ad)}</option>`,
+        )
+        .join('');
+    }
+
+    function renderDistrictOptions(citySlug, selectedDistrictSlug) {
+      const city = (adminLocationData.cities || []).find((c) => c.slug === citySlug);
+      const districts = city ? adminLocationData.districtsByCity?.[city.ad] || [] : [];
+      return districts
+        .map(
+          (d) =>
+            `<option value="${escapeHtml(d.slug)}" ${d.slug === selectedDistrictSlug ? 'selected' : ''}>${escapeHtml(d.ad)}</option>`,
+        )
+        .join('');
     }
 
     function statusBadge(status) {
@@ -931,6 +996,22 @@ const summary = await getAdminClubSummary();
       try {
         const app = await apiGet(`/api/admin/applications?id=${appId}`);
         const docsHtml = await loadDocuments(appId);
+        const ilanlar = Array.isArray(app.ilanlar) ? app.ilanlar : [];
+        const ilanlarHtml = ilanlar.length
+          ? `<ul class="application-ilanlar-list">
+          ${ilanlar
+            .map(
+              (ilan, idx) => `<li class="application-ilan-card">
+                <div class="application-ilan-head">
+                  <strong>${idx + 1}. ${escapeHtml(ilan.brans || ilan.ad || '-')}</strong>
+                  <span class="status-badge ${ilan.aktif ? 'status-approved' : 'status-pending'}">${ilan.aktif ? 'Yayında' : 'Onay bekliyor'}</span>
+                </div>
+                <p class="text-sm text-muted">${[ilan.yasAraligi, ilan.aidatBilgisi || ilan.ucretBilgisi].filter(Boolean).map((v) => escapeHtml(v)).join(' · ') || '—'}</p>
+              </li>`,
+            )
+            .join('')}
+        </ul>`
+          : '<p class="section-help">Bu başvuruya bağlı ilan kaydı bulunamadı.</p>';
         if (!detailEl) return;
         detailEl.innerHTML = `
           <div class="detail-header">
@@ -962,14 +1043,14 @@ const summary = await getAdminClubSummary();
                   </div>
                   <div class="info-item">
                     <span class="label">Üyelik Paketi</span>
-                    <span class="value">${escapeHtml(app.paketAd || app.paketKod || '-')}</span>
+                    <span class="value">${escapeHtml(app.paketLabel || formatMembershipLabel(app.paketKod, app.paketAd))}</span>
                   </div>
                   <div class="info-item">
                     <span class="label">Yayınlanacak Branş</span>
                     <span class="value">${app.bransSayisi || 1} branş</span>
                   </div>
                   <div class="info-item">
-                    <span class="label">Tam Adres</span>
+                    <span class="label">Tesis / Adres</span>
                     <span class="value">${app.adres || '-'}</span>
                   </div>
                   <div class="info-item">
@@ -997,6 +1078,14 @@ const summary = await getAdminClubSummary();
               </section>
               
               <section class="card-section">
+                <div class="section-head">
+                  <span class="icon">📋</span>
+                  <h3>Başvuru İlanları</h3>
+                </div>
+                ${ilanlarHtml}
+              </section>
+
+                            <section class="card-section">
                 <div class="section-head">
                   <span class="icon">📂</span>
                   <h3>Belgeler</h3>
@@ -1532,101 +1621,8 @@ const summary = await getAdminClubSummary();
       clubDetailEl.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Detay yükleniyor...</p></div>';
     }
 
-    function renderNewProgramForm() {
-      return `<article class="admin-program-editor admin-program-editor--new" data-program-editor="new">
-        <div class="program-editor-head">
-          <div>
-            <span class="kicker">YENİ İLAN</span>
-            <strong>Admin panelden ilan ekle</strong>
-          </div>
-        </div>
-        <div class="form-layout">
-          <div class="form-group">
-            <label>Program / Kurs Adı</label>
-            <input class="modern-input" data-new-program-field="ad" type="text" placeholder="Örn: Hafta içi futbol akademisi" />
-          </div>
-          <div class="form-row-2">
-            <div class="form-group">
-              <label>Gün / Saat</label>
-              <input class="modern-input" data-new-program-field="gunSaat" type="text" />
-            </div>
-            <div class="form-group">
-              <label>Seviye</label>
-              <input class="modern-input" data-new-program-field="seviye" type="text" />
-            </div>
-          </div>
-          <div class="form-row-2">
-            <div class="form-group">
-              <label>Ücret Bilgisi</label>
-              <input class="modern-input" data-new-program-field="ucretBilgisi" type="text" />
-            </div>
-            <label class="program-active-toggle">
-              <input data-new-program-field="aktif" type="checkbox" checked />
-              <span>Yayında / Aktif</span>
-            </label>
-          </div>
-          <div class="form-group">
-            <label>Açıklama</label>
-            <textarea class="modern-textarea" data-new-program-field="aciklama" rows="3"></textarea>
-          </div>
-          <button id="create-program-btn" class="btn btn-primary w-full" type="button">İlanı Yayınla</button>
-        </div>
-      </article>`;
-    }
-
     function renderClubPrograms(programs) {
-      const listHtml = !programs.length
-        ? '<div class="empty-hint">Henüz yayınlanan ilan yok.</div>'
-        : `<div class="admin-program-editor-list">
-        ${programs
-          .map(
-            (program) => `<article class="admin-program-editor" data-program-editor="${program.id}">
-              <div class="program-editor-head">
-                <div>
-                  <span class="kicker">PROGRAM #${program.id}</span>
-                  <strong>${escapeHtml(program.ad || '-')}</strong>
-                </div>
-                ${program.aktif ? '<span class="status-badge status-approved">Aktif</span>' : '<span class="status-badge status-rejected">Pasif</span>'}
-              </div>
-              <div class="form-layout">
-                <div class="form-group">
-                  <label>Program / Kurs Adı</label>
-                  <input class="modern-input" data-program-field="ad" type="text" value="${escapeHtml(program.ad || '')}" />
-                </div>
-                <div class="form-row-2">
-                  <div class="form-group">
-                    <label>Gün / Saat</label>
-                    <input class="modern-input" data-program-field="gunSaat" type="text" value="${escapeHtml(program.gunSaat || '')}" />
-                  </div>
-                  <div class="form-group">
-                    <label>Seviye</label>
-                    <input class="modern-input" data-program-field="seviye" type="text" value="${escapeHtml(program.seviye || '')}" />
-                  </div>
-                </div>
-                <div class="form-row-2">
-                  <div class="form-group">
-                    <label>Ücret Bilgisi</label>
-                    <input class="modern-input" data-program-field="ucretBilgisi" type="text" value="${escapeHtml(program.ucretBilgisi || '')}" />
-                  </div>
-                  <label class="program-active-toggle">
-                    <input data-program-field="aktif" type="checkbox" ${program.aktif ? 'checked' : ''} />
-                    <span>Yayında / Aktif</span>
-                  </label>
-                </div>
-                <div class="form-group">
-                  <label>Açıklama</label>
-                  <textarea class="modern-textarea" data-program-field="aciklama" rows="3">${escapeHtml(program.aciklama || '')}</textarea>
-                </div>
-                <div class="program-editor-actions">
-                  <button class="btn btn-primary save-program-btn" data-program-id="${program.id}" type="button">Programı Kaydet</button>
-                  <button class="btn btn-danger delete-program-btn" data-program-id="${program.id}" type="button">Programı Sil</button>
-                </div>
-              </div>
-            </article>`
-          )
-          .join('')}
-      </div>`;
-      return renderNewProgramForm() + listHtml;
+      return buildClubProgramsSectionHtml(programs);
     }
 
     async function renderClubDetail(clubId) {
@@ -1673,6 +1669,22 @@ const summary = await getAdminClubSummary();
                   </div>
                   <div class="form-row-2">
                     <div class="form-group">
+                      <label>İl</label>
+                      <select id="club-il" class="modern-select">
+                        <option value="">İl seçin</option>
+                        ${renderCityOptions(club.ilSlug || '')}
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label>İlçe</label>
+                      <select id="club-ilce" class="modern-select">
+                        <option value="">İlçe seçin</option>
+                        ${renderDistrictOptions(club.ilSlug || '', club.ilceSlug || '')}
+                      </select>
+                    </div>
+                  </div>
+                  <div class="form-row-2">
+                    <div class="form-group">
                       <label>Telefon</label>
                       <input id="club-telefon" class="modern-input" type="text" value="${club.telefon || ''}" />
                     </div>
@@ -1711,15 +1723,18 @@ const summary = await getAdminClubSummary();
                 <div class="info-list">
                   <div class="info-item">
                     <span class="label">Üyelik Paketi</span>
-                    <span class="value">${escapeHtml(club.paketAd || club.paketKod || '-')}</span>
+                    <span class="value">${escapeHtml(club.paketLabel || formatMembershipLabel(club.paketKod, club.paketAd))}</span>
+                  </div>
+                  <div class="form-group mt-2">
+                    <label>Üyelik Periyodu</label>
+                    <select id="club-membership-period" class="modern-select">
+                      <option value="six_month" ${club.membershipPeriod !== 'yearly' ? 'selected' : ''}>6 Aylık</option>
+                      <option value="yearly" ${club.membershipPeriod === 'yearly' ? 'selected' : ''}>Yıllık</option>
+                    </select>
                   </div>
                   <div class="info-item">
                     <span class="label">Yayınlanacak Branş</span>
                     <span class="value">${club.bransSayisi || 1} branş</span>
-                  </div>
-                  <div class="info-item">
-                    <span class="label">Konum</span>
-                    <span class="value">${escapeHtml(club.il || '-')} / ${escapeHtml(club.ilce || '-')}</span>
                   </div>
                 </div>
               </section>
@@ -1761,12 +1776,21 @@ const summary = await getAdminClubSummary();
                 <button id="club-provision-user-btn" class="btn btn-success w-full mt-2" type="button">Hesabı Oluştur / Güncelle</button>
               </section>
 
+              <section class="card-section border-amber">
+                <div class="section-head">
+                  <span class="icon">↩️</span>
+                  <h3>Onayını Geri Çek</h3>
+                </div>
+                <p class="section-help text-sm">Kulübü onaylı listeden çıkarır ve Başvurular sekmesine (bekleyen) geri taşır.</p>
+                <button id="withdraw-club-btn" class="btn btn-outline w-full" type="button">Onayını Geri Çek</button>
+              </section>
+
               <section class="card-section border-red">
                 <div class="section-head">
                   <span class="icon">⛔</span>
-                  <h3>Onaylı Listeden Kaldır</h3>
+                  <h3>Onaylı Listeden Kaldır (Red)</h3>
                 </div>
-                <p class="section-help text-sm">Kulüp sitede görünmez; vitrin listesinden çıkar. Gerekirse başvurular sekmesinden yeniden onaylanabilir.</p>
+                <p class="section-help text-sm">Kulüp reddedilir ve sitede görünmez. Başvurular sekmesinden yeniden değerlendirilebilir.</p>
                 <button id="revoke-club-btn" class="btn btn-outline btn-danger-outline w-full" type="button">Onaylı Listeden Kaldır</button>
               </section>
             </div>
@@ -1885,6 +1909,9 @@ const summary = await getAdminClubSummary();
               fiyatBilgisi: document.getElementById('club-fiyat-bilgisi')?.value || '',
               adres: document.getElementById('club-adres')?.value || '',
               aciklama: document.getElementById('club-aciklama')?.value || '',
+              il: document.getElementById('club-il')?.value || '',
+              ilce: document.getElementById('club-ilce')?.value || '',
+              membershipPeriod: document.getElementById('club-membership-period')?.value || 'six_month',
             });
             await loadClubs();
             await renderClubDetail(clubId);
@@ -1894,79 +1921,46 @@ const summary = await getAdminClubSummary();
           }
         });
 
-        clubDetailEl.querySelectorAll('.save-program-btn').forEach((button) => {
-          button.addEventListener('click', async () => {
-            const programId = Number(button.getAttribute('data-program-id'));
-            const editor = button.closest('[data-program-editor]');
-            if (!programId || !(editor instanceof HTMLElement)) return;
-            const fieldValue = (name) => editor.querySelector(`[data-program-field="${name}"]`)?.value || '';
-            const activeInput = editor.querySelector('[data-program-field="aktif"]');
-            try {
-              button.textContent = 'Kaydediliyor...';
-              await apiPut('/api/admin/clubs', {
-                clubId,
-                programId,
-                ad: fieldValue('ad'),
-                gunSaat: fieldValue('gunSaat'),
-                seviye: fieldValue('seviye'),
-                ucretBilgisi: fieldValue('ucretBilgisi'),
-                aciklama: fieldValue('aciklama'),
-                aktif: activeInput instanceof HTMLInputElement ? activeInput.checked : true,
-              });
-              await renderClubDetail(clubId);
-            } catch (error) {
-              button.textContent = 'Programı Kaydet';
-              alert(error.message);
-            }
-          });
+        const clubIlSelect = document.getElementById('club-il');
+        const clubIlceSelect = document.getElementById('club-ilce');
+        clubIlSelect?.addEventListener('change', () => {
+          if (!(clubIlceSelect instanceof HTMLSelectElement) || !(clubIlSelect instanceof HTMLSelectElement)) return;
+          clubIlceSelect.innerHTML = '<option value="">İlçe seçin</option>' + renderDistrictOptions(clubIlSelect.value, '');
         });
 
-        clubDetailEl.querySelectorAll('.delete-program-btn').forEach((button) => {
-          button.addEventListener('click', async () => {
-            const programId = Number(button.getAttribute('data-program-id'));
-            if (!programId) return;
-            const confirmed = confirm('Bu programı kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz.');
-            if (!confirmed) return;
-            try {
-              button.textContent = 'Siliniyor...';
-              await apiDelete('/api/admin/clubs', { clubId, programId });
-              await renderClubDetail(clubId);
-            } catch (error) {
-              button.textContent = 'Programı Sil';
-              alert(error.message);
-            }
-          });
-        });
-
-        const createProgramBtn = document.getElementById('create-program-btn');
-        createProgramBtn?.addEventListener('click', async () => {
-          const editor = clubDetailEl.querySelector('[data-program-editor="new"]');
-          if (!(editor instanceof HTMLElement)) return;
-          const fieldValue = (name) => editor.querySelector(`[data-new-program-field="${name}"]`)?.value || '';
-          const activeInput = editor.querySelector('[data-new-program-field="aktif"]');
-          const ad = fieldValue('ad').trim();
-          if (!ad) {
-            alert('Program adı zorunlu.');
-            return;
-          }
+        const withdrawBtn = document.getElementById('withdraw-club-btn');
+        withdrawBtn?.addEventListener('click', async () => {
+          const confirmed = confirm('Onayı geri çekmek istediğinize emin misiniz? Kulüp Başvurular listesine döner.');
+          if (!confirmed) return;
           try {
-            createProgramBtn.textContent = 'Yayınlanıyor...';
-            await apiPost('/api/admin/clubs', {
-              id: clubId,
-              createProgram: true,
-              ad,
-              gunSaat: fieldValue('gunSaat'),
-              seviye: fieldValue('seviye'),
-              ucretBilgisi: fieldValue('ucretBilgisi'),
-              aciklama: fieldValue('aciklama'),
-              aktif: activeInput instanceof HTMLInputElement ? activeInput.checked : true,
-            });
-            await renderClubDetail(clubId);
+            withdrawBtn.textContent = 'Geri çekiliyor...';
+            await apiDelete('/api/admin/clubs', { clubId, withdrawApproval: true });
+            selectedClubId = 0;
+            await loadClubs();
+            await loadApplications();
+            switchTab('applications');
+            if (clubDetailEl) {
+              clubDetailEl.innerHTML = '<div class="empty-state"><div class="empty-icon">↩️</div><h3>Onay geri çekildi</h3><p>Kulüp Başvurular sekmesinde görüntüleyebilirsiniz.</p></div>';
+            }
           } catch (error) {
-            createProgramBtn.textContent = 'İlanı Yayınla';
+            withdrawBtn.textContent = 'Onayını Geri Çek';
             alert(error.message);
           }
         });
+
+        const programWorkspace = clubDetailEl.querySelector('#club-program-workspace');
+        if (programWorkspace instanceof HTMLElement) {
+          bindClubProgramEditor(
+            programWorkspace,
+            clubId,
+            club.programs || [],
+            {
+              post: apiPost,
+              put: apiPut,
+            },
+            () => renderClubDetail(clubId),
+          );
+        }
 
         const saveClubNoteBtn = document.getElementById('save-club-note-btn');
         saveClubNoteBtn?.addEventListener('click', async () => {
@@ -2420,6 +2414,72 @@ const summary = await getAdminClubSummary();
       await renderFeedbackDetail(id);
     });
 
+    async function loadMembershipPlansAdmin() {
+      if (!membershipPlansAdminEl) return;
+      membershipPlansAdminEl.innerHTML = '<div class="spinner-small"></div>';
+      try {
+        const plans = await apiGet('/api/admin/membership-plans');
+        if (!plans.length) {
+          membershipPlansAdminEl.innerHTML = '<p class="section-help">Paket bulunamadı.</p>';
+          return;
+        }
+        membershipPlansAdminEl.innerHTML = `
+          <div class="membership-plans-admin-grid">
+            ${plans
+              .map(
+                (plan) => `<article class="membership-plan-admin-card" data-plan-id="${plan.legacyId}">
+                  <h4>${escapeHtml(plan.ad)} <span class="text-muted">(${escapeHtml(plan.kod)})</span></h4>
+                  <div class="form-group">
+                    <label>Görünen ad</label>
+                    <input class="modern-input" data-plan-field="ad" value="${escapeHtml(plan.ad)}" />
+                  </div>
+                  <div class="form-group">
+                    <label>Ücret (TL)</label>
+                    <input class="modern-input" data-plan-field="ucret" type="number" min="0" step="1" value="${plan.ucret}" />
+                  </div>
+                  <div class="form-group">
+                    <label>Açıklama</label>
+                    <textarea class="modern-textarea" data-plan-field="aciklama" rows="2">${escapeHtml(plan.aciklama || '')}</textarea>
+                  </div>
+                  <label class="program-active-toggle">
+                    <input data-plan-field="aktif" type="checkbox" ${plan.aktif ? 'checked' : ''} />
+                    <span>Başvuruda göster (aktif)</span>
+                  </label>
+                  <button class="btn btn-primary w-full mt-2" type="button" data-save-plan="${plan.legacyId}">Kaydet</button>
+                </article>`,
+              )
+              .join('')}
+          </div>`;
+        membershipPlansAdminEl.querySelectorAll('[data-save-plan]').forEach((btn) => {
+          btn.addEventListener('click', async () => {
+            const legacyId = Number(btn.getAttribute('data-save-plan'));
+            const card = btn.closest('[data-plan-id]');
+            if (!legacyId || !(card instanceof HTMLElement)) return;
+            const read = (field) => card.querySelector(`[data-plan-field="${field}"]`);
+            try {
+              btn.textContent = 'Kaydediliyor...';
+              await apiPut('/api/admin/membership-plans', {
+                legacyId,
+                ad: read('ad')?.value || '',
+                ucret: Number(read('ucret')?.value || 0),
+                aciklama: read('aciklama')?.value || '',
+                aktif: read('aktif') instanceof HTMLInputElement ? read('aktif').checked : true,
+              });
+              btn.textContent = 'Kaydedildi';
+              setTimeout(() => {
+                btn.textContent = 'Kaydet';
+              }, 1200);
+            } catch (error) {
+              btn.textContent = 'Kaydet';
+              alert(error.message);
+            }
+          });
+        });
+      } catch (error) {
+        membershipPlansAdminEl.innerHTML = `<p class="error-text">${escapeHtml(error.message)}</p>`;
+      }
+    }
+
     tabButtons.forEach((button) => {
       button.addEventListener('click', async () => {
         const tabKey = button.getAttribute('data-tab-target') || 'applications';
@@ -2436,8 +2496,13 @@ const summary = await getAdminClubSummary();
         if (tabKey === 'news' && !cachedNews.length) {
           await loadNews();
         }
+        if (tabKey === 'pricing') {
+          await loadMembershipPlansAdmin();
+        }
       });
     });
+
+    loadPricingBtn?.addEventListener('click', () => loadMembershipPlansAdmin());
 
     loadButton?.addEventListener('click', async () => {
       await loadApplications();
@@ -3523,6 +3588,57 @@ const summary = await getAdminClubSummary();
       .program-editor-actions {
         grid-template-columns: 1fr auto;
       }
+    }
+
+    .club-program-workspace { margin-top: 0.5rem; }
+    .club-program-list-head { display: flex; justify-content: flex-end; margin-bottom: 1rem; }
+    .club-program-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.75rem; }
+    .club-program-list-item {
+      display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+      padding: 1rem; border: 1px solid var(--admin-border); border-radius: 12px; background: #fff;
+    }
+    .club-program-editor-panel.is-hidden { display: none; }
+    #club-program-list-view.is-hidden { display: none; }
+    .admin-program-full-form .form-section { margin-bottom: 1.5rem; padding-bottom: 1.25rem; border-bottom: 1px solid var(--admin-border); }
+    .day-picker { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
+    .day-chip { cursor: pointer; }
+    .day-chip input { display: none; }
+    .day-chip span {
+      display: inline-block; padding: 0.35rem 0.65rem; border-radius: 999px;
+      border: 1px solid var(--admin-border); font-size: 0.8rem;
+    }
+    .day-chip input:checked + span { background: var(--admin-primary); color: #fff; border-color: var(--admin-primary); }
+    .gallery-dropzone {
+      border: 2px dashed var(--admin-border); border-radius: 12px; padding: 1.25rem;
+      text-align: center; position: relative; margin-bottom: 1rem;
+    }
+    .gallery-dropzone.is-dragover { border-color: var(--admin-primary); background: #f0f9ff; }
+    .gallery-list { display: flex; flex-wrap: wrap; gap: 0.75rem; list-style: none; padding: 0; }
+    .gallery-item { position: relative; width: 88px; height: 88px; border-radius: 8px; overflow: hidden; }
+    .gallery-item img { width: 100%; height: 100%; object-fit: cover; }
+    .btn-remove-img {
+      position: absolute; top: 4px; right: 4px; width: 22px; height: 22px;
+      border: none; border-radius: 50%; background: rgba(0,0,0,0.65); color: #fff; cursor: pointer;
+    }
+    .maps-input-row { display: flex; gap: 0.5rem; align-items: center; }
+    .btn-map { white-space: nowrap; padding: 0.5rem 0.75rem; border-radius: 8px; background: #f1f5f9; text-decoration: none; font-size: 0.85rem; }
+    .inline-check { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.75rem; font-size: 0.9rem; }
+    .section-step {
+      width: 28px; height: 28px; border-radius: 50%; background: var(--admin-primary);
+      color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700;
+    }
+    .section-heading { display: flex; gap: 0.75rem; align-items: flex-start; margin-bottom: 1rem; }
+    .border-amber { border-color: #f59e0b !important; }
+    .application-ilanlar-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.75rem; }
+    .application-ilan-card {
+      border: 1px solid var(--admin-border); border-radius: 10px; padding: 1rem; background: #fafbfc;
+    }
+    .application-ilan-head { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem; }
+    .membership-plans-admin-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem;
+    }
+    .membership-plan-admin-card {
+      border: 1px solid var(--admin-border); border-radius: 12px; padding: 1rem; background: #fff;
     }
 
     /* Utils */

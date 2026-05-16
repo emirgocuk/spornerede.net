@@ -10,13 +10,10 @@ import {
 export const prerender = false;
 
 function validateProgramPayload(body: Record<string, unknown> | null, ad: string) {
-  const days = Array.isArray(body?.days) ? body.days : [];
   const gallery = Array.isArray(body?.gallery) ? body.gallery : [];
   if (!ad.trim()) return 'Program adi zorunlu';
   if (!body?.seviye?.toString?.().trim()) return 'Seviye zorunlu';
   if (!body?.ucretBilgisi?.toString?.().trim()) return 'Ucret bilgisi zorunlu';
-  if (!days.length) return 'En az bir gun secilmelidir';
-  if (!body?.startTime?.toString?.().trim() || !body?.endTime?.toString?.().trim()) return 'Saat araligi zorunlu';
   if (!body?.eventDate?.toString?.().trim()) return 'Baslangic tarihi zorunlu';
   if (!body?.isOngoing && !body?.endDate?.toString?.().trim()) return 'Bitis tarihi zorunlu';
   if (!body?.locationText?.toString?.().trim()) return 'Konum bilgisi zorunlu';

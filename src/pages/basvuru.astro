@@ -5,7 +5,9 @@
  * Kulüplerin platforma kayıt için dolduracağı form.
  */
 import BaseLayout from '../layouts/BaseLayout.astro';
+import BasvuruFormSections from '../components/BasvuruFormSections.astro';
 import { getAllCities, getAllDistrictsWithCities, getAllBranches } from '../lib/repositories/catalog';
+import { getMembershipPlans } from '../lib/repositories/applications';
 import { getBankTransferDisplay } from '../lib/billing/bankTransfer';
 
 const success = Astro.url.searchParams.get('success') === '1';
@@ -14,9 +16,6 @@ const errorMessages: Record<string, string> = {
   missing: 'Lütfen zorunlu alanları eksiksiz doldurun.',
   email: 'Lütfen geçerli bir e-posta adresi yazın.',
   payment: 'Başvuru için ödeme onayı zorunludur.',
-  receipt: 'Dekont dosyası zorunludur.',
-  receipt_size: 'Dekont dosyası 10MB sınırını aşıyor.',
-  receipt_type: 'Dekont için yalnızca PDF, JPG, PNG veya WEBP kabul edilir.',
   server: 'Başvuru gönderilemedi. Lütfen tekrar deneyin.',
 };
 const errorMessage = errorMessages[errorCode] ?? '';
@@ -26,11 +25,14 @@ const [cityRows, districtRows, branchRows] = await Promise.all([
   getAllDistrictsWithCities(),
   getAllBranches(),
 ]);
-const CITIES = cityRows.map(c => c.ad);
-const MEMBERSHIP_PLANS = [
-  { kod: 'alti-aylik', ad: '6 Aylık', ucret: 7500, sure: '1 Branş Dahil', oneCikan: true },
-  { kod: 'on-iki-aylik', ad: 'Yıllık', ucret: 12000, sure: '1 Branş Dahil', oneCikan: false },
-];
+const CITIES = cityRows.map((c) => c.ad);
+const membershipPlanRows = await getMembershipPlans({ basvuruOnly: true });
+const MEMBERSHIP_PLANS = membershipPlanRows.map((plan) => ({
+  kod: plan.kod,
+  ad: plan.kod === 'on-iki-aylik' ? 'Yıllık' : '6 Aylık',
+  ucret: plan.ucret,
+  aciklama: plan.aciklama,
+}));
 const DISTRICTS_BY_CITY = districtRows.reduce<Record<string, { ad: string; slug: string }[]>>((acc, district) => {
   if (!district.il) return acc;
   acc[district.il] ??= [];
@@ -44,9 +46,10 @@ const bransListesi = [
 ];
 
 const adimlar = [
-  { num: '1', label: 'Kulüp Bilgileri' },
-  { num: '2', label: 'İletişim' },
-  { num: '3', label: 'Paket' },
+  { num: '1', label: 'Paket' },
+  { num: '2', label: 'Kulüp' },
+  { num: '3', label: 'İlanlar' },
+  { num: '4', label: 'Ödeme' },
 ];
 
 const { iban, accountName, bankName, branch } = getBankTransferDisplay();
@@ -71,7 +74,7 @@ const { iban, accountName, bankName, branch } = getBankTransferDisplay();
           <div class="basvuru-badge">🏆 Platforma Katıl</div>
           <h1 class="basvuru-title">Kulübünüzü<br />Listeleyin</h1>
           <p class="basvuru-desc">
-            Başvurunuz 24 saat içinde incelenir. Onaylandıktan sonra profiliniz yayına alınır.
+            Paketinizi seçin, her branş için ilan bilgilerinizi girin ve ödemeyi tamamlayın. Onay sonrası ilanlarınız yayına alınır.
           </p>
           <!-- Adım göstergesi -->
           <div class="adimlar" aria-label="Form Adımları" role="list">
@@ -117,289 +120,16 @@ const { iban, accountName, bankName, branch } = getBankTransferDisplay();
                 aria-label="Kulüp Başvuru Formu"
               >
 
-                {errorMessage && (
-                  <div class="form-alert form-alert--error" role="alert" aria-live="polite">
-                    {errorMessage}
-                  </div>
-                )}
-
-                <!-- Bölüm 1: Kulüp Bilgileri -->
-                <div class="form-section">
-                  <h2 class="form-section-title">
-                    <span class="form-section-num" aria-hidden="true">1</span>
-                    Kulüp / Kurs Bilgileri
-                  </h2>
-
-                  <div class="form-row">
-                    <div class="form-group">
-                      <label class="form-label" for="kulup-ad">
-                        Kulüp / Kurs Adı <span class="required" aria-label="zorunlu alan">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        id="kulup-ad"
-                        name="kulupad"
-                        class="form-input"
-                        placeholder="Örn: Türkiye Futbol Akademisi"
-                        required
-                        autocomplete="organization"
-                        aria-required="true"
-                      />
-                    </div>
-                  </div>
-
-                  <div class="form-row form-row-2col">
-                    <div class="form-group">
-                      <label class="form-label" for="kulup-il">
-                        İl <span class="required" aria-label="zorunlu alan">*</span>
-                      </label>
-                      <select id="kulup-il" name="il" class="form-select" required aria-required="true">
-                        <option value="">İl seçin...</option>
-                        {CITIES.map((il) => (
-                          <option value={il}>{il}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div class="form-group">
-                      <label class="form-label" for="kulup-ilce">
-                        İlçe <span class="required" aria-label="zorunlu alan">*</span>
-                      </label>
-                      <select id="kulup-ilce" name="ilce" class="form-select" required aria-required="true">
-                        <option value="">Önce il seçin...</option>
-                      </select>
-                    </div>
-
-                    <div class="form-group">
-                      <label class="form-label" for="kulup-brans">
-                        Branş <span class="required" aria-label="zorunlu alan">*</span>
-                      </label>
-                      <select id="kulup-brans" name="brans" class="form-select" required aria-required="true">
-                        <option value="">Branş seçin...</option>
-                        {bransListesi.map((brans) => (
-                          <option value={brans}>{brans}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  <div class="form-row">
-                    <div class="form-group">
-                      <label class="form-label" for="kulup-adres">
-                        Tam Adres - Tesis İsmi
-                      </label>
-                      <input
-                        type="text"
-                        id="kulup-adres"
-                        name="adres"
-                        class="form-input"
-                        placeholder="Mahalle, cadde/sokak, no — ilçe, il"
-                        autocomplete="street-address"
-                      />
-                    </div>
-                  </div>
-
-                  <div class="form-row form-row-2col">
-                    <div class="form-group">
-                      <label class="form-label" for="kulup-yas">Yaş Aralığı (isteğe bağlı)</label>
-                      <input
-                        type="text"
-                        id="kulup-yas"
-                        name="yasaraligi"
-                        class="form-input"
-                        placeholder="Örn: 6–18"
-                      />
-                    </div>
-
-                    <div class="form-group">
-                      <label class="form-label" for="kulup-fiyat">Aylık Ücret (₺) (isteğe bağlı)</label>
-                      <input
-                        type="text"
-                        id="kulup-fiyat"
-                        name="fiyat"
-                        class="form-input"
-                        placeholder="Örn: 500"
-                      />
-                    </div>
-                  </div>
-
-                  <div class="form-row">
-                    <div class="form-group">
-                      <label class="form-label" for="kulup-aciklama">Kulüp / Kurs Hakkında (isteğe bağlı)</label>
-                      <textarea
-                        id="kulup-aciklama"
-                        name="aciklama"
-                        class="form-textarea"
-                        rows={4}
-                        placeholder="Kulübünüz veya kursunuz hakkında kısa bilgi verin. Antrenörler, tesisler, başarılar..."
-                      ></textarea>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Bölüm 2: İletişim Bilgileri -->
-                <div class="form-section">
-                  <h2 class="form-section-title">
-                    <span class="form-section-num" aria-hidden="true">2</span>
-                    İletişim Bilgileri
-                  </h2>
-
-                  <div class="form-row form-row-2col">
-                    <div class="form-group">
-                      <label class="form-label" for="yetkili-ad">
-                        Yetkili Kişi Adı <span class="required" aria-label="zorunlu alan">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        id="yetkili-ad"
-                        name="yetkili"
-                        class="form-input"
-                        placeholder="Ad Soyad"
-                        required
-                        autocomplete="name"
-                        aria-required="true"
-                      />
-                    </div>
-
-                    <div class="form-group">
-                      <label class="form-label" for="yetkili-telefon">
-                        Telefon <span class="required" aria-label="zorunlu alan">*</span>
-                      </label>
-                      <input
-                        type="tel"
-                        id="yetkili-telefon"
-                        name="telefon"
-                        class="form-input"
-                        placeholder="0555 123 45 67"
-                        required
-                        autocomplete="tel"
-                        aria-required="true"
-                      />
-                    </div>
-                  </div>
-
-                  <div class="form-row">
-                    <div class="form-group">
-                      <label class="form-label" for="yetkili-email">E-posta (isteğe bağlı)</label>
-                      <input
-                        type="email"
-                        id="yetkili-email"
-                        name="email"
-                        class="form-input"
-                        placeholder="kulup@orneksiteniz.com"
-                        autocomplete="email"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div class="form-section">
-                  <h2 class="form-section-title">
-                    <span class="form-section-num" aria-hidden="true">3</span>
-                    Üyelik Paketi
-                  </h2>
-                  <p class="paket-subtitle">6 aylık veya yıllık paketinizi seçin. Her paket 1 branş içerir; sonraki her branş %50 indirimlidir.</p>
-                  <div class="membership-grid" role="radiogroup" aria-label="Üyelik Paketi">
-                    {MEMBERSHIP_PLANS.length ? MEMBERSHIP_PLANS.map((plan) => {
-                      return (
-                        <label class="membership-card" for={`uyelik-${plan.kod}`}>
-                          <input
-                            id={`uyelik-${plan.kod}`}
-                            class="membership-radio"
-                            type="radio"
-                            name="paket"
-                            value={plan.kod}
-                            data-plan-name={plan.ad}
-                            data-plan-price={plan.ucret}
-                            required
-                          />
-                          <div class="membership-card-content">
-                            <div class="membership-header">
-                              <h3 class="membership-name">{plan.ad}</h3>
-                              <span class="membership-period">{plan.sure}</span>
-                            </div>
-                            
-                            <div class="membership-price-area">
-                              <div class="membership-price">
-                                {new Intl.NumberFormat('tr-TR').format(plan.ucret)} <span class="currency">TL</span>
-                              </div>
-                              <div class="membership-monthly">1 BRANŞ</div>
-                              <div class="membership-discount-badge">Ek Branşlar %50 İndirimli</div>
-                            </div>
-                            
-                            <div class="membership-divider"></div>
-                            
-                            <div class="membership-select-btn">Planı Seç</div>
-                          </div>
-                        </label>
-                      );
-                    }) : (
-                      <div class="form-alert form-alert--error membership-empty" role="alert">
-                        Üyelik paketleri şu an yüklenemedi. Lütfen daha sonra tekrar deneyin.
-                      </div>
-                    )}
-                  </div>
-                  <div class="membership-branch-global">
-                    <label for="brans-sayisi-global">Yayınlanacak Branş Sayısı</label>
-                    <p class="membership-branch-help">
-                      Seçtiğiniz pakete 1 branş dahildir. Ek yayınlanacak her branş %50 indirimlidir.
-                    </p>
-                    <input
-                      id="brans-sayisi-global"
-                      type="number"
-                      min="1"
-                      step="1"
-                      value="1"
-                      class="form-input membership-branch-input membership-branch-input--global"
-                      data-branch-input
-                    />
-                  </div>
-                  <input type="hidden" id="brans-sayisi-hidden" name="bransSayisi" value="1" />
-
-                  <div class="payment-box">
-                    <h3 class="payment-title">Banka Havalesi ile Ödeme</h3>
-                    <p class="payment-desc">Kısa vadede ödeme modelimiz havale/EFT + dekont onayı şeklindedir.</p>
-                    <div class="payment-grid">
-                      <div class="payment-item">
-                        <span class="payment-label">Banka</span>
-                        <strong>{bankName}</strong>
-                      </div>
-                      <div class="payment-item">
-                        <span class="payment-label">Hesap Adı</span>
-                        <strong>{accountName}</strong>
-                      </div>
-                      <div class="payment-item">
-                        <span class="payment-label">Şube</span>
-                        <strong>{branch}</strong>
-                      </div>
-                      <div class="payment-item payment-item--iban">
-                        <span class="payment-label">IBAN</span>
-                        <strong>{iban}</strong>
-                      </div>
-                      <div class="payment-item payment-item--iban">
-                        <span class="payment-label">Gönderilecek Tutar</span>
-                        <strong id="dyn-payment-total" class="payment-total-pending" data-empty="1">—</strong>
-                      </div>
-                    </div>
-                    <div class="payment-reference">
-                      <label for="dyn-payment-ref">Banka Açıklama</label>
-                      <input id="dyn-payment-ref" type="text" readonly value="Kulüp veya Kurs Adınızı -" />
-                    </div>
-                    <ol class="payment-steps">
-                      <li><strong id="dyn-payment-amount">Paket tutarını</strong> yukarıdaki IBAN hesabına gönderin.</li>
-                      <li>Açıklama alanına <strong id="dyn-payment-desc">Kulüp veya Kurs Adınızı</strong> yazın.</li>
-                      <li>Ödeme onay kutusunu işaretleyip başvuruyu tamamlayın.</li>
-                    </ol>
-                    <label class="payment-confirm">
-                      <input type="checkbox" name="odemeOnay" value="1" class="sr-only-checkbox" required aria-required="true" />
-                      <div class="custom-checkbox">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="check-icon">
-                          <polyline points="20 6 9 17 4 12"></polyline>
-                        </svg>
-                      </div>
-                      <span>Ödemeyi yaptım ve dekontun doğru olduğunu onaylıyorum.</span>
-                    </label>
-                  </div>
-                </div>
+                <BasvuruFormSections
+                  cities={CITIES}
+                  bransListesi={bransListesi}
+                  membershipPlans={MEMBERSHIP_PLANS}
+                  bankName={bankName}
+                  accountName={accountName}
+                  branch={branch}
+                  iban={iban}
+                  errorMessage={errorMessage || undefined}
+                />
 
                 <!-- Submit -->
                 <div class="form-submit-area">
@@ -483,6 +213,39 @@ const { iban, accountName, bankName, branch } = getBankTransferDisplay();
       citySelect.addEventListener('change', () => fillDistricts(citySelect.value));
     }
 
+    const branchRoot = document.getElementById('branch-listings-root');
+    const branchTemplate = document.getElementById('branch-listing-template');
+    const paymentSectionNum = document.querySelector('.payment-section-last .form-section-num');
+    const branchFieldKeys = ['brans', 'yasAraligi', 'aidat'];
+
+    function configureBranchSection(section, index) {
+      if (!(section instanceof HTMLElement)) return;
+      const title = section.querySelector('.branch-listing-title-text');
+      if (title) title.textContent = `${index + 1}. Branş Bilgileri (İlan)`;
+      const numEl = section.querySelector('.branch-listing-num');
+      if (numEl) numEl.textContent = String(index + 1);
+      branchFieldKeys.forEach((field) => {
+        const el = section.querySelector(`[data-field="${field}"]`);
+        if (el instanceof HTMLInputElement || el instanceof HTMLSelectElement || el instanceof HTMLTextAreaElement) {
+          el.name = `ilan_${index}_${field}`;
+        }
+      });
+    }
+
+    function renderBranchSections(count) {
+      if (!branchRoot || !branchTemplate) return;
+      const source = branchTemplate.content?.firstElementChild;
+      if (!source) return;
+      const fragment = document.createDocumentFragment();
+      for (let i = 0; i < count; i++) {
+        const section = source.cloneNode(true);
+        configureBranchSection(section, i);
+        fragment.appendChild(section);
+      }
+      branchRoot.replaceChildren(fragment);
+      if (paymentSectionNum) paymentSectionNum.textContent = String(count + 3);
+    }
+
     // Dinamik odeme metinleri
     const kulupInput = document.getElementById('kulup-ad');
     const dynDesc = document.getElementById('dyn-payment-desc');
@@ -541,7 +304,7 @@ const { iban, accountName, bankName, branch } = getBankTransferDisplay();
     }
 
     function syncBranchCount(nextValue) {
-      const count = Number.isFinite(nextValue) ? Math.max(1, Math.floor(nextValue)) : 1;
+      const count = Number.isFinite(nextValue) ? Math.max(1, Math.min(10, Math.floor(nextValue))) : 1;
       if (branchCountHidden instanceof HTMLInputElement) {
         branchCountHidden.value = String(count);
       }
@@ -550,6 +313,7 @@ const { iban, accountName, bankName, branch } = getBankTransferDisplay();
           input.value = String(count);
         }
       });
+      renderBranchSections(count);
       updatePaymentInfo();
     }
 
@@ -913,6 +677,29 @@ const { iban, accountName, bankName, branch } = getBankTransferDisplay();
   .membership-empty {
     grid-column: 1 / -1;
     margin-bottom: 0;
+  }
+
+  .branch-listings-root {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .branch-listing-section {
+    border: 1px solid #e8eaed;
+    border-radius: 1rem;
+    padding: 1.25rem 1.5rem;
+    background: #fff;
+  }
+
+  .branch-listing-help {
+    color: #6b7280;
+    font-size: 0.9rem;
+    margin: 0 0 1rem;
+  }
+
+  .payment-section-last {
+    margin-top: 0.5rem;
   }
 
   .paket-subtitle {

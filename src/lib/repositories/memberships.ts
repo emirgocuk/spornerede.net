@@ -48,13 +48,25 @@ function addPeriod(startAt: Date, period: MembershipPeriod) {
   return next;
 }
 
+export function packageCodeForPeriod(period: MembershipPeriod) {
+  return period === 'yearly' ? 'on-iki-aylik' : 'alti-aylik';
+}
+
+/** Ekranda gösterim — `aylik` paketi artık 6 aylık sayılır (eski veri). */
+export function formatMembershipPackageLabel(kod?: string, ad?: string) {
+  if (kod === 'alti-aylik' || kod === 'aylik') return '6 Aylık';
+  if (kod === 'on-iki-aylik' || kod === 'yillik') return 'Yıllık';
+  if (ad && /12\s*aylık|yıllık/i.test(ad)) return 'Yıllık';
+  if (ad && /6\s*aylık|aylık/i.test(ad) && !/12/i.test(ad)) return '6 Aylık';
+  return ad || kod || '—';
+}
+
 async function ensureMembershipPlan(period: MembershipPeriod) {
   const db = await getDb();
-  const preferredCode = period === 'yearly' ? 'on-iki-aylik' : 'alti-aylik';
-  const fallbackCode = period === 'yearly' ? 'yillik' : 'aylik';
+  const preferredCode = packageCodeForPeriod(period);
   const existing = await db
     .collection('uyelik_paketleri')
-    .getFirstListItem(`kod = "${preferredCode}" || kod = "${fallbackCode}"`)
+    .getFirstListItem(`kod = "${preferredCode}"`)
     .catch(() => null);
   if (existing) {
     return Number(existing.legacyId);
@@ -98,6 +110,17 @@ async function ensureClubMembershipRow(clubId: number, period: MembershipPeriod)
     paketLegacyId: planId,
     odemeDurumu: 'pending',
   });
+}
+
+/** Onaylı kulüpte paket/periyot senkronu (6 aylık seçildiğinde aylık pakete düşmesin). */
+export async function syncClubMembershipPeriod(clubId: number, period: MembershipPeriod) {
+  requireDatabase();
+  await ensureClubMembershipRow(clubId, period);
+  const sub = await getClubMembershipRow(clubId);
+  if (sub?.odemeDurumu === 'paid') {
+    return activateClubMembership(clubId, period);
+  }
+  return { ok: true as const };
 }
 
 export async function activateClubMembership(clubId: number, period: MembershipPeriod) {

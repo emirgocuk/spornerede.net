@@ -10,6 +10,7 @@ export type ProgramContentModel = {
   endTime: string;
   locationText: string;
   mapsUrl: string;
+  yasAraligi: string;
   gallery: string[];
   bodyJson: unknown | null;
 };
@@ -24,6 +25,7 @@ export const EMPTY_PROGRAM_CONTENT: ProgramContentModel = {
   endTime: '',
   locationText: '',
   mapsUrl: '',
+  yasAraligi: '',
   gallery: [],
   bodyJson: null,
 };
@@ -55,6 +57,7 @@ export function parseProgramContent(rawValue: string | undefined | null) {
         endTime: typeof parsed.endTime === 'string' ? parsed.endTime : '',
         locationText: typeof parsed.locationText === 'string' ? parsed.locationText : '',
         mapsUrl: typeof parsed.mapsUrl === 'string' ? parsed.mapsUrl : '',
+        yasAraligi: typeof parsed.yasAraligi === 'string' ? parsed.yasAraligi : '',
         gallery: Array.isArray(parsed.gallery)
           ? parsed.gallery.filter((item): item is string => typeof item === 'string')
           : [],
@@ -83,6 +86,7 @@ export function serializeProgramContent(contentInput: Partial<ProgramContentMode
     endTime: (contentInput.endTime ?? '').trim(),
     locationText: (contentInput.locationText ?? '').trim(),
     mapsUrl: (contentInput.mapsUrl ?? '').trim(),
+    yasAraligi: (contentInput.yasAraligi ?? '').trim().slice(0, 50),
     gallery: Array.isArray(contentInput.gallery)
       ? contentInput.gallery
           .filter((item): item is string => typeof item === 'string')

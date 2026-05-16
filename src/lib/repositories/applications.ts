@@ -2,17 +2,26 @@ import { getDb, hasDatabaseUrl } from '../../db/client';
 import { displayIlAd } from '../turkishIlDisplay';
 import {
   activateClubMembership,
+  formatMembershipPackageLabel,
   hasActiveMembership,
   membershipPeriodFromPackageCode,
   normalizeMembershipPeriod,
+  syncClubMembershipPeriod,
   type MembershipPeriod,
 } from './memberships';
+import {
+  createProgramsFromApplication,
+  listApplicationPrograms,
+  setClubProgramsPublication,
+  type BasvuruIlanInput,
+} from './applicationPrograms';
+
+export type { BasvuruIlanInput };
 
 export type ClubApplicationInput = {
   kulupad: string;
   il: string;
   ilce: string;
-  brans: string;
   adres?: string;
   yasaraligi?: string;
   fiyat?: string;
@@ -22,6 +31,7 @@ export type ClubApplicationInput = {
   email: string;
   paket: string;
   bransSayisi?: number;
+  ilanlar: BasvuruIlanInput[];
 };
 
 function requireDatabase() {
@@ -117,14 +127,12 @@ export async function createClubApplication(input: ClubApplicationInput) {
     club = await db.collection('kulupler').create(clubPayload);
   }
 
-  const branch = await db.collection('branslar').getFirstListItem(`slug = "${slugify(input.brans)}"`).catch(() => null);
-  if (branch) {
-    await db.collection('kulup_branslar').create({
-      legacyId: Date.now() + 1,
-      kulupLegacyId: Number(club.legacyId),
-      bransLegacyId: Number(branch.legacyId),
-    });
+  const ilanlar = Array.isArray(input.ilanlar) ? input.ilanlar.filter((i) => i.brans?.trim()) : [];
+  if (!ilanlar.length) {
+    throw new Error('En az bir branş ilanı zorunlu.');
   }
+
+  await createProgramsFromApplication(Number(club.legacyId), ilanlar);
 
   const plan = await db.collection('uyelik_paketleri').getFirstListItem(`kod = "${input.paket}"`).catch(() => null);
   if (plan) {
@@ -223,8 +231,10 @@ export async function getAdminApplicationById(id: number) {
     sorumluAdminEmail: (row.sorumluAdminEmail as string) ?? '',
     paketKod,
     paketAd,
+    paketLabel: formatMembershipPackageLabel(paketKod, paketAd),
     bransSayisi,
     membershipPeriod: membershipPeriodFromPackageCode(paketKod) ?? 'six_month',
+    ilanlar: await listApplicationPrograms(id),
   };
 }
 
@@ -287,10 +297,16 @@ export async function updateApplicationStatus(
           shouldActivate = true;
         }
       }
+      await syncClubMembershipPeriod(id, period);
       if (shouldActivate) {
         await activateClubMembership(id, period);
       }
     }
+    await setClubProgramsPublication(id, true);
+  }
+
+  if (status === 'rejected' || status === 'pending') {
+    await setClubProgramsPublication(id, false);
   }
 
   await db.collection('admin_basvuru_loglari').create({
@@ -340,7 +356,7 @@ export async function listAdminApplicationLogs(applicationId: number) {
   }));
 }
 
-export async function getMembershipPlans() {
+export async function getMembershipPlans(options?: { basvuruOnly?: boolean }) {
   requireDatabase();
   const db = await getDb();
   let rows = await db.collection('uyelik_paketleri').getFullList({ filter: 'aktif = true', sort: 'ucret' });
@@ -359,12 +375,42 @@ export async function getMembershipPlans() {
     }
     rows = await db.collection('uyelik_paketleri').getFullList({ filter: 'aktif = true', sort: 'ucret' });
   }
-  return rows.map((row) => ({
+  const mapped = rows.map((row) => ({
+    legacyId: Number(row.legacyId),
     kod: row.kod as string,
     ad: row.ad as string,
     ucret: Number(row.ucret),
     periyot: row.periyot as 'monthly' | 'yearly' | 'one_time',
     aciklama: row.aciklama as string,
+    aktif: Boolean(row.aktif ?? true),
   }));
+  if (options?.basvuruOnly) {
+    return mapped.filter((plan) => plan.kod === 'alti-aylik' || plan.kod === 'on-iki-aylik');
+  }
+  return mapped;
+}
+
+export async function updateMembershipPlan(
+  legacyId: number,
+  input: { ad?: string; ucret?: number; aciklama?: string; aktif?: boolean },
+) {
+  requireDatabase();
+  const db = await getDb();
+  const row = await db.collection('uyelik_paketleri').getFirstListItem(`legacyId = ${legacyId}`).catch(() => null);
+  if (!row) return null;
+  const updated = await db.collection('uyelik_paketleri').update(row.id, {
+    ...(input.ad !== undefined ? { ad: input.ad.trim().slice(0, 120) } : {}),
+    ...(input.ucret !== undefined ? { ucret: Math.max(0, Math.floor(input.ucret)) } : {}),
+    ...(input.aciklama !== undefined ? { aciklama: input.aciklama.trim().slice(0, 500) } : {}),
+    ...(input.aktif !== undefined ? { aktif: input.aktif } : {}),
+  });
+  return {
+    legacyId: Number(updated.legacyId),
+    kod: updated.kod as string,
+    ad: updated.ad as string,
+    ucret: Number(updated.ucret),
+    aciklama: (updated.aciklama as string) ?? '',
+    aktif: Boolean(updated.aktif),
+  };
 }
 

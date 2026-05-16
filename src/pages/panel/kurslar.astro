@@ -96,26 +96,13 @@ if (!membership || membership.clubStatus !== 'approved') {
                 <span class="section-step">2</span>
                 <div>
                   <h3>Takvim</h3>
-                  <p>Günleri seçin, saat aralığını belirleyin. Sürekli ilanlarda bitiş tarihi zorunlu değildir.</p>
+                  <p>Gün ve saati serbest metin olarak yazabilirsiniz. Sürekli ilanlarda bitiş tarihi zorunlu değildir.</p>
                 </div>
               </div>
-              <div class="day-picker" aria-label="Program günleri">
-                {['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'].map((day) => (
-                  <label class="day-chip">
-                    <input type="checkbox" name="program-day" value={day} />
-                    <span>{day}</span>
-                  </label>
-                ))}
-              </div>
-              <div class="form-row-2">
-                <div class="form-group">
-                  <label for="program-start-time">Başlangıç Saati</label>
-                  <input id="program-start-time" type="time" class="modern-input" required />
-                </div>
-                <div class="form-group">
-                  <label for="program-end-time">Bitiş Saati</label>
-                  <input id="program-end-time" type="time" class="modern-input" required />
-                </div>
+              <div class="form-group">
+                <label for="program-gun-saat">Gün / Saat</label>
+                <input id="program-gun-saat" class="modern-input" placeholder="Örn: Pazartesi, Çarşamba 17:00-19:00" />
+                <p class="section-help text-sm">İsteğe bağlı.</p>
               </div>
               <div class="form-row-2">
                 <div class="form-group">
@@ -229,9 +216,7 @@ if (!membership || membership.clubStatus !== 'approved') {
     const eventDateEl = document.getElementById('program-event-date');
     const endDateEl = document.getElementById('program-end-date');
     const ongoingEl = document.getElementById('program-ongoing');
-    const dayInputs = Array.from(document.querySelectorAll('input[name="program-day"]'));
-    const startTimeEl = document.getElementById('program-start-time');
-    const endTimeEl = document.getElementById('program-end-time');
+    const gunSaatEl = document.getElementById('program-gun-saat');
     const locationEl = document.getElementById('program-location');
     const mapsUrlEl = document.getElementById('program-maps-url');
     const seviyeEl = document.getElementById('program-seviye');
@@ -411,11 +396,7 @@ if (!membership || membership.clubStatus !== 'approved') {
       endDateEl.value = '';
       ongoingEl.checked = false;
       endDateEl.disabled = false;
-      dayInputs.forEach((input) => {
-        input.checked = false;
-      });
-      startTimeEl.value = '';
-      endTimeEl.value = '';
+      if (gunSaatEl) gunSaatEl.value = '';
       locationEl.value = '';
       mapsUrlEl.value = '';
       seviyeEl.value = '';
@@ -437,12 +418,19 @@ if (!membership || membership.clubStatus !== 'approved') {
       endDateEl.value = program.endDate || '';
       ongoingEl.checked = Boolean(program.isOngoing);
       endDateEl.disabled = Boolean(program.isOngoing);
-      const selectedDays = Array.isArray(program.days) ? program.days : [];
-      dayInputs.forEach((input) => {
-        input.checked = selectedDays.includes(input.value);
-      });
-      startTimeEl.value = program.startTime || '';
-      endTimeEl.value = program.endTime || '';
+      if (gunSaatEl) {
+        const direct = program.gunSaat?.trim() || '';
+        if (direct) {
+          gunSaatEl.value = direct;
+        } else {
+          const days = Array.isArray(program.days) ? program.days : [];
+          const dayText = days.length ? days.join(', ') : '';
+          const startTime = program.startTime?.trim() || '';
+          const endTime = program.endTime?.trim() || '';
+          const timeText = startTime && endTime ? `${startTime} - ${endTime}` : startTime || endTime || '';
+          gunSaatEl.value = [dayText, timeText].filter(Boolean).join(' / ');
+        }
+      }
       locationEl.value = program.locationText || '';
       mapsUrlEl.value = program.mapsUrl || '';
       seviyeEl.value = program.seviye || '';
@@ -475,22 +463,10 @@ if (!membership || membership.clubStatus !== 'approved') {
         .join('');
     }
 
-    function getSelectedDays() {
-      return dayInputs.filter((input) => input.checked).map((input) => input.value);
-    }
-
-    function buildScheduleText(days, startTime, endTime) {
-      const dayText = days.length ? days.join(', ') : '';
-      const timeText = startTime && endTime ? `${startTime} - ${endTime}` : startTime || endTime || '';
-      return [dayText, timeText].filter(Boolean).join(' / ');
-    }
-
     function validatePayload(payload) {
       if (!payload.ad) return 'Program adı zorunlu.';
       if (!payload.seviye) return 'Seviye seçimi zorunlu.';
       if (!payload.ucretBilgisi) return 'Ücret bilgisi zorunlu.';
-      if (!payload.days.length) return 'En az bir gün seçmelisiniz.';
-      if (!payload.startTime || !payload.endTime) return 'Başlangıç ve bitiş saati zorunlu.';
       if (!payload.eventDate) return 'Başlangıç tarihi zorunlu.';
       if (!payload.isOngoing && !payload.endDate) return 'Bitiş tarihi zorunlu. Sürekli ilan ise ilgili seçeneği işaretleyin.';
       if (!payload.locationText) return 'Konum / şube bilgisi zorunlu.';
@@ -591,19 +567,16 @@ if (!membership || membership.clubStatus !== 'approved') {
     async function saveProgram(event) {
       event.preventDefault();
       await editorReady;
-      const days = getSelectedDays();
-      const startTime = startTimeEl.value.trim();
-      const endTime = endTimeEl.value.trim();
       const payload = {
         id: Number(idEl.value || '0'),
         ad: adEl.value.trim(),
-        gunSaat: buildScheduleText(days, startTime, endTime),
+        gunSaat: gunSaatEl?.value.trim() || '',
         eventDate: eventDateEl.value.trim(),
         endDate: ongoingEl.checked ? '' : endDateEl.value.trim(),
         isOngoing: ongoingEl.checked,
-        days,
-        startTime,
-        endTime,
+        days: [],
+        startTime: '',
+        endTime: '',
         locationText: locationEl.value.trim(),
         mapsUrl: mapsUrlEl.value.trim(),
         seviye: seviyeEl.value.trim(),

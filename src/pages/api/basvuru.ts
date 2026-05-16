@@ -3,6 +3,7 @@ import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import type { APIRoute } from 'astro';
 import { createApplicationDocument } from '../../lib/repositories/applicationDocuments';
+import type { BasvuruIlanInput } from '../../lib/repositories/applicationPrograms';
 import { createClubApplication } from '../../lib/repositories/applications';
 import { enqueueMail, processMailQueue } from '../../lib/mail/service';
 import { buildApplicationNotificationMail } from '../../lib/mail/templates';
@@ -18,13 +19,6 @@ const ALLOWED_MIME_TYPES = new Set([
   'application/zip',
   'application/x-zip-compressed',
 ]);
-const ALLOWED_RECEIPT_MIME_TYPES = new Set([
-  'application/pdf',
-  'image/jpeg',
-  'image/png',
-  'image/webp',
-]);
-
 function getAppOrigin(request: Request) {
   const forwardedHost = request.headers.get('x-forwarded-host')?.split(',')[0]?.trim();
   if (forwardedHost) {
@@ -56,6 +50,27 @@ function detectDocumentKind(name: string) {
   return 'diger' as const;
 }
 
+function buildClubYasAraligiFromIlanlar(ilanlar: BasvuruIlanInput[]) {
+  const unique = [...new Set(ilanlar.map((item) => item.yasAraligi?.trim()).filter(Boolean))] as string[];
+  return unique.join(' · ').slice(0, 50);
+}
+
+function parseIlanlarFromFormData(formData: FormData, branchCount: number): BasvuruIlanInput[] {
+  const ilanlar: BasvuruIlanInput[] = [];
+  for (let i = 0; i < branchCount; i++) {
+    const brans = formData.get(`ilan_${i}_brans`)?.toString().trim() || '';
+    const yasAraligi = formData.get(`ilan_${i}_yasAraligi`)?.toString().trim() || '';
+    const aidatBilgisi = formData.get(`ilan_${i}_aidat`)?.toString().trim() || '';
+    if (!brans) continue;
+    ilanlar.push({
+      brans,
+      ...(yasAraligi ? { yasAraligi } : {}),
+      ...(aidatBilgisi ? { aidatBilgisi } : {}),
+    });
+  }
+  return ilanlar;
+}
+
 export const POST: APIRoute = async ({ request }) => {
   try {
     const formData = await request.formData();
@@ -63,10 +78,8 @@ export const POST: APIRoute = async ({ request }) => {
     const kulupad = formData.get('kulupad')?.toString().trim() || '';
     const il = formData.get('il')?.toString().trim() || '';
     const ilce = formData.get('ilce')?.toString().trim() || '';
-    const brans = formData.get('brans')?.toString().trim() || '';
     const paket = formData.get('paket')?.toString().trim() || '';
     const adres = formData.get('adres')?.toString().trim() || '';
-    const yasaraligi = formData.get('yasaraligi')?.toString().trim() || '';
     const fiyat = formData.get('fiyat')?.toString().trim() || '';
     const aciklama = formData.get('aciklama')?.toString().trim() || '';
     const yetkili = formData.get('yetkili')?.toString().trim() || '';
@@ -75,9 +88,13 @@ export const POST: APIRoute = async ({ request }) => {
     const odemeOnay = formData.get('odemeOnay')?.toString().trim() || '';
     const bransSayisiRaw = Number(formData.get('bransSayisi')?.toString().trim() || '1');
     const bransSayisi = Number.isFinite(bransSayisiRaw) ? Math.max(1, Math.floor(bransSayisiRaw)) : 1;
-    const dekontFile = formData.get('dekont');
+    const ilanlar = parseIlanlarFromFormData(formData, bransSayisi);
 
-    if (!kulupad || !il || !ilce || !brans || !paket || !yetkili || !telefon) {
+    if (!kulupad || !il || !ilce || !paket || !yetkili || !telefon) {
+      return redirectToForm(request, { error: 'missing' });
+    }
+
+    if (ilanlar.length !== bransSayisi) {
       return redirectToForm(request, { error: 'missing' });
     }
 
@@ -94,9 +111,8 @@ export const POST: APIRoute = async ({ request }) => {
       kulupad,
       il,
       ilce,
-      brans,
       adres,
-      yasaraligi,
+      yasaraligi: buildClubYasAraligiFromIlanlar(ilanlar),
       fiyat,
       aciklama,
       yetkili,
@@ -104,33 +120,11 @@ export const POST: APIRoute = async ({ request }) => {
       email,
       paket,
       bransSayisi,
+      ilanlar,
     });
 
     const uploadRoot = path.resolve(process.cwd(), 'uploads', 'applications', String(applicationResult.id));
     await fs.mkdir(uploadRoot, { recursive: true });
-
-    if (dekontFile instanceof File && dekontFile.name && dekontFile.size > 0) {
-      if (dekontFile.size > MAX_FILE_SIZE) {
-        return redirectToForm(request, { error: 'receipt_size' });
-      }
-      if (!ALLOWED_RECEIPT_MIME_TYPES.has(dekontFile.type)) {
-        return redirectToForm(request, { error: 'receipt_type' });
-      }
-
-      const dekontSafeName = sanitizeFilename(dekontFile.name);
-      const dekontDiskFilename = `${Date.now()}-${randomUUID()}-${dekontSafeName}`;
-      const dekontDiskPath = path.join(uploadRoot, dekontDiskFilename);
-      const dekontBytes = Buffer.from(await dekontFile.arrayBuffer());
-      await fs.writeFile(dekontDiskPath, dekontBytes);
-      await createApplicationDocument({
-        applicationId: applicationResult.id,
-        kind: 'dekont',
-        storageKey: `applications/${applicationResult.id}/${dekontDiskFilename}`,
-        originalFilename: dekontFile.name,
-        mimeType: dekontFile.type || 'application/octet-stream',
-        byteSize: dekontFile.size,
-      });
-    }
 
     const files = formData.getAll('documents').filter((value): value is File => value instanceof File);
     for (const file of files) {
@@ -156,9 +150,10 @@ export const POST: APIRoute = async ({ request }) => {
 
     const ownerEmail = process.env.MAIL_TO ?? import.meta.env.MAIL_TO;
     if (ownerEmail) {
+      const bransOzet = ilanlar.map((item, idx) => `${idx + 1}. ${item.brans}`).join('; ');
       const template = buildApplicationNotificationMail({
         kulupad,
-        brans,
+        brans: bransOzet,
         il,
         ilce,
         yetkili,

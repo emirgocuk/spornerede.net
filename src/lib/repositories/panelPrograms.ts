@@ -4,6 +4,7 @@ import { parseProgramContent, serializeProgramContent } from './programContent';
 
 export type ProgramPayload = {
   ad: string;
+  yasAraligi?: string;
   aciklama?: string;
   gunSaat?: string;
   seviye?: string;

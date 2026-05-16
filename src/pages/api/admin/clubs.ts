@@ -1,4 +1,5 @@
 import type { APIRoute } from 'astro';
+import { validateProgramPayload } from '../../../lib/admin/validateProgramPayload';
 import { isAdminAuthorized } from '../../../lib/adminAuth';
 import {
   createAdminClubProgram,
@@ -8,9 +9,33 @@ import {
   revokeApprovedAdminClub,
   updateAdminClubProgram,
   updateApprovedAdminClub,
+  withdrawClubApproval,
 } from '../../../lib/repositories/adminClubs';
+import { normalizeMembershipPeriod } from '../../../lib/repositories/memberships';
 
 export const prerender = false;
+
+function programPayloadFromBody(body: Record<string, unknown> | null) {
+  return {
+    ad: body?.ad?.toString() ?? '',
+    yasAraligi: body?.yasAraligi?.toString() ?? '',
+    aciklama: body?.aciklama?.toString() ?? '',
+    gunSaat: body?.gunSaat?.toString() ?? '',
+    seviye: body?.seviye?.toString() ?? '',
+    ucretBilgisi: body?.ucretBilgisi?.toString() ?? '',
+    aktif: Boolean(body?.aktif ?? true),
+    eventDate: body?.eventDate?.toString() ?? '',
+    endDate: body?.endDate?.toString() ?? '',
+    isOngoing: Boolean(body?.isOngoing),
+    days: Array.isArray(body?.days) ? body.days.map((item: unknown) => String(item)) : [],
+    startTime: body?.startTime?.toString() ?? '',
+    endTime: body?.endTime?.toString() ?? '',
+    locationText: body?.locationText?.toString() ?? '',
+    mapsUrl: body?.mapsUrl?.toString() ?? '',
+    gallery: Array.isArray(body?.gallery) ? body.gallery.map((item: unknown) => String(item)) : [],
+    bodyJson: body?.bodyJson ?? null,
+  };
+}
 
 export const GET: APIRoute = async ({ request }) => {
   if (!(await isAdminAuthorized(request))) {
@@ -47,18 +72,12 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   if (body?.createProgram === true) {
-    const ad = body?.ad?.toString?.().trim() ?? '';
-    if (!ad) {
-      return new Response(JSON.stringify({ error: 'Program adı zorunlu' }), { status: 400 });
+    const payload = programPayloadFromBody(body);
+    const validationError = validateProgramPayload(body, payload.ad);
+    if (validationError) {
+      return new Response(JSON.stringify({ error: validationError }), { status: 400 });
     }
-    const created = await createAdminClubProgram(id, {
-      ad: ad.slice(0, 180),
-      aciklama: body?.aciklama?.toString?.().slice(0, 5000) ?? '',
-      gunSaat: body?.gunSaat?.toString?.().slice(0, 160) ?? '',
-      seviye: body?.seviye?.toString?.().slice(0, 120) ?? '',
-      ucretBilgisi: body?.ucretBilgisi?.toString?.().slice(0, 120) ?? '',
-      aktif: body?.aktif !== false,
-    });
+    const created = await createAdminClubProgram(id, payload);
     if (!created) {
       return new Response(JSON.stringify({ error: 'Club not found' }), { status: 404 });
     }
@@ -66,6 +85,10 @@ export const POST: APIRoute = async ({ request }) => {
       headers: { 'Content-Type': 'application/json' },
     });
   }
+
+  const membershipPeriod = body?.membershipPeriod
+    ? normalizeMembershipPeriod(body.membershipPeriod)
+    : undefined;
 
   const updated = await updateApprovedAdminClub(id, {
     ad: body?.ad?.toString?.().slice(0, 160) ?? '',
@@ -77,6 +100,9 @@ export const POST: APIRoute = async ({ request }) => {
     fiyatBilgisi: body?.fiyatBilgisi?.toString?.().slice(0, 120) ?? '',
     adminNotu: body?.adminNotu?.toString?.(),
     sorumluAdminEmail: body?.sorumluAdminEmail?.toString?.(),
+    il: body?.il?.toString?.(),
+    ilce: body?.ilce?.toString?.(),
+    membershipPeriod,
   });
 
   if (!updated) {
@@ -96,20 +122,14 @@ export const PUT: APIRoute = async ({ request }) => {
   const body = await request.json().catch(() => null);
   const clubId = Number(body?.clubId);
   const programId = Number(body?.programId);
-  const ad = body?.ad?.toString?.() ?? '';
+  const payload = programPayloadFromBody(body);
+  const validationError = validateProgramPayload(body, payload.ad);
 
-  if (!clubId || !programId || !ad.trim()) {
-    return new Response(JSON.stringify({ error: 'Invalid payload' }), { status: 400 });
+  if (!clubId || !programId || validationError) {
+    return new Response(JSON.stringify({ error: validationError || 'Invalid payload' }), { status: 400 });
   }
 
-  const updated = await updateAdminClubProgram(clubId, programId, {
-    ad: ad.slice(0, 180),
-    aciklama: body?.aciklama?.toString?.().slice(0, 5000) ?? '',
-    gunSaat: body?.gunSaat?.toString?.().slice(0, 160) ?? '',
-    seviye: body?.seviye?.toString?.().slice(0, 120) ?? '',
-    ucretBilgisi: body?.ucretBilgisi?.toString?.().slice(0, 120) ?? '',
-    aktif: Boolean(body?.aktif),
-  });
+  const updated = await updateAdminClubProgram(clubId, programId, payload);
 
   if (!updated) {
     return new Response(JSON.stringify({ error: 'Program not found' }), { status: 404 });
@@ -129,6 +149,20 @@ export const DELETE: APIRoute = async ({ request }) => {
   const clubId = Number(body?.clubId);
   const programId = Number(body?.programId);
   const revokeClub = body?.revokeClub === true;
+  const withdrawApproval = body?.withdrawApproval === true;
+
+  if (withdrawApproval) {
+    if (!clubId) {
+      return new Response(JSON.stringify({ error: 'Invalid payload' }), { status: 400 });
+    }
+    const withdrawn = await withdrawClubApproval(clubId, body?.adminNote?.toString?.());
+    if (!withdrawn) {
+      return new Response(JSON.stringify({ error: 'Club not found' }), { status: 404 });
+    }
+    return new Response(JSON.stringify({ data: withdrawn }), {
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
 
   if (revokeClub) {
     if (!clubId) {

@@ -1,0 +1,598 @@
+/* Basvuru form bolumleri — global (Astro child component) */
+/* ===== FORM SECTION ===== */
+.basvuru-form-root .form-section {
+  margin-bottom: 2.5rem;
+  padding-bottom: 2.5rem;
+  border-bottom: 1px solid #F1F3F5;
+}
+
+.basvuru-form-root .form-section:last-of-type {
+  border-bottom: none;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0;
+}
+
+.basvuru-form-root .form-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #212529;
+  margin-bottom: 1.75rem;
+}
+
+.basvuru-form-root .form-section-num {
+  width: 30px;
+  height: 30px;
+  background: #E30A17;
+  color: #ffffff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.82rem;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+/* ===== FORM ROWS ===== */
+.basvuru-form-root .form-row {
+  margin-bottom: 1.25rem;
+}
+
+.basvuru-form-root .form-row-2col {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+}
+
+@media (min-width: 640px) {
+.basvuru-form-root .form-row-2col { grid-template-columns: 1fr 1fr; }
+}
+
+.basvuru-form-root .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.basvuru-form-root .form-group:focus-within .form-label {
+  color: #E30A17;
+  transform: translateX(2px);
+}
+
+.basvuru-form-root .form-label {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #495057;
+  transition: all 0.3s ease;
+  display: inline-block;
+}
+
+.basvuru-form-root .form-input,
+.basvuru-form-root .form-select,
+.basvuru-form-root .form-textarea {
+  width: 100%;
+  padding: 0.85rem 1.1rem;
+  border: 2px solid #E9ECEF;
+  border-radius: 0.85rem;
+  background: #ffffff;
+  font-family: inherit;
+  font-size: 0.95rem;
+  color: #212529;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.basvuru-form-root .form-input::placeholder,
+.basvuru-form-root .form-textarea::placeholder {
+  color: #ADB5BD;
+  transition: opacity 0.3s ease;
+}
+
+.basvuru-form-root .form-input:focus,
+.basvuru-form-root .form-select:focus,
+.basvuru-form-root .form-textarea:focus {
+  outline: none;
+  border-color: #E30A17;
+  background: #fffafa;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(227, 10, 23, 0.08), 0 0 0 4px rgba(227, 10, 23, 0.1);
+}
+
+.basvuru-form-root .form-input:focus::placeholder,
+.basvuru-form-root .form-textarea:focus::placeholder {
+  opacity: 0.5;
+}
+
+/* Icı dolu ama odakta degilken (valid) hafif vurgu */
+.basvuru-form-root .form-input:not(:placeholder-shown):not(:focus),
+.basvuru-form-root .form-textarea:not(:placeholder-shown):not(:focus) {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.basvuru-form-root .required {
+  color: #E30A17;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.basvuru-form-root .form-alert {
+  padding: 0.9rem 1rem;
+  border-radius: 0.85rem;
+  font-weight: 700;
+  line-height: 1.5;
+  margin-bottom: 1.25rem;
+}
+
+.basvuru-form-root .form-alert--error {
+  color: #991b1b;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+}
+
+.basvuru-form-root .membership-empty {
+  grid-column: 1 / -1;
+  margin-bottom: 0;
+}
+
+.basvuru-form-root .branch-listings-root {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.basvuru-form-root .branch-listing-section {
+  border: 1px solid #e8eaed;
+  border-radius: 1rem;
+  padding: 1.25rem 1.5rem;
+  background: #fff;
+}
+
+.basvuru-form-root .section-help {
+  margin: 0.35rem 0 0;
+  font-size: 0.82rem;
+  color: #6b7280;
+  line-height: 1.45;
+}
+
+.basvuru-form-root .branch-listing-help {
+  color: #6b7280;
+  font-size: 0.9rem;
+  margin: 0 0 1rem;
+}
+
+.basvuru-form-root .payment-section-last {
+  margin-top: 0.5rem;
+}
+
+.basvuru-form-root .paket-subtitle {
+  margin: 0 0 1.5rem;
+  color: #495057;
+  font-size: 1.05rem;
+  font-weight: 500;
+}
+
+.basvuru-form-root .membership-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+  align-items: stretch;
+}
+
+@media (min-width: 768px) {
+.basvuru-form-root .membership-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.basvuru-form-root .membership-card {
+  position: relative;
+  cursor: pointer;
+  display: block;
+}
+
+.basvuru-form-root .membership-radio {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.basvuru-form-root .membership-card-content {
+  position: relative;
+  border: 2px solid #E9ECEF;
+  border-radius: 1.25rem;
+  padding: 1.75rem 1.5rem;
+  background: #ffffff;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.basvuru-form-root .membership-card:hover .membership-card-content {
+  transform: translateY(-4px);
+  border-color: #dee2e6;
+  box-shadow: 0 12px 24px rgba(0,0,0,0.06);
+}
+
+.basvuru-form-root .membership-radio:checked + .membership-card-content {
+  border-color: #E30A17;
+  background: #ffffff;
+  box-shadow: 0 12px 30px rgba(227,10,23,0.15), 0 0 0 1px #E30A17;
+}
+
+.basvuru-form-root .membership-radio:checked + .membership-card-content::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: #E30A17;
+}
+
+
+.basvuru-form-root .membership-header {
+  margin-bottom: 1.25rem;
+}
+
+.basvuru-form-root .membership-name {
+  font-size: 1.25rem;
+  font-weight: 900;
+  color: #212529;
+  margin: 0 0 0.25rem;
+}
+
+.basvuru-form-root .membership-period {
+  font-size: 0.85rem;
+  color: #6C757D;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.basvuru-form-root .membership-price-area {
+  margin-bottom: 1.5rem;
+}
+
+.basvuru-form-root .membership-price {
+  font-size: 2.25rem;
+  font-weight: 900;
+  color: #111827;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem;
+}
+
+.basvuru-form-root .membership-radio:checked + .membership-card-content .membership-price {
+  color: #E30A17;
+}
+
+.basvuru-form-root .membership-price .currency {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #6C757D;
+}
+
+.basvuru-form-root .membership-monthly {
+  font-size: 0.9rem;
+  color: #16A34A;
+  font-weight: 700;
+  margin-top: 0.5rem;
+  background: #DCFCE7;
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 0.35rem;
+}
+
+.basvuru-form-root .membership-discount-badge {
+  display: inline-block;
+  margin-top: 0.5rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #9a3412;
+  background: #ffedd5;
+  border: 1px solid #fed7aa;
+}
+
+.basvuru-form-root .membership-monthly-placeholder {
+  height: 1.65rem;
+  margin-top: 0.5rem;
+}
+
+.basvuru-form-root .membership-divider {
+  height: 1px;
+  background: #E9ECEF;
+  margin: 0 0 1.5rem;
+}
+
+.basvuru-form-root .membership-features {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  flex-grow: 1;
+}
+
+.basvuru-form-root .membership-features li {
+  font-size: 0.8rem;
+  color: #495057;
+  font-weight: 500;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.5rem;
+  line-height: 1.4;
+  text-align: left;
+}
+
+.basvuru-form-root .feature-icon {
+  color: #E30A17;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  display: inline-block;
+}
+
+.basvuru-form-root .membership-select-btn {
+  width: 100%;
+  text-align: center;
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  font-weight: 700;
+  font-size: 0.95rem;
+  background: linear-gradient(180deg, #fff1f2 0%, #ffe4e6 100%);
+  color: #b91c1c;
+  border: 1px solid #fecdd3;
+  transition: all 0.2s ease;
+}
+
+.basvuru-form-root .membership-card:hover .membership-select-btn {
+  border-color: #fda4af;
+  background: linear-gradient(180deg, #ffe4e6 0%, #fecdd3 100%);
+}
+
+.basvuru-form-root .membership-radio:checked + .membership-card-content .membership-select-btn {
+  background: #E30A17;
+  color: #ffffff;
+  border-color: #E30A17;
+}
+
+.basvuru-form-root .payment-box {
+  margin-top: 1.5rem;
+  padding: 1.25rem;
+  border: 1px solid #FECACA;
+  border-radius: 1rem;
+  background: linear-gradient(180deg, #fff7f7 0%, #ffffff 100%);
+  display: block;
+}
+
+@keyframes slideDownPayment {
+  from {
+    opacity: 0;
+    transform: translateY(-15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.basvuru-form-root .payment-title {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #7f1d1d;
+}
+
+.basvuru-form-root .payment-desc {
+  margin: 0 0 0.85rem;
+  font-size: 0.88rem;
+  color: #7f1d1d;
+}
+
+.basvuru-form-root .payment-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.65rem;
+  margin-bottom: 0.9rem;
+}
+
+@media (min-width: 640px) {
+.basvuru-form-root .payment-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.basvuru-form-root .payment-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 0.6rem;
+  border: 1px solid #FEE2E2;
+  background: #ffffff;
+}
+
+.basvuru-form-root .payment-item--iban {
+  grid-column: 1 / -1;
+}
+
+.basvuru-form-root .payment-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  color: #b91c1c;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.basvuru-form-root .payment-item strong {
+  font-size: 0.92rem;
+  color: #111827;
+  word-break: break-word;
+}
+
+.basvuru-form-root #dyn-payment-total.payment-total-pending {
+  color: #9ca3af;
+  font-weight: 600;
+}
+
+.basvuru-form-root .payment-steps {
+  margin: 0 0 0.9rem;
+  padding-left: 1.1rem;
+  color: #374151;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.basvuru-form-root .payment-reference {
+  display: grid;
+  gap: 0.4rem;
+  margin-bottom: 0.9rem;
+}
+
+.basvuru-form-root .payment-reference label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #b91c1c;
+}
+
+.basvuru-form-root .payment-reference input {
+  width: 100%;
+  border: 1px solid #fecaca;
+  border-radius: 0.6rem;
+  padding: 0.7rem 0.8rem;
+  background: #fff;
+  color: #1f2937;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.basvuru-form-root .helper-text {
+  font-size: 0.78rem;
+  color: #6b7280;
+}
+
+.basvuru-form-root .membership-count-caption {
+  margin: 0 0 1.2rem;
+  font-size: 0.85rem;
+  color: #4b5563;
+  line-height: 1.5;
+  flex-grow: 1;
+}
+
+.basvuru-form-root .membership-branch-global {
+  margin-top: 1.25rem;
+  padding: 1.1rem 1.25rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fff;
+  display: grid;
+  gap: 0.5rem;
+  max-width: 420px;
+}
+
+.basvuru-form-root .membership-branch-global label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #4b5563;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.basvuru-form-root .membership-branch-help {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #6b7280;
+  line-height: 1.45;
+}
+
+.basvuru-form-root .membership-branch-input {
+  padding: 0.7rem 0.9rem;
+}
+
+.basvuru-form-root .membership-branch-input--global {
+  max-width: 140px;
+}
+
+.basvuru-form-root .payment-confirm {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  font-size: 0.85rem;
+  color: #374151;
+  margin-top: 0.75rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.basvuru-form-root .sr-only-checkbox {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.basvuru-form-root .custom-checkbox {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  border: 2px solid #cbd5e1;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.basvuru-form-root .check-icon {
+  width: 12px;
+  height: 12px;
+  color: #ffffff;
+  opacity: 0;
+  transform: scale(0.5);
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.basvuru-form-root .sr-only-checkbox:checked + .custom-checkbox {
+  background: #E30A17;
+  border-color: #E30A17;
+  animation: checkboxPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.basvuru-form-root .sr-only-checkbox:checked + .custom-checkbox .check-icon {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.basvuru-form-root .sr-only-checkbox:focus-visible + .custom-checkbox {
+  box-shadow: 0 0 0 3px rgba(227, 10, 23, 0.2);
+}
+
+@keyframes checkboxPop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}

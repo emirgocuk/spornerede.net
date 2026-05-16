@@ -1,7 +1,71 @@
 import { getDb, hasDatabaseUrl } from '../../db/client';
 import { displayIlAd } from '../turkishIlDisplay';
-import { membershipPeriodFromPackageCode } from './memberships';
+import {
+  formatMembershipPackageLabel,
+  membershipPeriodFromPackageCode,
+  syncClubMembershipPeriod,
+  type MembershipPeriod,
+} from './memberships';
+import type { ProgramPayload } from './panelPrograms';
 import { parseProgramContent, serializeProgramContent } from './programContent';
+
+function slugify(input: string) {
+  return input
+    .toLowerCase()
+    .replaceAll(' ', '-')
+    .replaceAll('.', '')
+    .replaceAll(',', '')
+    .replaceAll("'", '')
+    .replaceAll('ı', 'i')
+    .replaceAll('ğ', 'g')
+    .replaceAll('ü', 'u')
+    .replaceAll('ş', 's')
+    .replaceAll('ö', 'o')
+    .replaceAll('ç', 'c');
+}
+
+function serializeProgramPayload(payload: ProgramPayload) {
+  return serializeProgramContent({
+    summary: '',
+    eventDate: '',
+    endDate: '',
+    isOngoing: false,
+    days: [],
+    startTime: '',
+    endTime: '',
+    locationText: '',
+    mapsUrl: '',
+    yasAraligi: payload.yasAraligi?.trim() ?? '',
+    gallery: [],
+    bodyJson: null,
+  });
+}
+
+function mapProgramRow(row: { legacyId: unknown; ad: unknown; aciklama: unknown; gunSaat: unknown; seviye: unknown; ucretBilgisi: unknown; aktif: unknown; updated: string }) {
+  const parsed = parseProgramContent((row.aciklama as string) ?? '');
+  return {
+    id: Number(row.legacyId),
+    ad: (row.ad as string) ?? '',
+    aciklama: parsed.content.summary || parsed.legacyText || '',
+    gunSaat: (row.gunSaat as string) ?? '',
+    seviye: (row.seviye as string) ?? '',
+    ucretBilgisi: (row.ucretBilgisi as string) ?? '',
+    aktif: Boolean(row.aktif),
+    eventDate: parsed.content.eventDate,
+    endDate: parsed.content.endDate,
+    isOngoing: parsed.content.isOngoing,
+    days: parsed.content.days,
+    startTime: parsed.content.startTime,
+    endTime: parsed.content.endTime,
+    locationText: parsed.content.locationText,
+    mapsUrl: parsed.content.mapsUrl,
+    yasAraligi: parsed.content.yasAraligi,
+    aidatBilgisi: (row.ucretBilgisi as string) ?? '',
+    gallery: parsed.content.gallery,
+    bodyJson: parsed.content.bodyJson,
+    updatedAt: row.updated,
+  };
+}
 
 function requireDatabase() {
   if (!hasDatabaseUrl()) {
@@ -94,7 +158,9 @@ export async function getApprovedAdminClubById(clubId: number) {
     id: Number(row.legacyId),
     ad: row.ad as string,
     il: displayIlAd(city?.slug as string | undefined, city?.ad as string | undefined),
+    ilSlug: (city?.slug as string) ?? '',
     ilce: (district?.ad as string | undefined) ?? '',
+    ilceSlug: (district?.slug as string) ?? '',
     telefon: (row.telefon as string) ?? '',
     email: (row.email as string) ?? '',
     adres: (row.adres as string) ?? '',
@@ -105,27 +171,12 @@ export async function getApprovedAdminClubById(clubId: number) {
     sorumluAdminEmail: (row.sorumluAdminEmail as string) ?? '',
     paketKod,
     paketAd,
+    paketLabel: formatMembershipPackageLabel(paketKod, paketAd),
     bransSayisi,
     membershipPeriod: membershipPeriodFromPackageCode(paketKod) ?? 'six_month',
     linkedUsers,
     updatedAt: row.updated,
-    programs: programs.map((program) => {
-      const parsed = parseProgramContent((program.aciklama as string) ?? '');
-      return {
-        id: Number(program.legacyId),
-        ad: (program.ad as string) ?? '',
-        aciklama: parsed.content.summary || parsed.legacyText || '',
-        gunSaat: (program.gunSaat as string) ?? '',
-        seviye: (program.seviye as string) ?? '',
-        ucretBilgisi: (program.ucretBilgisi as string) ?? '',
-        aktif: Boolean(program.aktif),
-        eventDate: parsed.content.eventDate,
-        locationText: parsed.content.locationText,
-        gallery: parsed.content.gallery,
-        bodyJson: parsed.content.bodyJson,
-        updatedAt: program.updated,
-      };
-    }),
+    programs: programs.map((program) => mapProgramRow(program)),
   };
 }
 
@@ -139,15 +190,9 @@ export type UpdateApprovedClubInput = {
   fiyatBilgisi: string;
   adminNotu?: string;
   sorumluAdminEmail?: string;
-};
-
-export type CreateAdminClubProgramInput = {
-  ad: string;
-  aciklama?: string;
-  gunSaat?: string;
-  seviye?: string;
-  ucretBilgisi?: string;
-  aktif?: boolean;
+  il?: string;
+  ilce?: string;
+  membershipPeriod?: MembershipPeriod;
 };
 
 export async function updateApprovedAdminClub(clubId: number, input: UpdateApprovedClubInput) {
@@ -162,7 +207,7 @@ export async function updateApprovedAdminClub(clubId: number, input: UpdateAppro
     return null;
   }
 
-  const updated = await db.collection('kulupler').update(row.id, {
+  const patch: Record<string, unknown> = {
     ad: input.ad.trim(),
     telefon: input.telefon.trim(),
     email: input.email.trim(),
@@ -174,7 +219,29 @@ export async function updateApprovedAdminClub(clubId: number, input: UpdateAppro
     ...(input.sorumluAdminEmail !== undefined
       ? { sorumluAdminEmail: input.sorumluAdminEmail.trim().slice(0, 180) }
       : {}),
-  });
+  };
+
+  if (input.il?.trim()) {
+    const city = await db.collection('iller').getFirstListItem(`slug = "${slugify(input.il)}"`).catch(() => null);
+    if (city) {
+      patch.ilLegacyId = Number(city.legacyId);
+      if (input.ilce?.trim()) {
+        const district = await db
+          .collection('ilceler')
+          .getFirstListItem(`ilLegacyId = ${Number(city.legacyId)} && slug = "${slugify(input.ilce)}"`)
+          .catch(() => null);
+        if (district) {
+          patch.ilceLegacyId = Number(district.legacyId);
+        }
+      }
+    }
+  }
+
+  const updated = await db.collection('kulupler').update(row.id, patch);
+
+  if (input.membershipPeriod) {
+    await syncClubMembershipPeriod(clubId, input.membershipPeriod);
+  }
 
   return {
     id: Number(updated.legacyId),
@@ -189,20 +256,7 @@ export async function updateApprovedAdminClub(clubId: number, input: UpdateAppro
   };
 }
 
-export type UpdateAdminClubProgramInput = {
-  ad: string;
-  aciklama: string;
-  gunSaat: string;
-  seviye: string;
-  ucretBilgisi: string;
-  aktif: boolean;
-  eventDate?: string;
-  locationText?: string;
-  gallery?: string[];
-  bodyJson?: unknown | null;
-};
-
-export async function createAdminClubProgram(clubId: number, input: CreateAdminClubProgramInput) {
+export async function createAdminClubProgram(clubId: number, payload: ProgramPayload) {
   requireDatabase();
   const db = await getDb();
 
@@ -212,34 +266,22 @@ export async function createAdminClubProgram(clubId: number, input: CreateAdminC
     .catch(() => null);
   if (!club) return null;
 
-  const ad = input.ad.trim();
-  if (!ad) return null;
+  const ad = payload.ad.trim() || 'İlan';
 
   const row = await db.collection('kulup_programlari').create({
     legacyId: Date.now(),
     kulupLegacyId: clubId,
     ad,
-    aciklama: serializeProgramContent({ summary: input.aciklama?.trim() ?? '' }),
-    gunSaat: input.gunSaat?.trim() ?? '',
-    seviye: input.seviye?.trim() ?? '',
-    ucretBilgisi: input.ucretBilgisi?.trim() ?? '',
-    aktif: input.aktif ?? true,
+    aciklama: serializeProgramPayload(payload),
+    gunSaat: payload.gunSaat?.trim() ?? '',
+    seviye: payload.seviye?.trim() ?? '',
+    ucretBilgisi: payload.ucretBilgisi?.trim() ?? '',
+    aktif: payload.aktif ?? true,
   });
-  const parsed = parseProgramContent((row.aciklama as string) ?? '');
-
-  return {
-    id: Number(row.legacyId),
-    ad: (row.ad as string) ?? '',
-    aciklama: parsed.content.summary || parsed.legacyText || '',
-    gunSaat: (row.gunSaat as string) ?? '',
-    seviye: (row.seviye as string) ?? '',
-    ucretBilgisi: (row.ucretBilgisi as string) ?? '',
-    aktif: Boolean(row.aktif),
-    updatedAt: row.updated,
-  };
+  return mapProgramRow(row);
 }
 
-export async function updateAdminClubProgram(clubId: number, programId: number, input: UpdateAdminClubProgramInput) {
+export async function updateAdminClubProgram(clubId: number, programId: number, payload: ProgramPayload) {
   requireDatabase();
   const db = await getDb();
 
@@ -251,36 +293,48 @@ export async function updateAdminClubProgram(clubId: number, programId: number, 
     return null;
   }
 
-  const currentParsed = parseProgramContent((program.aciklama as string) ?? '');
   const updated = await db.collection('kulup_programlari').update(program.id, {
-    ad: input.ad.trim(),
-    aciklama: serializeProgramContent({
-      summary: input.aciklama.trim(),
-      eventDate: input.eventDate ?? currentParsed.content.eventDate,
-      locationText: input.locationText ?? currentParsed.content.locationText,
-      gallery: input.gallery ?? currentParsed.content.gallery,
-      bodyJson: input.bodyJson ?? currentParsed.content.bodyJson,
-    }),
-    gunSaat: input.gunSaat.trim(),
-    seviye: input.seviye.trim(),
-    ucretBilgisi: input.ucretBilgisi.trim(),
-    aktif: input.aktif,
+    ad: payload.ad.trim() || 'İlan',
+    aciklama: serializeProgramPayload(payload),
+    gunSaat: payload.gunSaat?.trim() ?? '',
+    seviye: payload.seviye?.trim() ?? '',
+    ucretBilgisi: payload.ucretBilgisi?.trim() ?? '',
+    aktif: payload.aktif ?? true,
   });
-  const parsed = parseProgramContent((updated.aciklama as string) ?? '');
+  return mapProgramRow(updated);
+}
+
+/** Onayı geri çeker; kulüp başvurular listesine (pending) döner. */
+export async function withdrawClubApproval(clubId: number, adminNote?: string) {
+  requireDatabase();
+  const db = await getDb();
+
+  const row = await db
+    .collection('kulupler')
+    .getFirstListItem(`legacyId = ${clubId} && durum = "approved"`)
+    .catch(() => null);
+  if (!row) return null;
+
+  const note = adminNote?.trim() || 'Onay geri çekildi; başvuru yeniden incelenecek.';
+  const updated = await db.collection('kulupler').update(row.id, {
+    durum: 'pending',
+    adminNotu: note.slice(0, 5000),
+  });
+
+  await db.collection('admin_basvuru_loglari').create({
+    legacyId: Date.now(),
+    basvuruLegacyId: clubId,
+    aksiyon: 'club_approval_withdrawn',
+    oncekiDurum: 'approved',
+    yeniDurum: 'pending',
+    notMetni: note,
+    atananAdminEmail: (row.sorumluAdminEmail as string) ?? '',
+    islemYapanEmail: '',
+  });
 
   return {
     id: Number(updated.legacyId),
-    ad: (updated.ad as string) ?? '',
-    aciklama: parsed.content.summary || parsed.legacyText || '',
-    gunSaat: (updated.gunSaat as string) ?? '',
-    seviye: (updated.seviye as string) ?? '',
-    ucretBilgisi: (updated.ucretBilgisi as string) ?? '',
-    aktif: Boolean(updated.aktif),
-    eventDate: parsed.content.eventDate,
-    locationText: parsed.content.locationText,
-    gallery: parsed.content.gallery,
-    bodyJson: parsed.content.bodyJson,
-    updatedAt: updated.updated,
+    status: 'pending' as const,
   };
 }
 

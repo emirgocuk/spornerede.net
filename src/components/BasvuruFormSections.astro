@@ -1,0 +1,222 @@
+---
+import '../styles/basvuru-form-sections.css';
+
+export interface MembershipPlanView {
+  kod: string;
+  ad: string;
+  ucret: number;
+  aciklama: string;
+}
+
+export interface Props {
+  cities: string[];
+  bransListesi: string[];
+  membershipPlans: MembershipPlanView[];
+  bankName: string;
+  accountName: string;
+  branch: string;
+  iban: string;
+  errorMessage?: string;
+}
+
+const { cities, bransListesi, membershipPlans, bankName, accountName, branch, iban, errorMessage } = Astro.props;
+---
+
+<div class="basvuru-form-root">
+{errorMessage && (
+  <div class="form-alert form-alert--error" role="alert" aria-live="polite">
+    {errorMessage}
+  </div>
+)}
+
+<!-- 1: Paket & branş sayısı -->
+<div class="form-section">
+  <h2 class="form-section-title">
+    <span class="form-section-num" aria-hidden="true">1</span>
+    Üyelik Paketi
+  </h2>
+  <p class="paket-subtitle">6 aylık veya yıllık paketinizi seçin. Her paket 1 branş içerir. Her ek branş %50 indirimlidir.</p>
+  <div class="membership-grid" role="radiogroup" aria-label="Üyelik Paketi">
+    {membershipPlans.length ? (
+      membershipPlans.map((plan) => (
+        <label class="membership-card" for={`uyelik-${plan.kod}`}>
+          <input
+            id={`uyelik-${plan.kod}`}
+            class="membership-radio"
+            type="radio"
+            name="paket"
+            value={plan.kod}
+            data-plan-name={plan.ad}
+            data-plan-price={plan.ucret}
+            required
+          />
+          <div class="membership-card-content">
+            <div class="membership-header">
+              <h3 class="membership-name">{plan.ad}</h3>
+              <span class="membership-period">1 branş dahil</span>
+            </div>
+            <div class="membership-price-area">
+              <div class="membership-price">
+                {new Intl.NumberFormat('tr-TR').format(plan.ucret)} <span class="currency">TL</span>
+              </div>
+              <div class="membership-monthly">1 BRANŞ</div>
+              <div class="membership-discount-badge">Ek Branşlar %50 İndirimli</div>
+            </div>
+            <div class="membership-divider"></div>
+            <div class="membership-select-btn">Planı Seç</div>
+          </div>
+        </label>
+      ))
+    ) : (
+      <div class="form-alert form-alert--error membership-empty" role="alert">
+        Üyelik paketleri yüklenemedi. Lütfen daha sonra tekrar deneyin.
+      </div>
+    )}
+  </div>
+  <div class="membership-branch-global">
+    <label for="brans-sayisi-global">Yayınlanacak Branş (İlan) Sayısı</label>
+    <p class="membership-branch-help">Kaç farklı branş için ilan girecekseniz seçin. Her branş için ayrı ilan formu doldurulur.</p>
+    <input
+      id="brans-sayisi-global"
+      type="number"
+      min="1"
+      max="10"
+      step="1"
+      value="1"
+      class="form-input membership-branch-input membership-branch-input--global"
+      data-branch-input
+    />
+  </div>
+  <input type="hidden" id="brans-sayisi-hidden" name="bransSayisi" value="1" />
+</div>
+
+<!-- 2: Kulüp & iletişim -->
+<div class="form-section">
+  <h2 class="form-section-title">
+    <span class="form-section-num" aria-hidden="true">2</span>
+    Kulüp & İletişim
+  </h2>
+  <div class="form-row">
+    <div class="form-group">
+      <label class="form-label" for="kulup-ad">
+        Kulüp / Kurs Adı <span class="required">*</span>
+      </label>
+      <input type="text" id="kulup-ad" name="kulupad" class="form-input" required autocomplete="organization" />
+    </div>
+  </div>
+  <div class="form-row form-row-2col">
+    <div class="form-group">
+      <label class="form-label" for="kulup-il">İl <span class="required">*</span></label>
+      <select id="kulup-il" name="il" class="form-select" required>
+        <option value="">İl seçin...</option>
+        {cities.map((il) => (
+          <option value={il}>{il}</option>
+        ))}
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="kulup-ilce">İlçe <span class="required">*</span></label>
+      <select id="kulup-ilce" name="ilce" class="form-select" required>
+        <option value="">Önce il seçin...</option>
+      </select>
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-group">
+      <label class="form-label" for="kulup-adres">Tesis İsmi veya Tam Adres</label>
+      <input type="text" id="kulup-adres" name="adres" class="form-input" placeholder="Tesis adı veya mahalle, cadde, no" />
+    </div>
+  </div>
+  <div class="form-row form-row-2col">
+    <div class="form-group">
+      <label class="form-label" for="yetkili-ad">Yetkili Kişi İsmi <span class="required">*</span></label>
+      <input type="text" id="yetkili-ad" name="yetkili" class="form-input" required autocomplete="name" />
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="yetkili-telefon">Telefon <span class="required">*</span></label>
+      <input type="tel" id="yetkili-telefon" name="telefon" class="form-input" required autocomplete="tel" />
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-group">
+      <label class="form-label" for="yetkili-email">E-posta</label>
+      <input type="email" id="yetkili-email" name="email" class="form-input" autocomplete="email" />
+    </div>
+  </div>
+</div>
+
+<!-- 3: Dinamik branş ilanları -->
+<div id="branch-listings-root" class="branch-listings-root" aria-live="polite"></div>
+
+<template id="branch-listing-template">
+  <div class="form-section branch-listing-section" data-branch-section>
+    <h2 class="form-section-title branch-listing-title">
+      <span class="form-section-num branch-listing-num" aria-hidden="true">3</span>
+      <span class="branch-listing-title-text">1. Branş Bilgileri (İlan)</span>
+    </h2>
+    <p class="branch-listing-help">Bu branş vitrinde ayrı bir ilan olarak yayınlanacak. Bilgileri eksiksiz doldurmanız gerekir.</p>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label branch-field-brans">Branş <span class="required">*</span></label>
+        <select class="form-select branch-input-brans" name="" required data-field="brans">
+          <option value="">Branş seçin...</option>
+          {bransListesi.map((b) => (
+            <option value={b}>{b}</option>
+          ))}
+        </select>
+        <p class="section-help text-sm">İlan, seçtiğiniz branş adıyla yayınlanır.</p>
+      </div>
+    </div>
+    <div class="form-row form-row-2col">
+      <div class="form-group">
+        <label class="form-label">Yaş Aralığı</label>
+        <input type="text" class="form-input branch-input-yasAraligi" name="" data-field="yasAraligi" placeholder="Örn: 6-14 yaş" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Aidat Bilgisi</label>
+        <input type="text" class="form-input branch-input-aidat" name="" data-field="aidat" placeholder="Örn: Aylık 1500 TL" />
+      </div>
+    </div>
+  </div>
+</template>
+
+<!-- 4: Ödeme -->
+<div class="form-section payment-section-last">
+  <h2 class="form-section-title">
+    <span class="form-section-num" aria-hidden="true">4</span>
+    Ödeme
+  </h2>
+  <div class="payment-box">
+    <h3 class="payment-title">Banka Havalesi ile Ödeme</h3>
+    <p class="payment-desc">Toplam tutarı havale/EFT ile gönderin; onay sonrası ilanlarınız yayına alınır.</p>
+    <div class="payment-grid">
+      <div class="payment-item"><span class="payment-label">Banka</span><strong>{bankName}</strong></div>
+      <div class="payment-item"><span class="payment-label">Hesap Adı</span><strong>{accountName}</strong></div>
+      <div class="payment-item"><span class="payment-label">Şube</span><strong>{branch}</strong></div>
+      <div class="payment-item payment-item--iban"><span class="payment-label">IBAN</span><strong>{iban}</strong></div>
+      <div class="payment-item payment-item--iban">
+        <span class="payment-label">Gönderilecek Tutar</span>
+        <strong id="dyn-payment-total" class="payment-total-pending" data-empty="1">—</strong>
+      </div>
+    </div>
+    <div class="payment-reference">
+      <label for="dyn-payment-ref">Banka Açıklama</label>
+      <input id="dyn-payment-ref" type="text" readonly value="Kulüp veya Kurs Adınızı -" />
+    </div>
+    <ol class="payment-steps">
+      <li><strong id="dyn-payment-amount">Paket tutarını</strong> yukarıdaki IBAN hesabına gönderin.</li>
+      <li>Açıklama alanına <strong id="dyn-payment-desc">Kulüp veya Kurs Adınızı</strong> yazın.</li>
+      <li>Ödemeyi tamamladıktan sonra aşağıdaki onay kutusunu işaretleyin.</li>
+    </ol>
+    <label class="payment-confirm">
+      <input type="checkbox" name="odemeOnay" value="1" class="sr-only-checkbox" required />
+      <div class="custom-checkbox">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" class="check-icon">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+      </div>
+      <span>Ödemeyi yaptım ve bilgilerin doğru olduğunu onaylıyorum.</span>
+    </label>
+  </div>
+</div>
+</div>
