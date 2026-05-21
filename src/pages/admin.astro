@@ -317,8 +317,9 @@ const adminLocationData = {
             <aside class="admin-list-container">
               <div class="list-header">
                 <h2>Rehber yazıları</h2>
-                <span class="badge badge-gray">Tümü</span>
+                <span id="guides-list-count" class="badge badge-gray">0</span>
               </div>
+              <div id="guides-filters" class="guide-filters" role="tablist" aria-label="Rehber filtreleri"></div>
               <ul id="guides-list" class="admin-list custom-scrollbar"></ul>
             </aside>
             <article class="admin-detail-container">
@@ -2675,7 +2676,7 @@ const adminLocationData = {
       }
     }
 
-    const guidesAdmin = mountGuidesAdminTab({ apiGet, apiPut, apiDelete, escapeHtml });
+    const guidesAdmin = mountGuidesAdminTab({ apiGet, apiPut, apiPost, apiDelete, escapeHtml });
 
     tabButtons.forEach((button) => {
       button.addEventListener('click', async () => {
@@ -3117,6 +3118,82 @@ const adminLocationData = {
       margin: 0 0 0.75rem;
       color: #b91c1c;
       font-size: 0.88rem;
+    }
+
+    .guide-filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      padding: 0 0 0.75rem;
+      border-bottom: 1px solid var(--admin-border, #e8e8e8);
+      margin-bottom: 0.5rem;
+    }
+
+    .guide-filter-btn {
+      font-size: 0.78rem;
+      padding: 0.35rem 0.65rem;
+      border-radius: 999px;
+      border: 1px solid #e5e7eb;
+      background: #fff;
+      cursor: pointer;
+      color: #374151;
+    }
+
+    .guide-filter-btn.is-active {
+      border-color: #b5080f;
+      background: #fff5f5;
+      color: #b5080f;
+      font-weight: 600;
+    }
+
+    .guide-gsc-mini {
+      display: block;
+      font-size: 0.72rem;
+      color: #6b7280;
+      margin-top: 0.2rem;
+    }
+
+    .guide-perf-pill {
+      display: inline-block;
+      font-size: 0.65rem;
+      font-weight: 700;
+      margin-right: 0.35rem;
+      padding: 0.1rem 0.4rem;
+      border-radius: 4px;
+    }
+
+    .guide-perf-pill--low {
+      background: #fee2e2;
+      color: #b91c1c;
+    }
+
+    .guide-perf-pill--ctr {
+      background: #fef3c7;
+      color: #b45309;
+    }
+
+    .guide-alert {
+      margin: 0 0 1rem;
+      padding: 0.85rem 1rem;
+      border-radius: 0.65rem;
+      font-size: 0.9rem;
+      line-height: 1.45;
+    }
+
+    .guide-alert--low {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #991b1b;
+    }
+
+    .guide-alert--ctr {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      color: #92400e;
+    }
+
+    .guide-gsc-detail {
+      margin-top: 0.5rem;
     }
 
     .search-box {

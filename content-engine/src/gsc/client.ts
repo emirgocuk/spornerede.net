@@ -9,6 +9,14 @@ export type GscQueryRow = {
   position: number;
 };
 
+export type GscPageRow = {
+  page: string;
+  clicks: number;
+  impressions: number;
+  ctr: number;
+  position: number;
+};
+
 export type GscSiteEntry = { siteUrl: string; permissionLevel?: string };
 
 async function getSearchConsole() {
@@ -83,6 +91,46 @@ export async function fetchGscQueries(days = 28): Promise<GscQueryRow[]> {
 
   return rows.map((row) => ({
     query: String(row.keys?.[0] ?? '').toLowerCase().trim(),
+    clicks: Number(row.clicks ?? 0),
+    impressions: Number(row.impressions ?? 0),
+    ctr: Number(row.ctr ?? 0),
+    position: Number(row.position ?? 0),
+  }));
+}
+
+export async function fetchGscPages(days = 28): Promise<GscPageRow[]> {
+  const sc = await getSearchConsole();
+  if (!sc) return [];
+
+  const siteUrl = await resolveGscSiteUrl();
+  if (!siteUrl) return [];
+
+  const end = new Date();
+  const start = new Date();
+  start.setDate(end.getDate() - days);
+
+  const res = await sc.searchanalytics.query({
+    siteUrl,
+    requestBody: {
+      startDate: start.toISOString().slice(0, 10),
+      endDate: end.toISOString().slice(0, 10),
+      dimensions: ['page'],
+      rowLimit: 500,
+    },
+  });
+
+  const rows = (res.data as {
+    rows?: Array<{
+      keys?: string[];
+      clicks?: number;
+      impressions?: number;
+      ctr?: number;
+      position?: number;
+    }>;
+  }).rows ?? [];
+
+  return rows.map((row) => ({
+    page: String(row.keys?.[0] ?? ''),
     clicks: Number(row.clicks ?? 0),
     impressions: Number(row.impressions ?? 0),
     ctr: Number(row.ctr ?? 0),

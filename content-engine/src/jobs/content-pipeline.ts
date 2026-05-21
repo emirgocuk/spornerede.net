@@ -24,9 +24,13 @@ async function countTodayDrafts(pb: Awaited<ReturnType<typeof getAdminPb>>): Pro
 }
 
 async function pickKeyword(pb: Awaited<ReturnType<typeof getAdminPb>>) {
-  return pb.collection('seo_keywords').getFirstListItem('durum = "kuyrukta"', {
+  const list = await pb.collection('seo_keywords').getList(1, 1, {
+    filter: 'durum = "kuyrukta"',
     sort: '-skor',
   });
+  const row = list.items[0];
+  if (!row) throw new Error('Kuyrukta keyword yok');
+  return row;
 }
 
 async function main() {
@@ -67,6 +71,17 @@ async function main() {
     modelUsed = result.modelUsed;
   } catch (e) {
     await pb.collection('seo_keywords').update(keyword.id, { durum: 'kuyrukta' });
+    const msg = String(e);
+    const rateLimited = msg.includes('429') || msg.toLowerCase().includes('rate-limited');
+    if (rateLimited) {
+      console.error(
+        '\n[llm] Ucretsiz model kotasi dolu. 15-60 dk sonra: npm run job:draft',
+      );
+      console.error('      Alternatif: npm run create:manual-draft -- <anahtar>\n');
+    }
+    if (cfg.draftFailSoft && rateLimited) {
+      process.exit(0);
+    }
     throw e;
   }
 

@@ -28,6 +28,12 @@ export const cfg = {
     'SEO_OPENROUTER_MODEL_FALLBACK',
     'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free',
   ),
+  /** Virgulle ayrilmis ek :free modeller (ornek: qwen/qwen3-4b:free) */
+  openrouterExtraModels: opt('SEO_OPENROUTER_MODELS', '')
+    .split(',')
+    .map((m) => m.trim())
+    .filter(Boolean),
+  draftFailSoft: opt('SEO_DRAFT_FAIL_SOFT', 'true') !== 'false',
   llmProvider: opt('SEO_LLM_PROVIDER', 'openrouter'),
   usePaidApis: opt('SEO_USE_PAID_APIS', 'false') === 'true',
   dailyArticleLimit: Math.max(1, Number(opt('SEO_DAILY_ARTICLE_LIMIT', '1')) || 1),
@@ -40,6 +46,16 @@ export const cfg = {
   siteUrl: opt('SITE_URL', 'https://spornerede.net').replace(/\/$/, ''),
   contentEngineRoot: root,
 };
+
+/** Birincil → yedek → SEO_OPENROUTER_MODELS (tekrarsiz) */
+export function getOpenRouterModelChain(): string[] {
+  const chain = [
+    cfg.openrouterModel,
+    cfg.openrouterModelFallback,
+    ...cfg.openrouterExtraModels,
+  ].filter(Boolean);
+  return [...new Set(chain)];
+}
 
 export function requireOpenRouter() {
   return req('OPENROUTER_API_KEY');

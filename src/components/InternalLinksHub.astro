@@ -1,0 +1,102 @@
+---
+interface LinkItem {
+  href: string;
+  title: string;
+  description?: string;
+}
+
+interface Props {
+  title?: string;
+  araLink?: LinkItem;
+  guideLinks?: LinkItem[];
+}
+
+const { title = 'İlişili içerikler', araLink, guideLinks = [] } = Astro.props;
+const hasContent = Boolean(araLink || guideLinks.length);
+---
+
+{hasContent && (
+  <aside class="internal-links-hub" aria-labelledby="internal-links-heading">
+    <h2 id="internal-links-heading">{title}</h2>
+    <ul class="internal-links-list">
+      {araLink && (
+        <li>
+          <a class="internal-link-card internal-link-card--primary" href={araLink.href}>
+            <span class="internal-link-kicker">Arama</span>
+            <strong>{araLink.title}</strong>
+            {araLink.description && <p>{araLink.description}</p>}
+          </a>
+        </li>
+      )}
+      {guideLinks.map((item) => (
+        <li>
+          <a class="internal-link-card" href={item.href}>
+            <span class="internal-link-kicker">Rehber</span>
+            <strong>{item.title}</strong>
+            {item.description && <p>{item.description}</p>}
+          </a>
+        </li>
+      ))}
+    </ul>
+  </aside>
+)}
+
+<style>
+  .internal-links-hub {
+    margin-top: 1.75rem;
+    padding: 1.25rem;
+    border: 1px solid #f1dede;
+    border-radius: 1rem;
+    background: #fffaf8;
+  }
+  .internal-links-hub h2 {
+    margin: 0 0 1rem;
+    font-size: 1.15rem;
+    color: #111827;
+  }
+  .internal-links-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.65rem;
+  }
+  .internal-link-card {
+    display: block;
+    padding: 0.85rem 1rem;
+    border-radius: 0.75rem;
+    border: 1px solid #f1dede;
+    background: #fff;
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .internal-link-card:hover {
+    border-color: #b5080f;
+    box-shadow: 0 4px 14px rgba(181, 8, 15, 0.08);
+  }
+  .internal-link-card--primary {
+    border-color: #ffd5d8;
+    background: #fff5f5;
+  }
+  .internal-link-kicker {
+    display: block;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #b5080f;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+  }
+  .internal-link-card strong {
+    display: block;
+    color: #111827;
+    line-height: 1.35;
+  }
+  .internal-link-card p {
+    margin: 0.35rem 0 0;
+    font-size: 0.88rem;
+    color: #6b7280;
+    line-height: 1.45;
+  }
+</style>

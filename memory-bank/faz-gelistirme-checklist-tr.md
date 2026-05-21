@@ -138,7 +138,7 @@ Bu dosya, proje ilerlemesini tek yerden takip etmek için faz bazlı ana checkli
 - [x] `gsc-reporter.ts` (GSC path varsa)
 - [ ] `seo-gsc-weekly.timer`
 - [x] Admin sekme badge (bekleyen taslak sayısı)
-- [ ] Otomatik `dusuk_performans` kuralı (sonraki iterasyon)
+- [x] Otomatik `dusuk_performans` kuralı (`gsc-reporter` + `performance-rules.ts`)
 
 ## Faz 4 — Gelişmiş Ürün (Harita, Tam Quiz, Yorum) — Büyük Epik
 

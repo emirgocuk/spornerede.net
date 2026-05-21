@@ -9,6 +9,8 @@
   "scripts": {
     "check:env": "tsx src/cli/check-env.ts",
     "check:pb": "tsx src/cli/check-pb-collections.ts",
+    "smoke": "tsx src/cli/smoke-test.ts",
+    "smoke:quick": "tsx src/cli/smoke-test.ts --skip-draft",
     "gsc:check": "tsx src/cli/check-gsc.ts",
     "gsc:oauth": "tsx src/cli/oauth-gsc.ts",
     "setup:collections": "tsx src/cli/setup-collections.ts",
@@ -16,6 +18,7 @@
     "seed:keywords": "tsx src/cli/seed-keywords.ts",
     "list:drafts": "tsx src/cli/list-drafts.ts",
     "publish:draft": "tsx src/cli/publish-draft.ts",
+    "create:manual-draft": "tsx src/cli/create-manual-draft.ts",
     "job:keywords": "tsx src/jobs/keyword-engine.ts",
     "job:gsc": "tsx src/jobs/gsc-reporter.ts",
     "job:draft": "tsx src/jobs/content-pipeline.ts"

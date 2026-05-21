@@ -1,6 +1,10 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import InternalLinksHub from '../../components/InternalLinksHub.astro';
 import { getActiveNews, getActiveNewsBySlug } from '../../lib/repositories/news';
+import { getPublishedGuides } from '../../lib/repositories/seoArticles';
+import { buildAraSearchFromNews, pickGuidesForNews } from '../../lib/seo/internalLinks';
+import { newsArticleSchema } from '../../lib/seo/jsonld';
 
 export const prerender = false;
 
@@ -14,30 +18,30 @@ if (!haber) {
 const allNews = await getActiveNews();
 const relatedNews = allNews.filter((item) => item.slug !== slug).slice(0, 4);
 
+const publishedGuides = haber ? await getPublishedGuides() : [];
+const relatedGuides = haber ? pickGuidesForNews(haber, publishedGuides, 3) : [];
+const araSearch = haber ? buildAraSearchFromNews(haber) : null;
+
 const pageTitle = haber?.seoTitle || haber?.baslik || 'Haber Bulunamadi';
 const pageDescription = haber?.seoDescription || 'Aradiginiz haber bulunamadi.';
 const canonical = `https://spornerede.net/haberler/${slug}`;
 
 const articleSchema = haber
-  ? {
-      '@context': 'https://schema.org',
-      '@type': 'NewsArticle',
+  ? newsArticleSchema({
       headline: haber.seoTitle || haber.baslik,
       description: haber.seoDescription,
       datePublished: haber.tarihIso || new Date().toISOString(),
-      dateModified: haber.tarihIso || new Date().toISOString(),
-      inLanguage: 'tr-TR',
-      mainEntityOfPage: canonical,
-      author: {
-        '@type': 'Organization',
-        name: 'SporNerede.net',
-      },
-      publisher: {
-        '@type': 'Organization',
-        name: 'SporNerede.net',
-      },
-    }
+      url: canonical,
+    })
   : null;
+
+const breadcrumbs = haber
+  ? [
+      { name: 'Ana Sayfa', url: 'https://spornerede.net/' },
+      { name: 'Haberler', url: 'https://spornerede.net/haberler' },
+      { name: haber.baslik, url: canonical },
+    ]
+  : undefined;
 ---
 
 <BaseLayout
@@ -45,10 +49,10 @@ const articleSchema = haber
   description={pageDescription}
   canonical={canonical}
   keywords="spor haberleri, kulup duyurulari, spor etkinlikleri"
+  ogType="article"
+  breadcrumbs={breadcrumbs}
+  jsonLd={articleSchema ?? undefined}
 >
-  {articleSchema && (
-    <script type="application/ld+json" set:html={JSON.stringify(articleSchema)} />
-  )}
 
   <section class="news-detail section">
     <div class="container news-detail-container">
@@ -83,6 +87,24 @@ const articleSchema = haber
               </p>
             )}
           </article>
+
+          <InternalLinksHub
+            title="Ilgili rehber ve kurs aramasi"
+            araLink={
+              araSearch
+                ? {
+                    href: araSearch.href,
+                    title: araSearch.label,
+                    description: 'Yakinindaki spor kurslarini listeleyin.',
+                  }
+                : undefined
+            }
+            guideLinks={relatedGuides.map((g) => ({
+              href: `/rehber/${g.slug}`,
+              title: g.baslik,
+              description: g.metaDescription,
+            }))}
+          />
 
           {relatedNews.length > 0 && (
             <aside class="related-news">

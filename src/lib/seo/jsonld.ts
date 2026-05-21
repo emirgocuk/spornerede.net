@@ -90,6 +90,60 @@ export type FaqEntry = {
   answer: string;
 };
 
+export type NewsArticleInput = {
+  headline: string;
+  description: string;
+  datePublished: string;
+  dateModified?: string;
+  url: string;
+};
+
+export function newsArticleSchema(input: NewsArticleInput) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'NewsArticle',
+    headline: input.headline,
+    description: input.description,
+    datePublished: input.datePublished,
+    dateModified: input.dateModified ?? input.datePublished,
+    inLanguage: 'tr-TR',
+    mainEntityOfPage: input.url,
+    url: input.url,
+    author: { '@type': 'Organization', name: SITE_NAME, '@id': `${SITE_URL}/#organization` },
+    publisher: {
+      '@type': 'Organization',
+      name: SITE_NAME,
+      '@id': `${SITE_URL}/#organization`,
+      logo: { '@type': 'ImageObject', url: SITE_LOGO },
+    },
+    image: SITE_OG_DEFAULT,
+  };
+}
+
+export type ArticleGuideInput = {
+  headline: string;
+  description: string;
+  datePublished: string;
+  url: string;
+  schemaType?: 'Article' | 'HowTo';
+};
+
+export function articleGuideSchema(input: ArticleGuideInput) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': input.schemaType ?? 'Article',
+    headline: input.headline,
+    description: input.description,
+    datePublished: input.datePublished,
+    dateModified: input.datePublished,
+    inLanguage: 'tr-TR',
+    mainEntityOfPage: input.url,
+    url: input.url,
+    author: { '@type': 'Organization', name: SITE_NAME },
+    publisher: { '@type': 'Organization', name: SITE_NAME, logo: { '@type': 'ImageObject', url: SITE_LOGO } },
+  };
+}
+
 export function faqPageSchema(entries: FaqEntry[]) {
   return {
     '@context': 'https://schema.org',

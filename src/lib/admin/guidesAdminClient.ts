@@ -11,11 +11,16 @@ type GuideRow = {
   gscTiklama: number;
   gscGosterim: number;
   gscKonum: number;
+  gscCtr: number;
+  anahtarKelimeId: string;
+  keywordAnahtar: string;
+  performansUyari: '' | 'dusuk_performans' | 'ctr_iyilestir';
 };
 
 type ApiDeps = {
   apiGet: (path: string) => Promise<unknown>;
   apiPut: (path: string, body: Record<string, unknown>) => Promise<unknown>;
+  apiPost: (path: string, body: Record<string, unknown>) => Promise<unknown>;
   apiDelete: (path: string, body: Record<string, unknown>) => Promise<unknown>;
   escapeHtml: (value: string) => string;
 };
@@ -26,8 +31,6 @@ const STATUS_LABEL: Record<string, string> = {
   yayinda: 'Yayında',
   arsiv: 'Arşiv',
   dusuk_performans: 'Düşük performans',
-  yazildi: 'Yazıldı',
-  yaziliyor: 'Yazılıyor',
 };
 
 const STATUS_CLASS: Record<string, string> = {
@@ -38,15 +41,28 @@ const STATUS_CLASS: Record<string, string> = {
   dusuk_performans: 'status-rejected',
 };
 
+type DurumFilter = 'all' | 'incelemede' | 'yayinda' | 'dusuk_performans' | 'arsiv';
+
+const FILTER_LABELS: Record<DurumFilter, string> = {
+  all: 'Tümü',
+  incelemede: 'İncelemede',
+  yayinda: 'Yayında',
+  dusuk_performans: 'Düşük perf.',
+  arsiv: 'Arşiv',
+};
+
 export function mountGuidesAdminTab(deps: ApiDeps) {
   const listEl = document.getElementById('guides-list');
   const detailEl = document.getElementById('guides-detail');
   const loadBtn = document.getElementById('load-guides');
   const badgeEl = document.getElementById('guides-tab-badge');
+  const filterEl = document.getElementById('guides-filters');
+  const countEl = document.getElementById('guides-list-count');
   if (!listEl || !detailEl) return;
 
   let cached: GuideRow[] = [];
   let selectedId = '';
+  let activeFilter: DurumFilter = 'all';
 
   function statusBadge(durum: string) {
     const label = STATUS_LABEL[durum] ?? durum;
@@ -54,52 +70,129 @@ export function mountGuidesAdminTab(deps: ApiDeps) {
     return `<span class="status-badge ${cls}">${deps.escapeHtml(label)}</span>`;
   }
 
+  function perfAlert(guide: GuideRow) {
+    if (guide.performansUyari === 'dusuk_performans') {
+      return '<span class="guide-perf-pill guide-perf-pill--low" title="GSC: dusuk gosterim">⚠ Dusuk perf.</span>';
+    }
+    if (guide.performansUyari === 'ctr_iyilestir') {
+      return '<span class="guide-perf-pill guide-perf-pill--ctr" title="Yuksek gosterim, dusuk CTR">↗ CTR</span>';
+    }
+    return '';
+  }
+
+  function gscMini(guide: GuideRow) {
+    if (guide.gscGosterim <= 0) return '<span class="guide-gsc-mini text-muted">GSC —</span>';
+    const ctrPct = (guide.gscCtr * 100).toFixed(1);
+    return `<span class="guide-gsc-mini" title="GSC son 28 gun">${guide.gscGosterim} gosterim · ${guide.gscTiklama} tik · %${ctrPct} CTR</span>`;
+  }
+
+  function filteredRows() {
+    if (activeFilter === 'all') return cached;
+    if (activeFilter === 'incelemede') {
+      return cached.filter((g) => g.durum === 'incelemede' || g.durum === 'taslak');
+    }
+    return cached.filter((g) => g.durum === activeFilter);
+  }
+
   function updateBadge() {
     if (!badgeEl) return;
     const pending = cached.filter((g) => g.durum === 'incelemede' || g.durum === 'taslak').length;
-    badgeEl.textContent = String(pending);
-    badgeEl.classList.toggle('is-hidden', pending === 0);
+    const lowPerf = cached.filter((g) => g.durum === 'dusuk_performans').length;
+    const ctr = cached.filter((g) => g.performansUyari === 'ctr_iyilestir').length;
+    const total = pending + lowPerf + ctr;
+    badgeEl.textContent =
+      pending > 0 ? String(pending) : lowPerf > 0 ? `!${lowPerf}` : ctr > 0 ? `↗${ctr}` : '0';
+    badgeEl.title =
+      pending > 0
+        ? `${pending} incelemede`
+        : lowPerf > 0
+          ? `${lowPerf} dusuk performans`
+          : ctr > 0
+            ? `${ctr} CTR iyilestir`
+            : '';
+    badgeEl.classList.toggle('is-hidden', total === 0);
+  }
+
+  function renderFilters() {
+    if (!filterEl) return;
+    filterEl.innerHTML = (Object.keys(FILTER_LABELS) as DurumFilter[])
+      .map((key) => {
+        const active = key === activeFilter ? 'is-active' : '';
+        const count =
+          key === 'all'
+            ? cached.length
+            : key === 'incelemede'
+              ? cached.filter((g) => g.durum === 'incelemede' || g.durum === 'taslak').length
+              : cached.filter((g) => g.durum === key).length;
+        return `<button type="button" class="guide-filter-btn ${active}" data-guide-filter="${key}">${FILTER_LABELS[key]} (${count})</button>`;
+      })
+      .join('');
   }
 
   function renderList() {
-    if (!cached.length) {
-      listEl.innerHTML = '<li class="empty-list">Rehber kaydı yok.</li>';
+    const rows = filteredRows();
+    if (countEl) countEl.textContent = String(rows.length);
+    renderFilters();
+    updateBadge();
+
+    if (!rows.length) {
+      listEl.innerHTML = '<li class="empty-list">Bu filtrede kayit yok.</li>';
       return;
     }
-    listEl.innerHTML = cached
+
+    listEl.innerHTML = rows
       .map((g) => {
         const active = g.id === selectedId ? 'is-active' : '';
         return `<li>
           <button type="button" class="list-item ${active}" data-guide-id="${deps.escapeHtml(g.id)}">
             <div class="item-main">
               <span class="item-title">${deps.escapeHtml(g.baslik)}</span>
-              <span class="item-meta">${deps.escapeHtml(g.slug)} • ${deps.escapeHtml(g.durum)}</span>
+              <span class="item-meta">${deps.escapeHtml(g.slug)}</span>
+              ${gscMini(g)}
             </div>
-            <div class="item-side">${statusBadge(g.durum)}</div>
+            <div class="item-side">${perfAlert(g)}${statusBadge(g.durum)}</div>
           </button>
         </li>`;
       })
       .join('');
-    updateBadge();
+  }
+
+  function perfBanner(guide: GuideRow) {
+    if (guide.performansUyari === 'dusuk_performans') {
+      return `<div class="guide-alert guide-alert--low">
+        <strong>Dusuk performans</strong> — Son 4+ haftada GSC gosterimi cok dusuk. Icerigi guncelleyin veya anahtar kelimeyi yeniden kuyruga alin.
+      </div>`;
+    }
+    if (guide.performansUyari === 'ctr_iyilestir') {
+      return `<div class="guide-alert guide-alert--ctr">
+        <strong>CTR iyilestir</strong> — Yuksek gosterim (${guide.gscGosterim}) ama dusuk tiklama orani (%${(guide.gscCtr * 100).toFixed(1)}). Meta baslik ve aciklamayi guncelleyin.
+      </div>`;
+    }
+    return '';
   }
 
   function renderDetail(guide: GuideRow) {
-    const publicUrl = guide.durum === 'yayinda' ? `/rehber/${guide.slug}` : '';
+    const publicUrl = guide.durum === 'yayinda' || guide.durum === 'dusuk_performans'
+      ? `/rehber/${guide.slug}`
+      : '';
+    const canRequeue = Boolean(guide.anahtarKelimeId);
+
     detailEl.innerHTML = `
       <div class="detail-header">
         <div class="detail-title-area">
           <span class="kicker">SEO REHBER</span>
           <h2>${deps.escapeHtml(guide.baslik)}</h2>
-          <p class="text-sm text-muted">${deps.escapeHtml(guide.kaynak || 'manuel')}</p>
+          <p class="text-sm text-muted">${deps.escapeHtml(guide.kaynak || 'manuel')}${guide.keywordAnahtar ? ` · KW: ${deps.escapeHtml(guide.keywordAnahtar)}` : ''}</p>
         </div>
         <div class="detail-status">${statusBadge(guide.durum)}</div>
       </div>
+      ${perfBanner(guide)}
       <div class="detail-grid detail-grid--single">
         <section class="card-section">
           <div class="form-layout">
             <div class="form-row-2">
               <div class="form-group">
-                <label>Başlık</label>
+                <label>Baslik</label>
                 <input id="guide-baslik" class="modern-input" type="text" value="${deps.escapeHtml(guide.baslik)}" />
               </div>
               <div class="form-group">
@@ -108,34 +201,40 @@ export function mountGuidesAdminTab(deps: ApiDeps) {
               </div>
             </div>
             <div class="form-group">
-              <label>Meta başlık (≤60)</label>
+              <label>Meta baslik (≤60)</label>
               <input id="guide-meta-title" class="modern-input" type="text" value="${deps.escapeHtml(guide.metaTitle)}" />
             </div>
             <div class="form-group">
-              <label>Meta açıklama (≤155)</label>
+              <label>Meta aciklama (≤155)</label>
               <textarea id="guide-meta-description" class="modern-textarea" rows="2">${deps.escapeHtml(guide.metaDescription)}</textarea>
             </div>
             <div class="form-group">
-              <label>İçerik (HTML)</label>
+              <label>Icerik (HTML)</label>
               <textarea id="guide-icerik" class="modern-textarea guide-html-editor" rows="14">${deps.escapeHtml(guide.icerikHtml)}</textarea>
             </div>
-            ${
-              guide.gscGosterim > 0
-                ? `<p class="section-help">GSC: ${guide.gscTiklama} tıklama, ${guide.gscGosterim} gösterim, ort. konum ${guide.gscKonum.toFixed(1)}</p>`
-                : ''
-            }
+            <p class="section-help guide-gsc-detail">
+              GSC (son ~28 gun): <strong>${guide.gscGosterim}</strong> gosterim,
+              <strong>${guide.gscTiklama}</strong> tiklama,
+              ort. konum <strong>${guide.gscKonum > 0 ? guide.gscKonum.toFixed(1) : '—'}</strong>,
+              CTR <strong>${guide.gscGosterim > 0 ? `%${(guide.gscCtr * 100).toFixed(2)}` : '—'}</strong>
+            </p>
             <div class="form-actions-row">
               <button type="button" id="guide-save-btn" class="btn btn-primary">Kaydet</button>
-              <button type="button" id="guide-publish-btn" class="btn btn-success">Yayınla</button>
-              <button type="button" id="guide-archive-btn" class="btn btn-outline">Arşivle</button>
+              <button type="button" id="guide-publish-btn" class="btn btn-success">Yayinla</button>
+              <button type="button" id="guide-archive-btn" class="btn btn-outline">Arsivle</button>
+              ${
+                canRequeue
+                  ? '<button type="button" id="guide-requeue-btn" class="btn btn-outline">Anahtar kelimeyi kuyruga al</button>'
+                  : ''
+              }
               ${
                 publicUrl
-                  ? `<a class="btn btn-outline" href="${publicUrl}" target="_blank" rel="noopener">Sitede gör ↗</a>`
+                  ? `<a class="btn btn-outline" href="${publicUrl}" target="_blank" rel="noopener">Sitede gor ↗</a>`
                   : ''
               }
             </div>
             <div class="admin-danger-zone">
-              <p class="section-help">Kalıcı silme geri alınamaz.</p>
+              <p class="section-help">Kalici silme geri alinamaz.</p>
               <button type="button" id="guide-delete-btn" class="btn btn-danger w-full">🗑️ Rehberi Sil</button>
             </div>
           </div>
@@ -143,13 +242,20 @@ export function mountGuidesAdminTab(deps: ApiDeps) {
       </div>
     `;
 
-    const read = (id: string) => document.getElementById(id);
-
     document.getElementById('guide-save-btn')?.addEventListener('click', () => saveGuide(guide.id, guide.durum));
     document.getElementById('guide-publish-btn')?.addEventListener('click', () => saveGuide(guide.id, 'yayinda'));
     document.getElementById('guide-archive-btn')?.addEventListener('click', () => saveGuide(guide.id, 'arsiv'));
+    document.getElementById('guide-requeue-btn')?.addEventListener('click', async () => {
+      try {
+        await deps.apiPost('/api/admin/guides/requeue-keyword', { id: guide.id });
+        alert('Anahtar kelime kuyruga alindi. content-engine job:draft ile yeniden yazilabilir.');
+        await loadGuides();
+      } catch (e) {
+        alert(e instanceof Error ? e.message : 'Kuyruk basarisiz');
+      }
+    });
     document.getElementById('guide-delete-btn')?.addEventListener('click', async () => {
-      if (!confirm(`"${guide.baslik}" kalıcı olarak silinsin mi?`)) return;
+      if (!confirm(`"${guide.baslik}" kalici olarak silinsin mi?`)) return;
       try {
         await deps.apiDelete('/api/admin/guides', { id: guide.id });
         selectedId = '';
@@ -169,7 +275,7 @@ export function mountGuidesAdminTab(deps: ApiDeps) {
     const icerik_html = (document.getElementById('guide-icerik') as HTMLTextAreaElement | null)?.value ?? '';
 
     if (!baslik || !slug) {
-      alert('Başlık ve slug zorunlu.');
+      alert('Baslik ve slug zorunlu.');
       return;
     }
 
@@ -188,7 +294,7 @@ export function mountGuidesAdminTab(deps: ApiDeps) {
       const guide = cached.find((g) => g.id === id);
       if (guide) renderDetail(guide);
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Kayıt başarısız');
+      alert(e instanceof Error ? e.message : 'Kayit basarisiz');
     }
   }
 
@@ -196,14 +302,14 @@ export function mountGuidesAdminTab(deps: ApiDeps) {
     detailEl.innerHTML = `
       <div class="empty-state">
         <div class="empty-icon">📚</div>
-        <h3>Rehber seçin</h3>
-        <p>Content Engine taslaklarını inceleyip yayınlayın. Lokal önizleme: /rehber/[slug]</p>
+        <h3>Rehber secin</h3>
+        <p>Content Engine taslaklarini inceleyip yayinlayin. Lokal: /rehber/[slug]</p>
       </div>
     `;
   }
 
   async function loadGuides() {
-    listEl.innerHTML = '<li class="loading-state"><div class="spinner-small"></div> Yükleniyor...</li>';
+    listEl.innerHTML = '<li class="loading-state"><div class="spinner-small"></div> Yukleniyor...</li>';
     try {
       const rows = (await deps.apiGet('/api/admin/guides')) as GuideRow[];
       cached = rows || [];
@@ -219,7 +325,7 @@ export function mountGuidesAdminTab(deps: ApiDeps) {
       }
     } catch (e) {
       listEl.innerHTML = `<li class="error-state">${deps.escapeHtml(e instanceof Error ? e.message : 'Hata')}</li>`;
-      detailEl.innerHTML = '<div class="error-state">Rehberler yüklenemedi.</div>';
+      detailEl.innerHTML = '<div class="error-state">Rehberler yuklenemedi.</div>';
     }
   }
 
@@ -233,6 +339,15 @@ export function mountGuidesAdminTab(deps: ApiDeps) {
     renderList();
     const guide = cached.find((g) => g.id === id);
     if (guide) renderDetail(guide);
+  });
+
+  filterEl?.addEventListener('click', (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    const btn = target.closest('button[data-guide-filter]');
+    if (!btn) return;
+    activeFilter = (btn.getAttribute('data-guide-filter') as DurumFilter) || 'all';
+    renderList();
   });
 
   loadBtn?.addEventListener('click', () => loadGuides());

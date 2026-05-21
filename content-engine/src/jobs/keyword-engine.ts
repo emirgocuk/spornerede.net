@@ -26,7 +26,15 @@ async function main() {
   const gscRows = await fetchGscQueries(28);
   const gscByQuery = new Map(gscRows.map((r) => [r.query, r]));
 
-  const keywords = await pb.collection('seo_keywords').getFullList({ sort: '-created' });
+  const keywords: Array<Record<string, unknown>> = [];
+  const pageSize = 100;
+  let page = 1;
+  while (true) {
+    const batch = await pb.collection('seo_keywords').getList(page, pageSize);
+    keywords.push(...(batch.items as Array<Record<string, unknown>>));
+    if (batch.items.length < pageSize) break;
+    page += 1;
+  }
   let updated = 0;
 
   for (const kw of keywords) {

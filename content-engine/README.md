@@ -78,6 +78,10 @@ Adım 1–4 bitmeden zorunlu değil.
 | `npm run seed:keywords` | Seed keyword kuyruğu |
 | `npm run job:keywords` | GSC + seed → skor (Faz 18) |
 | `npm run job:draft` | 1 taslak üret (Faz 19) |
+| `npm run smoke:quick` | PB + GSC test (taslaksiz) |
+| `npm run smoke` | Tam test (+ taslak) |
+| `npm run gsc:check` | GSC OAuth / baglanti |
+| `npm run job:gsc` | GSC sync + dusuk_performans kurallari |
 | `npm run list:drafts` | Bekleyen taslaklar |
 | `npm run publish:draft -- <slug>` | Taslagi yayina al (lokal /rehber) |
 | `npm run job:keywords` | GSC + skor guncelle (GSC JSON gerekli) |

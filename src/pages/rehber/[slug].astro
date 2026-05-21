@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getPublishedGuideBySlug, getPublishedGuides } from '../../lib/repositories/seoArticles';
+import { articleGuideSchema, faqPageSchema } from '../../lib/seo/jsonld';
 
 export const prerender = false;
 
@@ -18,33 +19,24 @@ const canonical = `https://spornerede.net/rehber/${slug}`;
 const pageTitle = guide?.metaTitle || 'Rehber Bulunamadi';
 const pageDescription = guide?.metaDescription || 'Aradiginiz rehber bulunamadi.';
 
-const articleSchema = guide
-  ? {
-      '@context': 'https://schema.org',
-      '@type': guide.semaTipi === 'HowTo' ? 'HowTo' : 'Article',
-      headline: guide.metaTitle,
-      description: guide.metaDescription,
-      datePublished: guide.yayinlanmaTarihi || new Date().toISOString(),
-      dateModified: guide.yayinlanmaTarihi || new Date().toISOString(),
-      inLanguage: 'tr-TR',
-      mainEntityOfPage: canonical,
-      author: { '@type': 'Organization', name: 'SporNerede.net' },
-      publisher: { '@type': 'Organization', name: 'SporNerede.net' },
-    }
-  : null;
-
-const faqSchema =
-  guide && guide.faq.length > 0
-    ? {
-        '@context': 'https://schema.org',
-        '@type': 'FAQPage',
-        mainEntity: guide.faq.map((item) => ({
-          '@type': 'Question',
-          name: item.soru,
-          acceptedAnswer: { '@type': 'Answer', text: item.cevap },
-        })),
-      }
-    : null;
+const jsonLdNodes = guide
+  ? [
+      articleGuideSchema({
+        headline: guide.metaTitle,
+        description: guide.metaDescription,
+        datePublished: guide.yayinlanmaTarihi || new Date().toISOString(),
+        url: canonical,
+        schemaType: guide.semaTipi === 'HowTo' ? 'HowTo' : 'Article',
+      }),
+      ...(guide.faq.length > 0
+        ? [
+            faqPageSchema(
+              guide.faq.map((item) => ({ question: item.soru, answer: item.cevap })),
+            ),
+          ]
+        : []),
+    ]
+  : undefined;
 ---
 
 <BaseLayout
@@ -58,13 +50,8 @@ const faqSchema =
     { name: 'Rehber', url: 'https://spornerede.net/rehber' },
     ...(guide ? [{ name: guide.baslik, url: canonical }] : []),
   ]}
+  jsonLd={jsonLdNodes}
 >
-  {articleSchema && (
-    <script type="application/ld+json" set:html={JSON.stringify(articleSchema)} />
-  )}
-  {faqSchema && (
-    <script type="application/ld+json" set:html={JSON.stringify(faqSchema)} />
-  )}
 
   <section class="news-detail section">
     <div class="container news-detail-container">
