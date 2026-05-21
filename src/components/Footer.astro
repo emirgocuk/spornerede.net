@@ -8,6 +8,7 @@ const hizliLinkler = [
   { label: 'Ana Sayfa',   href: '/' },
   { label: 'Arama',       href: '/ara' },
   { label: 'Haberler',    href: '/haberler' },
+  { label: 'Rehber',      href: '/rehber' },
 ];
 
 const bilgiLinkleri = [
@@ -102,6 +103,10 @@ const currentYear = new Date().getFullYear();
       <p class="footer-copyright">
         &copy; {currentYear} SporNerede.net — Spor dünyasını ailelerle buluşturan
         <strong>Murat Aktaş</strong> girişimidir.
+      </p>
+      <p class="footer-credit">
+        Tasarım ve geliştirme:
+        <a href="https://github.com/emirgocuk" class="footer-credit-link" target="_blank" rel="noopener noreferrer">Emir Göçük</a>
       </p>
       <p class="footer-tagline">
         <span aria-hidden="true">🏙️</span>
@@ -289,6 +294,23 @@ const currentYear = new Date().getFullYear();
   .footer-copyright strong {
     color: rgba(255,255,255,0.9);
     font-weight: 700;
+  }
+
+  .footer-credit {
+    font-size: 0.78rem;
+    color: rgba(255,255,255,0.42);
+    letter-spacing: 0.02em;
+  }
+
+  .footer-credit-link {
+    color: rgba(255,255,255,0.72);
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.15s ease;
+  }
+
+  .footer-credit-link:hover {
+    color: #ff8a92;
   }
 
   .footer-tagline {

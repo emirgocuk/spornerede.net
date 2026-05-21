@@ -45,9 +45,6 @@ const clubJsonLd = sportsActivityLocationSchema({
   latitude: club.enlem || undefined,
   longitude: club.boylam || undefined,
   priceRange: club.fiyat || undefined,
-  aggregateRating: club.yorumSayisi > 0
-    ? { ratingValue: club.puan, reviewCount: club.yorumSayisi }
-    : undefined,
 });
 
 const programCourses = programs
@@ -164,49 +161,21 @@ function getBodySections(bodyJson: unknown) {
               <li class="program-item">
                 <div class="listing-header">
                   <div>
-                    <strong>{program.ad}</strong>
-                    <p class="listing-meta">{program.seviye || 'Genel seviye'}</p>
+                    <strong>{club.ad}</strong>
+                    <p class="listing-meta">{program.ad} · {club.ilce || club.il}</p>
                   </div>
                   <div class="listing-badges">
                     <span class="price-badge">{program.ucretBilgisi || 'Fiyat sorunuz'}</span>
                     <span class="program-level">{program.aktif ? 'Yayında' : 'Pasif'}</span>
                   </div>
                 </div>
-                <ul class="listing-grid">
-                  <li><span>Tarih</span><strong>{program.eventDate || 'Belirtilmedi'}</strong></li>
-                  <li><span>Saat</span><strong>{program.gunSaat || 'Belirtilmedi'}</strong></li>
-                  <li><span>Konum</span><strong>{program.locationText || club.ilce || club.il}</strong></li>
-                  <li><span>Eve uzaklık</span><strong class="distance-output">Konum izni bekleniyor</strong></li>
+                <ul class="listing-grid listing-grid--summary">
+                  {program.yasAraligi && <li><span>Yaş</span><strong>{program.yasAraligi}</strong></li>}
+                  <li><span>Aidat</span><strong>{program.ucretBilgisi || 'Fiyat sorunuz'}</strong></li>
+                  <li><span>Konum</span><strong>{program.locationText || club.adres || club.ilce || club.il}</strong></li>
                 </ul>
                 {program.aciklama && <p class="listing-summary">{program.aciklama}</p>}
-                {getBodySections(program.bodyJson).length > 0 && (
-                  <div class="listing-body">
-                    {getBodySections(program.bodyJson).map((line) => (
-                      <p>{line}</p>
-                    ))}
-                  </div>
-                )}
-                <div class="listing-gallery">
-                  <h3>Galeri</h3>
-                  {program.gallery.length > 0 ? (
-                    <div class="gallery-grid">
-                      {program.gallery.map((imageUrl, idx) => (
-                        <button type="button" class="gallery-item" data-viewer-image={imageUrl}>
-                          <img
-                            src={imageUrl}
-                            alt={`${club.ad} - ${program.ad} görseli ${idx + 1}`}
-                            loading="lazy"
-                            decoding="async"
-                            width="640"
-                            height="480"
-                          />
-                        </button>
-                      ))}
-                    </div>
-                  ) : (
-                    <p class="muted">Bu ilan için galeri görseli eklenmedi.</p>
-                  )}
-                </div>
+                <a class="btn btn-primary btn-sm program-detail-link" href={`/ilanlar/${listingSlug({ id: program.id, ad: program.ad, clubAd: club.ad })}`}>İlanı incele →</a>
                 <div class="listing-contact">
                   <h3>İletişim Bilgileri</h3>
                   <ul class="contact-list">

@@ -1,0 +1,17 @@
+[
+  { "anahtar": "voleybol nedir", "kategori": "nedir", "niyet": "bilgi" },
+  { "anahtar": "basketbol nedir", "kategori": "nedir", "niyet": "bilgi" },
+  { "anahtar": "yuzme nedir", "kategori": "nedir", "niyet": "bilgi" },
+  { "anahtar": "tenis nedir", "kategori": "nedir", "niyet": "bilgi" },
+  { "anahtar": "futbol nedir", "kategori": "nedir", "niyet": "bilgi" },
+  { "anahtar": "yuzmenin faydalari", "kategori": "faydalari", "niyet": "bilgi" },
+  { "anahtar": "basketbolun cocuklara faydalari", "kategori": "faydalari", "niyet": "bilgi" },
+  { "anahtar": "cocuk icin hangi spor secilmeli", "kategori": "ebeveyn", "niyet": "yonlendirme" },
+  { "anahtar": "kac yasinda spora baslanmali", "kategori": "ebeveyn", "niyet": "bilgi" },
+  { "anahtar": "istanbul voleybol kursu", "kategori": "sehir_brans", "niyet": "islem" },
+  { "anahtar": "ankara basketbol kursu", "kategori": "sehir_brans", "niyet": "islem" },
+  { "anahtar": "izmir yuzme kursu", "kategori": "sehir_brans", "niyet": "islem" },
+  { "anahtar": "tenis nasil ogrenilir", "kategori": "nasil", "niyet": "bilgi" },
+  { "anahtar": "yuzme nasil ogrenilir", "kategori": "nasil", "niyet": "bilgi" },
+  { "anahtar": "yaz spor kurslari rehberi", "kategori": "sezonsal", "niyet": "yonlendirme" }
+]

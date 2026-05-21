@@ -1,0 +1,58 @@
+import { cfg, requirePocketBaseAdmin } from '../config.js';
+import { getAdminPb } from '../pb/client.js';
+import { fetchGscQueries } from '../gsc/client.js';
+
+function scoreKeyword(
+  row: { anahtar: string; niyet?: string; kategori?: string },
+  gsc?: { impressions: number; ctr: number },
+): number {
+  let skor = 10;
+  if (gsc) {
+    skor += Math.min(50, Math.floor(gsc.impressions / 10));
+    if (gsc.impressions >= 50 && gsc.ctr < 0.03) skor += 15;
+  }
+  const niyet = String(row.niyet ?? '');
+  if (niyet === 'islem') skor += 5;
+  else if (niyet === 'yonlendirme') skor += 3;
+  else skor += 1;
+  if (row.kategori === 'sehir_brans') skor += 2;
+  return skor;
+}
+
+async function main() {
+  requirePocketBaseAdmin();
+  const pb = await getAdminPb();
+
+  const gscRows = await fetchGscQueries(28);
+  const gscByQuery = new Map(gscRows.map((r) => [r.query, r]));
+
+  const keywords = await pb.collection('seo_keywords').getFullList({ sort: '-created' });
+  let updated = 0;
+
+  for (const kw of keywords) {
+    const anahtar = String(kw.anahtar ?? '').toLowerCase().trim();
+    const gsc = gscByQuery.get(anahtar);
+    const skor = scoreKeyword(
+      { anahtar, niyet: String(kw.niyet), kategori: String(kw.kategori) },
+      gsc,
+    );
+    const patch: Record<string, unknown> = { skor };
+    if (gsc) {
+      patch.gsc_impression = gsc.impressions;
+      patch.site_context = {
+        gsc_clicks: gsc.clicks,
+        gsc_ctr: gsc.ctr,
+        gsc_position: gsc.position,
+      };
+    }
+    await pb.collection('seo_keywords').update(kw.id, patch);
+    updated++;
+  }
+
+  console.log(`Keyword skorlari guncellendi: ${updated} kayit, GSC sorgu: ${gscRows.length}`);
+}
+
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

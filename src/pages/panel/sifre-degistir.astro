@@ -4,7 +4,7 @@ import { getCurrentSessionUser } from '../../lib/auth/session';
 
 const session = await getCurrentSessionUser(Astro.request);
 if (!session) {
-  return Astro.redirect('/panel/giris?error=auth');
+  return Astro.redirect('/admin?error=auth');
 }
 
 const saved = Astro.url.searchParams.get('saved');

@@ -1,12 +1,14 @@
 import type { APIRoute } from 'astro';
 import { isAdminAuthorized } from '../../../lib/adminAuth';
+import { normalizeMembershipPeriod } from '../../../lib/repositories/memberships';
 import {
+  deleteAdminApplication,
   getAdminApplicationById,
   listAdminApplicationLogs,
   listAdminApplications,
+  updateAdminApplicationFields,
   updateApplicationStatus,
 } from '../../../lib/repositories/applications';
-import type { MembershipPeriod } from '../../../lib/repositories/memberships';
 
 export const prerender = false;
 
@@ -48,23 +50,71 @@ export const POST: APIRoute = async ({ request }) => {
 
   const body = await request.json().catch(() => null);
   const id = Number(body?.id);
-  const status = body?.status as 'pending' | 'approved' | 'rejected';
-  const membershipPeriod = body?.membershipPeriod;
   const adminNote = body?.adminNote?.toString?.() ?? '';
   const assignedAdminEmail = body?.assignedAdminEmail?.toString?.() ?? '';
+
+  if (body?.delete) {
+    if (!id) {
+      return new Response(JSON.stringify({ error: 'Invalid payload' }), { status: 400 });
+    }
+    try {
+      const deleted = await deleteAdminApplication(id);
+      if (!deleted) {
+        return new Response(JSON.stringify({ error: 'Application not found' }), { status: 404 });
+      }
+      return new Response(JSON.stringify({ data: deleted }), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Delete failed';
+      return new Response(JSON.stringify({ error: message }), { status: 400 });
+    }
+  }
+
+  if (body?.updateFields) {
+    if (!id) {
+      return new Response(JSON.stringify({ error: 'Invalid payload' }), { status: 400 });
+    }
+    try {
+      const ilanlar = Array.isArray(body.ilanlar) ? body.ilanlar : [];
+      const updated = await updateAdminApplicationFields(id, {
+        ad: body.ad?.toString?.().trim() ?? '',
+        ilSlug: body.ilSlug?.toString?.().trim() ?? '',
+        ilceSlug: body.ilceSlug?.toString?.().trim() ?? '',
+        adres: body.adres?.toString?.() ?? '',
+        telefon: body.telefon?.toString?.() ?? '',
+        email: body.email?.toString?.() ?? '',
+        aciklama: body.aciklama?.toString?.() ?? '',
+        ilanlar: ilanlar.map((item: Record<string, unknown>) => ({
+          id: Number(item.id),
+          brans: item.brans?.toString?.() ?? '',
+          yasAraligi: item.yasAraligi?.toString?.() ?? '',
+          aidatBilgisi: item.aidatBilgisi?.toString?.() ?? '',
+        })),
+      });
+      if (!updated) {
+        return new Response(JSON.stringify({ error: 'Application not found or not editable' }), { status: 404 });
+      }
+      return new Response(JSON.stringify({ data: updated }), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Update failed';
+      return new Response(JSON.stringify({ error: message }), { status: 400 });
+    }
+  }
+
+  const status = body?.status as 'pending' | 'approved' | 'rejected';
   if (!id || !['pending', 'approved', 'rejected'].includes(status)) {
     return new Response(JSON.stringify({ error: 'Invalid payload' }), { status: 400 });
   }
+  const membershipPeriod = body?.membershipPeriod ? normalizeMembershipPeriod(body.membershipPeriod) : undefined;
 
   const updated = await updateApplicationStatus(id, status, {
     adminNote: adminNote.slice(0, 5000),
     assignedAdminEmail: assignedAdminEmail.slice(0, 180),
-    membershipPeriod:
-      membershipPeriod === 'yearly' || membershipPeriod === 'six_month'
-        ? membershipPeriod
-        : membershipPeriod === 'monthly'
-          ? 'six_month'
-          : undefined,
+    actorEmail: body?.actorEmail?.toString?.() ?? '',
+    membershipPeriod,
   });
   if (!updated) {
     return new Response(JSON.stringify({ error: 'Application not found' }), { status: 404 });

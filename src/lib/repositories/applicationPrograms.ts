@@ -104,6 +104,36 @@ export async function listApplicationPrograms(clubLegacyId: number) {
   });
 }
 
+export async function updateApplicationProgram(
+  clubLegacyId: number,
+  programLegacyId: number,
+  input: BasvuruIlanInput,
+) {
+  requireDatabase();
+  const db = await getDb();
+  const row = await db
+    .collection('kulup_programlari')
+    .getFirstListItem(`legacyId = ${programLegacyId} && kulupLegacyId = ${clubLegacyId}`)
+    .catch(() => null);
+  if (!row) return null;
+
+  const brans = input.brans.trim() || 'İlan';
+  await db.collection('kulup_programlari').update(row.id, {
+    ad: brans.slice(0, 180),
+    aciklama: serializeProgramContent({
+      summary: '',
+      locationText: '',
+      mapsUrl: '',
+      yasAraligi: input.yasAraligi?.trim() ?? '',
+    }),
+    gunSaat: '',
+    seviye: '',
+    ucretBilgisi: input.aidatBilgisi?.trim().slice(0, 120) ?? '',
+  });
+  await linkClubBranch(db, clubLegacyId, brans);
+  return { id: programLegacyId };
+}
+
 export async function setClubProgramsPublication(clubLegacyId: number, aktif: boolean) {
   requireDatabase();
   const db = await getDb();

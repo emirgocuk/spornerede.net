@@ -1,4 +1,5 @@
 import { getDb, hasDatabaseUrl } from '../src/db/client';
+import { enrichBranchFields } from '../src/lib/branches/branchEmoji';
 import { BRANCHES, CITIES, CLUBS, DISTRICTS, MEMBERSHIP_PLANS, slugify } from '../src/data/mockData';
 
 async function seed() {
@@ -42,6 +43,13 @@ async function seed() {
   }
 
   for (const b of BRANCHES) {
+    const visual = enrichBranchFields({
+      slug: b.slug,
+      isim: b.isim,
+      emoji: b.emoji,
+      renk: b.renk,
+      aciklama: b.aciklama,
+    });
     const existing = await db.collection('branslar').getFirstListItem(`slug = "${b.slug}"`).catch(() => null);
     if (!existing) {
       await db.collection('branslar').create({
@@ -49,8 +57,13 @@ async function seed() {
         slug: b.slug,
         ad: b.isim,
         aciklama: b.aciklama,
-        emoji: b.emoji,
-        renk: b.renk,
+        emoji: visual.emoji,
+        renk: visual.renk,
+      });
+    } else if (existing.emoji !== visual.emoji || existing.renk !== visual.renk) {
+      await db.collection('branslar').update(existing.id, {
+        emoji: visual.emoji,
+        renk: visual.renk,
       });
     }
   }

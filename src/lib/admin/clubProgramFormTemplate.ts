@@ -1,4 +1,20 @@
-export function clubProgramEditorHtml() {
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function renderBransSelectOptions(bransList: string[]) {
+  const options = ['<option value="">Branş seçin...</option>'];
+  for (const name of bransList) {
+    options.push(`<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`);
+  }
+  return options.join('');
+}
+
+export function clubProgramEditorHtml(bransList: string[] = []) {
   return `<div id="club-program-editor-panel" class="club-program-editor-panel is-hidden">
     <button id="club-program-back-btn" class="back-link editor-back" type="button">← İlan listesine dön</button>
     <form id="club-program-form" class="program-form admin-program-full-form">
@@ -10,8 +26,10 @@ export function clubProgramEditorHtml() {
       <section class="form-section">
         <div class="form-group">
           <label for="club-program-brans">Branş</label>
-          <input id="club-program-brans" class="modern-input" placeholder="Örn: Futbol, Yüzme" />
-          <p class="section-help text-sm">İlan, branş adıyla yayınlanır. Tüm alanlar isteğe bağlıdır.</p>
+          <select id="club-program-brans" class="modern-select" required>
+            ${renderBransSelectOptions(bransList)}
+          </select>
+          <p class="section-help text-sm">İlan, seçtiğiniz branş adıyla yayınlanır.</p>
         </div>
         <div class="form-row-2">
           <div class="form-group">

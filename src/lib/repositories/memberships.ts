@@ -13,16 +13,16 @@ const DEFAULT_PLANS = [
   {
     kod: 'alti-aylik',
     ad: '6 Aylık',
-    ucret: 7500,
+    ucret: 3000,
     periyot: 'one_time' as const,
-    aciklama: '6 aylık paket: 7500 TL.',
+    aciklama: '6 aylık paket: 3000 TL.',
   },
   {
     kod: 'on-iki-aylik',
     ad: 'Yıllık',
-    ucret: 12000,
+    ucret: 5000,
     periyot: 'yearly' as const,
-    aciklama: 'Yıllık paket: 12000 TL.',
+    aciklama: 'Yıllık paket: 5000 TL.',
   },
 ];
 

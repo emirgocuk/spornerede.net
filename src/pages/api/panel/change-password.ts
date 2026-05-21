@@ -8,7 +8,7 @@ export const prerender = false;
 export const POST: APIRoute = async ({ request }) => {
   const session = await getCurrentSessionUser(request);
   if (!session) {
-    return Response.redirect(new URL('/panel/giris?error=auth', request.url), 303);
+    return Response.redirect(new URL('/admin?error=auth', request.url), 303);
   }
 
   const formData = await request.formData().catch(() => null);

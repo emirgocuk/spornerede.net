@@ -44,9 +44,9 @@ export const BRANCHES: Branch[] = [
   { slug: 'karate', isim: 'Karate', emoji: '🥋', renk: '#EF4444', aciklama: 'Disiplin, guc, oz savunma' },
   { slug: 'jimnastik', isim: 'Jimnastik', emoji: '🤸', renk: '#EC4899', aciklama: 'Esneklik, guc, denge' },
   { slug: 'voleybol', isim: 'Voleybol', emoji: '🏐', renk: '#8B5CF6', aciklama: 'Takim calismasi, refleks' },
-  { slug: 'taekwondo', isim: 'Taekwondo', emoji: '🦵', renk: '#E30A17', aciklama: 'Kore dovus sanati, esneklik' },
+  { slug: 'taekwondo', isim: 'Taekwondo', emoji: '🥋', renk: '#DC2626', aciklama: 'Kore dovus sanati, esneklik' },
   { slug: 'atletizm', isim: 'Atletizm', emoji: '🏃', renk: '#14B8A6', aciklama: 'Kosu, atlama, atma' },
-  { slug: 'judo', isim: 'Judo', emoji: '🥊', renk: '#6366F1', aciklama: 'Dusurme teknikleri, denge' },
+  { slug: 'judo', isim: 'Judo', emoji: '🥋', renk: '#DC2626', aciklama: 'Dusurme teknikleri, denge' },
   { slug: 'badminton', isim: 'Badminton', emoji: '🏸', renk: '#10B981', aciklama: 'Hiz, refleks, koordinasyon' },
   { slug: 'masa-tenisi', isim: 'Masa Tenisi', emoji: '🏓', renk: '#F59E0B', aciklama: 'El-goz koordinasyonu, taktik' },
 ];
@@ -232,17 +232,17 @@ export const MEMBERSHIP_PLANS: MembershipPlan[] = [
   },
   {
     kod: 'alti-aylik',
-    ad: '6 Aylık (1250*6)',
-    ucret: 7500,
+    ad: '6 Aylık',
+    ucret: 3000,
     periyot: 'one_time',
-    aciklama: '6 aylık paket: 1250*6 = 7500 TL.',
+    aciklama: '6 aylık paket: 3000 TL.',
   },
   {
     kod: 'on-iki-aylik',
-    ad: '12 Aylık (1000*12)',
-    ucret: 12000,
+    ad: 'Yıllık',
+    ucret: 5000,
     periyot: 'yearly',
-    aciklama: '12 aylık paket: 1000*12 = 12000 TL.',
+    aciklama: 'Yıllık paket: 5000 TL.',
   },
 ];
 

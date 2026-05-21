@@ -1,25 +1,44 @@
 ---
-import BaseLayout from '../layouts/BaseLayout.astro';
-import { getAdminClubSummary, getAllCities, getAllDistrictsWithCities } from '../lib/repositories/catalog';
+import AdminLayout from '../layouts/AdminLayout.astro';
+import AdminLogin from '../components/AdminLogin.astro';
+import { getCurrentSessionUser } from '../lib/auth/session';
+import { getAdminClubSummary, getAllBranches, getAllCities, getAllDistrictsWithCities } from '../lib/repositories/catalog';
+import { getPendingGuidesCount } from '../lib/repositories/seoArticles';
+
+const session = await getCurrentSessionUser(Astro.request).catch(() => null);
+if (session?.role === 'club') {
+  if (session.mustChangePassword) {
+    return Astro.redirect('/panel/sifre-degistir?required=1');
+  }
+  return Astro.redirect('/panel');
+}
+const isLoggedInAdmin = session?.role === 'admin';
+const loginError = Astro.url.searchParams.get('error') ?? '';
 
 const summary = await getAdminClubSummary();
+const pendingGuidesCount = isLoggedInAdmin ? await getPendingGuidesCount() : 0;
+const branchRows = await getAllBranches();
+const adminBransList = [...branchRows.map((b) => b.isim).sort((a, b) => a.localeCompare(b, 'tr')), 'Diğer'];
 const [cityRows, districtRows] = await Promise.all([getAllCities(), getAllDistrictsWithCities()]);
+const adminDistrictsByCity = districtRows.reduce<Record<string, { ad: string; slug: string }[]>>((acc, district) => {
+  if (!district.il) return acc;
+  acc[district.il] ??= [];
+  acc[district.il].push({ ad: district.ad, slug: district.slug });
+  return acc;
+}, {});
+for (const il of Object.keys(adminDistrictsByCity)) {
+  adminDistrictsByCity[il].sort((a, b) => a.ad.localeCompare(b.ad, 'tr'));
+}
 const adminLocationData = {
   cities: cityRows.map((c) => ({ ad: c.ad, slug: c.slug })),
-  districtsByCity: districtRows.reduce<Record<string, { ad: string; slug: string }[]>>((acc, district) => {
-    if (!district.il) return acc;
-    acc[district.il] ??= [];
-    acc[district.il].push({ ad: district.ad, slug: district.slug });
-    return acc;
-  }, {}),
+  districtsByCity: adminDistrictsByCity,
 };
 ---
 
-<BaseLayout
-  title="Admin Paneli | SporNerede"
-  description="Kulüp başvurularını ve üyelik durumlarını yönetin."
-  noIndex={true}
->
+<AdminLayout title="Admin Paneli" description="Kulüp başvurularını yönetin.">
+{!isLoggedInAdmin ? (
+  <AdminLogin errorCode={loginError} />
+) : (
   <div class="admin-dashboard">
     <!-- Sidebar / Header Layout for modern dashboard look -->
     <header class="admin-header">
@@ -94,7 +113,13 @@ const adminLocationData = {
             <button type="button" class="admin-tab" data-tab-target="news">
               <span class="tab-icon">📰</span> Haberler
             </button>
-            <button type="button" class="admin-tab" data-tab-target="pricing">
+            <button type="button" class="admin-tab" data-tab-target="guides">
+              <span class="tab-icon">📚</span> SEO Rehber
+              <span id="guides-tab-badge" class:list={['tab-badge', { 'is-hidden': pendingGuidesCount === 0 }]}>
+                {pendingGuidesCount}
+              </span>
+            </button>
+            <button type="button" class="admin-tab is-hidden" data-tab-target="pricing" hidden>
               <span class="tab-icon">💰</span> Üyelik Fiyatları
             </button>
             <button type="button" class="admin-tab" data-tab-target="backups">
@@ -282,6 +307,32 @@ const adminLocationData = {
             </article>
           </div>
         </section>
+
+        <section class="admin-shell is-hidden" data-tab-panel="guides">
+          <div class="admin-toolbar">
+            <button id="load-guides" class="btn btn-primary shadow-sm" type="button">🔄 Yenile</button>
+            <p class="section-help" style="margin:0">Content Engine taslakları — yayınlanınca <code>/rehber/[slug]</code> görünür.</p>
+          </div>
+          <div class="admin-columns">
+            <aside class="admin-list-container">
+              <div class="list-header">
+                <h2>Rehber yazıları</h2>
+                <span class="badge badge-gray">Tümü</span>
+              </div>
+              <ul id="guides-list" class="admin-list custom-scrollbar"></ul>
+            </aside>
+            <article class="admin-detail-container">
+              <div id="guides-detail" class="detail-content">
+                <div class="empty-state">
+                  <div class="empty-icon">📚</div>
+                  <h3>Rehber seçin</h3>
+                  <p>Taslakları inceleyin, düzenleyin ve yayınlayın.</p>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
         <!-- Pricing Tab Panel -->
         <section class="admin-shell is-hidden" data-tab-panel="pricing">
           <div class="admin-toolbar">
@@ -327,10 +378,12 @@ const adminLocationData = {
   </div>
 
   <script type="application/json" id="admin-location-data" set:html={JSON.stringify(adminLocationData)} />
+  <script id="admin-brans-data" type="application/json" set:html={JSON.stringify(adminBransList)}></script>
 
   <script>
     import tinymce from 'tinymce/tinymce';
     import { buildClubProgramsSectionHtml, bindClubProgramEditor } from '../lib/admin/clubProgramEditorClient';
+    import { mountGuidesAdminTab } from '../lib/admin/guidesAdminClient';
     import 'tinymce/icons/default';
     import 'tinymce/models/dom';
     import 'tinymce/themes/silver';
@@ -387,6 +440,7 @@ const adminLocationData = {
     const adminLocationData = JSON.parse(
       document.getElementById('admin-location-data')?.textContent || '{"cities":[],"districtsByCity":{}}',
     );
+    const adminBransList = JSON.parse(document.getElementById('admin-brans-data')?.textContent || '[]');
 
     let cachedApps = [];
     let selectedAppId = 0;
@@ -635,6 +689,7 @@ const adminLocationData = {
 
     function logActionTitle(action) {
       if (action === 'application_created') return 'Başvuru oluşturuldu';
+      if (action === 'application_deleted') return 'Başvuru silindi';
       if (action === 'status_update') return 'Durum güncellendi';
       if (action === 'club_revoked') return 'Onaylı listeden kaldırıldı';
       if (action === 'club_approval_withdrawn') return 'Onay geri çekildi';
@@ -667,6 +722,76 @@ const adminLocationData = {
             `<option value="${escapeHtml(d.slug)}" ${d.slug === selectedDistrictSlug ? 'selected' : ''}>${escapeHtml(d.ad)}</option>`,
         )
         .join('');
+    }
+
+    function renderBransOptions(selected) {
+      const options = ['<option value="">Branş seçin...</option>'];
+      for (const name of adminBransList) {
+        options.push(
+          `<option value="${escapeHtml(name)}" ${name === selected ? 'selected' : ''}>${escapeHtml(name)}</option>`,
+        );
+      }
+      return options.join('');
+    }
+
+    function renderApplicationIlanEditors(ilanlar) {
+      if (!ilanlar.length) {
+        return '<p class="section-help">Bu başvuruya bağlı ilan kaydı bulunamadı.</p>';
+      }
+      return `<div class="application-ilan-edit-list">${ilanlar
+        .map(
+          (ilan, idx) => `<article class="application-ilan-edit" data-program-id="${ilan.id}">
+            <h4 class="application-ilan-edit-title">${idx + 1}. Branş İlanı</h4>
+            <div class="form-group">
+              <label>Branş</label>
+              <select class="modern-select app-ilan-brans" data-program-id="${ilan.id}">${renderBransOptions(ilan.brans || ilan.ad || '')}</select>
+            </div>
+            <div class="form-row-inline">
+              <div class="form-group">
+                <label>Yaş Aralığı</label>
+                <input class="modern-input app-ilan-yas" data-program-id="${ilan.id}" value="${escapeHtml(ilan.yasAraligi || '')}" placeholder="Örn: 6-14 yaş" />
+              </div>
+              <div class="form-group">
+                <label>Aidat Bilgisi</label>
+                <input class="modern-input app-ilan-aidat" data-program-id="${ilan.id}" value="${escapeHtml(ilan.aidatBilgisi || ilan.ucretBilgisi || '')}" placeholder="Örn: Aylık 1500 TL" />
+              </div>
+            </div>
+          </article>`,
+        )
+        .join('')}</div>`;
+    }
+
+    function bindApplicationLocationSelects(app) {
+      const citySelect = document.getElementById('app-edit-il');
+      const districtSelect = document.getElementById('app-edit-ilce');
+      if (!(citySelect instanceof HTMLSelectElement) || !(districtSelect instanceof HTMLSelectElement)) return;
+      const refreshDistricts = (selectedDistrictSlug = districtSelect.value) => {
+        districtSelect.innerHTML = `<option value="">İlçe seçin...</option>${renderDistrictOptions(citySelect.value, selectedDistrictSlug)}`;
+      };
+      refreshDistricts(app.ilceSlug || districtSelect.value);
+      citySelect.addEventListener('change', () => refreshDistricts(''));
+    }
+
+    function collectApplicationEditPayload(app) {
+      const ilanlar = Array.from(detailEl?.querySelectorAll('.application-ilan-edit') || []).map((card) => {
+        const programId = Number(card.getAttribute('data-program-id'));
+        const brans = card.querySelector('.app-ilan-brans')?.value?.trim() || '';
+        const yasAraligi = card.querySelector('.app-ilan-yas')?.value?.trim() || '';
+        const aidatBilgisi = card.querySelector('.app-ilan-aidat')?.value?.trim() || '';
+        return { id: programId, brans, yasAraligi, aidatBilgisi };
+      });
+      return {
+        updateFields: true,
+        id: app.id,
+        ad: document.getElementById('app-edit-ad')?.value?.trim() || '',
+        ilSlug: document.getElementById('app-edit-il')?.value || '',
+        ilceSlug: document.getElementById('app-edit-ilce')?.value || '',
+        adres: document.getElementById('app-edit-adres')?.value?.trim() || '',
+        telefon: document.getElementById('app-edit-telefon')?.value?.trim() || '',
+        email: document.getElementById('app-edit-email')?.value?.trim() || '',
+        aciklama: document.getElementById('app-edit-aciklama')?.value?.trim() || '',
+        ilanlar,
+      };
     }
 
     function statusBadge(status) {
@@ -997,21 +1122,8 @@ const adminLocationData = {
         const app = await apiGet(`/api/admin/applications?id=${appId}`);
         const docsHtml = await loadDocuments(appId);
         const ilanlar = Array.isArray(app.ilanlar) ? app.ilanlar : [];
-        const ilanlarHtml = ilanlar.length
-          ? `<ul class="application-ilanlar-list">
-          ${ilanlar
-            .map(
-              (ilan, idx) => `<li class="application-ilan-card">
-                <div class="application-ilan-head">
-                  <strong>${idx + 1}. ${escapeHtml(ilan.brans || ilan.ad || '-')}</strong>
-                  <span class="status-badge ${ilan.aktif ? 'status-approved' : 'status-pending'}">${ilan.aktif ? 'Yayında' : 'Onay bekliyor'}</span>
-                </div>
-                <p class="text-sm text-muted">${[ilan.yasAraligi, ilan.aidatBilgisi || ilan.ucretBilgisi].filter(Boolean).map((v) => escapeHtml(v)).join(' · ') || '—'}</p>
-              </li>`,
-            )
-            .join('')}
-        </ul>`
-          : '<p class="section-help">Bu başvuruya bağlı ilan kaydı bulunamadı.</p>';
+        const ilanlarHtml = renderApplicationIlanEditors(ilanlar);
+        const canEditFields = app.durum !== 'approved';
         if (!detailEl) return;
         detailEl.innerHTML = `
           <div class="detail-header">
@@ -1030,59 +1142,72 @@ const adminLocationData = {
               <section class="card-section">
                 <div class="section-head">
                   <span class="icon">🏢</span>
-                  <h3>Kurum Bilgileri</h3>
+                  <h3>Kulüp Bilgileri</h3>
                 </div>
-                <div class="info-list">
-                  <div class="info-item">
-                    <span class="label">Ad / Ünvan</span>
-                    <span class="value">${app.ad || '-'}</span>
+                ${
+                  canEditFields
+                    ? `<div class="application-edit-form">
+                  <div class="form-group">
+                    <label>Kulüp / Kurs Adı</label>
+                    <input id="app-edit-ad" class="modern-input" value="${escapeHtml(app.ad || '')}" />
                   </div>
-                  <div class="info-item">
-                    <span class="label">Konum</span>
-                    <span class="value">${app.il || '-'} / ${app.ilce || '-'}</span>
+                  <div class="form-row-inline">
+                    <div class="form-group">
+                      <label>İl</label>
+                      <select id="app-edit-il" class="modern-select">
+                        <option value="">İl seçin...</option>
+                        ${renderCityOptions(app.ilSlug || '')}
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label>İlçe</label>
+                      <select id="app-edit-ilce" class="modern-select">
+                        <option value="">İlçe seçin...</option>
+                        ${renderDistrictOptions(app.ilSlug || '', app.ilceSlug || '')}
+                      </select>
+                    </div>
                   </div>
-                  <div class="info-item">
-                    <span class="label">Üyelik Paketi</span>
-                    <span class="value">${escapeHtml(app.paketLabel || formatMembershipLabel(app.paketKod, app.paketAd))}</span>
+                  <div class="form-group">
+                    <label>Tesis İsmi veya Tam Adres</label>
+                    <input id="app-edit-adres" class="modern-input" value="${escapeHtml(app.adres || '')}" />
                   </div>
-                  <div class="info-item">
-                    <span class="label">Yayınlanacak Branş</span>
-                    <span class="value">${app.bransSayisi || 1} branş</span>
+                  <div class="form-row-inline">
+                    <div class="form-group">
+                      <label>Telefon</label>
+                      <input id="app-edit-telefon" class="modern-input" value="${escapeHtml(app.telefon || '')}" />
+                    </div>
+                    <div class="form-group">
+                      <label>E-posta</label>
+                      <input id="app-edit-email" class="modern-input" type="email" value="${escapeHtml(app.email || '')}" />
+                    </div>
                   </div>
-                  <div class="info-item">
-                    <span class="label">Tesis / Adres</span>
-                    <span class="value">${app.adres || '-'}</span>
+                  <div class="form-group">
+                    <label>Açıklama</label>
+                    <textarea id="app-edit-aciklama" class="modern-textarea" rows="3">${escapeHtml(app.aciklama || '')}</textarea>
                   </div>
-                  <div class="info-item">
-                    <span class="label">Açıklama</span>
-                    <span class="value text-box">${app.aciklama || '-'}</span>
-                  </div>
-                </div>
+                </div>`
+                    : `<div class="info-list">
+                  <div class="info-item"><span class="label">Ad</span><span class="value">${escapeHtml(app.ad || '-')}</span></div>
+                  <div class="info-item"><span class="label">Konum</span><span class="value">${escapeHtml(app.il || '-')} / ${escapeHtml(app.ilce || '-')}</span></div>
+                  <div class="info-item"><span class="label">Tesis / Adres</span><span class="value">${escapeHtml(app.adres || '-')}</span></div>
+                  <div class="info-item"><span class="label">Telefon</span><span class="value">${escapeHtml(app.telefon || '-')}</span></div>
+                  <div class="info-item"><span class="label">E-posta</span><span class="value">${escapeHtml(app.email || '-')}</span></div>
+                  <div class="info-item"><span class="label">Açıklama</span><span class="value text-box">${escapeHtml(app.aciklama || '-')}</span></div>
+                </div>`
+                }
               </section>
 
               <section class="card-section">
                 <div class="section-head">
-                  <span class="icon">📞</span>
-                  <h3>İletişim</h3>
-                </div>
-                <div class="info-grid">
-                  <div class="info-item">
-                    <span class="label">Telefon</span>
-                    <span class="value">${app.telefon || '-'}</span>
-                  </div>
-                  <div class="info-item">
-                    <span class="label">E-posta</span>
-                    <span class="value"><a href="mailto:${app.email}">${app.email || '-'}</a></span>
-                  </div>
-                </div>
-              </section>
-              
-              <section class="card-section">
-                <div class="section-head">
                   <span class="icon">📋</span>
-                  <h3>Başvuru İlanları</h3>
+                  <h3>Branş İlanları</h3>
                 </div>
                 ${ilanlarHtml}
+                ${
+                  canEditFields
+                    ? '<button id="save-application-fields-btn" class="btn btn-dark w-full mt-3" type="button">Kulüp ve Branş Bilgilerini Kaydet</button>'
+                    : ''
+                }
               </section>
 
                             <section class="card-section">
@@ -1112,18 +1237,26 @@ const adminLocationData = {
                   <h3>Karar & Onay</h3>
                 </div>
                 <div class="action-body">
+                  <p class="section-help text-sm">Onay sonrası ilanlar yayına alınır. Bilgileri soldan düzenleyebilirsiniz.</p>
                   <div class="form-group">
-                    <label>Üyelik Periyodu</label>
-                    <select id="membership-period" class="modern-select">
+                    <label>Üyelik Süresi</label>
+                    <select id="application-membership-period" class="modern-select">
                       <option value="six_month" ${app.membershipPeriod !== 'yearly' ? 'selected' : ''}>6 Aylık</option>
                       <option value="yearly" ${app.membershipPeriod === 'yearly' ? 'selected' : ''}>Yıllık</option>
                     </select>
+                    <p class="section-help text-sm mt-2">Başvuruda seçilen paket burada gelir; onaylamadan önce değiştirebilirsiniz.</p>
                   </div>
                   <div class="action-buttons">
                     <button class="btn-action action-approve" data-status="approved">✅ ${statusActionLabel(app.durum, 'approved')}</button>
                     <button class="btn-action action-pending" data-status="pending">⏳ ${statusActionLabel(app.durum, 'pending')}</button>
                     <button class="btn-action action-reject" data-status="rejected">❌ ${statusActionLabel(app.durum, 'rejected')}</button>
                   </div>
+                  ${
+                    canEditFields
+                      ? `<button id="delete-application-btn" class="btn btn-danger w-full" style="margin-top: 1.25rem;" type="button">🗑️ Başvuruyu Sil</button>
+                  <p class="section-help text-sm mt-2">Kalıcı siler: kulüp kaydı, ilanlar, belgeler ve loglar. Onaylı kayıtlar silinemez.</p>`
+                      : ''
+                  }
                 </div>
               </section>
 
@@ -1212,6 +1345,23 @@ const adminLocationData = {
         };
         await renderLogTimeline();
 
+        if (canEditFields) {
+          bindApplicationLocationSelects(app);
+          const saveFieldsBtn = document.getElementById('save-application-fields-btn');
+          saveFieldsBtn?.addEventListener('click', async () => {
+            try {
+              saveFieldsBtn.textContent = 'Kaydediliyor...';
+              saveFieldsBtn.disabled = true;
+              await apiPost('/api/admin/applications', collectApplicationEditPayload(app));
+              await renderDetail(appId);
+            } catch (error) {
+              alert(error.message);
+              saveFieldsBtn.textContent = 'Kulüp ve Branş Bilgilerini Kaydet';
+              saveFieldsBtn.disabled = false;
+            }
+          });
+        }
+
         // Event Listeners for Buttons
         detailEl.querySelectorAll('.btn-action').forEach((button) => {
           button.addEventListener('click', async () => {
@@ -1219,8 +1369,6 @@ const adminLocationData = {
             if (!nextStatus) return;
             const adminNote = document.getElementById('admin-note')?.value || '';
             const assignedAdminEmail = document.getElementById('assigned-admin-email')?.value?.trim() || '';
-            const membershipPeriod =
-              document.getElementById('membership-period')?.value === 'yearly' ? 'yearly' : 'six_month';
             try {
               button.classList.add('loading');
               await apiPost('/api/admin/applications', {
@@ -1228,7 +1376,7 @@ const adminLocationData = {
                 status: nextStatus,
                 adminNote,
                 assignedAdminEmail,
-                membershipPeriod,
+                membershipPeriod: document.getElementById('application-membership-period')?.value || 'six_month',
               });
               if (nextStatus === 'approved') {
                 selectedAppId = 0;
@@ -1256,6 +1404,34 @@ const adminLocationData = {
           });
         });
 
+        const deleteAppBtn = document.getElementById('delete-application-btn');
+        deleteAppBtn?.addEventListener('click', async () => {
+          const statusLabel = statusLabelTr(app.durum);
+          const ok = confirm(
+            `"${app.ad}" başvurusunu kalıcı olarak silmek istediğinize emin misiniz?\n\nDurum: ${statusLabel}\nBu işlem geri alınamaz.`,
+          );
+          if (!ok) return;
+          try {
+            deleteAppBtn.textContent = 'Siliniyor...';
+            deleteAppBtn.disabled = true;
+            await apiPost('/api/admin/applications', { id: appId, delete: true });
+            selectedAppId = 0;
+            if (detailEl) {
+              detailEl.innerHTML = `
+                <div class="empty-state">
+                  <div class="empty-icon">🗑️</div>
+                  <h3>Başvuru silindi</h3>
+                  <p>Kayıt ve ilişkili veriler kaldırıldı. Aynı kulüp adıyla yeniden başvuru yapılabilir.</p>
+                </div>`;
+            }
+            await loadApplications();
+          } catch (error) {
+            deleteAppBtn.textContent = '🗑️ Başvuruyu Sil';
+            deleteAppBtn.disabled = false;
+            alert(error.message);
+          }
+        });
+
         const saveNoteBtn = document.getElementById('save-note-btn');
         saveNoteBtn?.addEventListener('click', async () => {
           const adminNote = document.getElementById('admin-note')?.value || '';
@@ -1267,6 +1443,7 @@ const adminLocationData = {
               status: app.durum,
               adminNote,
               assignedAdminEmail,
+              membershipPeriod: document.getElementById('application-membership-period')?.value || 'six_month',
             });
             await renderDetail(appId);
           } catch (error) {
@@ -1341,6 +1518,7 @@ const adminLocationData = {
               email,
               password,
               membershipRole,
+              membershipPeriod: document.getElementById('application-membership-period')?.value || 'six_month',
             });
             alert(`Hesap başarıyla oluşturuldu/güncellendi.\nE-posta: ${result.email}`);
             provisionBtn.textContent = 'Hesabı Oluştur / Güncelle';
@@ -1622,7 +1800,7 @@ const adminLocationData = {
     }
 
     function renderClubPrograms(programs) {
-      return buildClubProgramsSectionHtml(programs);
+      return buildClubProgramsSectionHtml(programs, adminBransList);
     }
 
     async function renderClubDetail(clubId) {
@@ -1737,6 +1915,7 @@ const adminLocationData = {
                     <span class="value">${club.bransSayisi || 1} branş</span>
                   </div>
                 </div>
+                <button id="save-club-summary-btn" class="btn btn-primary w-full mt-4" type="button">Başvuru Özetini Güncelle</button>
               </section>
 
               <section class="card-section">
@@ -1896,29 +2075,40 @@ const adminLocationData = {
           }
         });
 
-        const saveBtn = document.getElementById('save-club-btn');
-        saveBtn?.addEventListener('click', async () => {
+        const collectClubUpdatePayload = () => ({
+          id: clubId,
+          ad: document.getElementById('club-ad')?.value || '',
+          telefon: document.getElementById('club-telefon')?.value || '',
+          email: document.getElementById('club-email')?.value || '',
+          yasAraligi: document.getElementById('club-yas-araligi')?.value || '',
+          fiyatBilgisi: document.getElementById('club-fiyat-bilgisi')?.value || '',
+          adres: document.getElementById('club-adres')?.value || '',
+          aciklama: document.getElementById('club-aciklama')?.value || '',
+          il: document.getElementById('club-il')?.value || '',
+          ilce: document.getElementById('club-ilce')?.value || '',
+          membershipPeriod: document.getElementById('club-membership-period')?.value || 'six_month',
+        });
+
+        const saveClubUpdate = async (button, loadingText, resetText) => {
           try {
-            saveBtn.textContent = 'Kaydediliyor...';
-            await apiPost('/api/admin/clubs', {
-              id: clubId,
-              ad: document.getElementById('club-ad')?.value || '',
-              telefon: document.getElementById('club-telefon')?.value || '',
-              email: document.getElementById('club-email')?.value || '',
-              yasAraligi: document.getElementById('club-yas-araligi')?.value || '',
-              fiyatBilgisi: document.getElementById('club-fiyat-bilgisi')?.value || '',
-              adres: document.getElementById('club-adres')?.value || '',
-              aciklama: document.getElementById('club-aciklama')?.value || '',
-              il: document.getElementById('club-il')?.value || '',
-              ilce: document.getElementById('club-ilce')?.value || '',
-              membershipPeriod: document.getElementById('club-membership-period')?.value || 'six_month',
-            });
+            if (button) button.textContent = loadingText;
+            await apiPost('/api/admin/clubs', collectClubUpdatePayload());
             await loadClubs();
             await renderClubDetail(clubId);
           } catch (error) {
-            saveBtn.textContent = 'Değişiklikleri Kaydet';
+            if (button) button.textContent = resetText;
             alert(error.message);
           }
+        };
+
+        const saveBtn = document.getElementById('save-club-btn');
+        saveBtn?.addEventListener('click', async () => {
+          await saveClubUpdate(saveBtn, 'Kaydediliyor...', 'Değişiklikleri Kaydet');
+        });
+
+        const saveSummaryBtn = document.getElementById('save-club-summary-btn');
+        saveSummaryBtn?.addEventListener('click', async () => {
+          await saveClubUpdate(saveSummaryBtn, 'Güncelleniyor...', 'Başvuru Özetini Güncelle');
         });
 
         const clubIlSelect = document.getElementById('club-il');
@@ -2269,12 +2459,17 @@ const adminLocationData = {
                   <label>Metin</label>
                   <textarea id="news-editor" class="news-editor"></textarea>
                 </div>
-                <div style="display: flex; gap: 1rem;">
-                  <button id="save-news-btn" class="btn btn-primary w-full" type="button">
-                    ${news.id ? 'Güncelle' : 'Haberi Yayınla'}
-                  </button>
-                  ${news.id ? `<button id="delete-news-btn" class="btn btn-danger" type="button">Sil</button>` : ''}
-                </div>
+                <button id="save-news-btn" class="btn btn-primary w-full" type="button">
+                  ${news.id ? 'Güncelle' : 'Haberi Yayınla'}
+                </button>
+                ${
+                  news.id
+                    ? `<div class="admin-danger-zone">
+                  <p class="section-help">Bu haber veritabanından kalıcı silinir.</p>
+                  <button id="delete-news-btn" class="btn btn-danger w-full" type="button">🗑️ Haberi Sil</button>
+                </div>`
+                    : ''
+                }
               </div>
             </section>
           </div>
@@ -2480,6 +2675,8 @@ const adminLocationData = {
       }
     }
 
+    const guidesAdmin = mountGuidesAdminTab({ apiGet, apiPut, apiDelete, escapeHtml });
+
     tabButtons.forEach((button) => {
       button.addEventListener('click', async () => {
         const tabKey = button.getAttribute('data-tab-target') || 'applications';
@@ -2495,6 +2692,9 @@ const adminLocationData = {
         }
         if (tabKey === 'news' && !cachedNews.length) {
           await loadNews();
+        }
+        if (tabKey === 'guides') {
+          await guidesAdmin.loadGuides();
         }
         if (tabKey === 'pricing') {
           await loadMembershipPlansAdmin();
@@ -2893,6 +3093,30 @@ const adminLocationData = {
       padding: 1rem;
       border-radius: 12px;
       border: 1px solid var(--admin-border);
+    }
+
+    .form-actions-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-top: 1rem;
+    }
+
+    .guide-html-editor {
+      font-family: ui-monospace, monospace;
+      font-size: 0.85rem;
+    }
+
+    .admin-danger-zone {
+      margin-top: 1.5rem;
+      padding-top: 1.25rem;
+      border-top: 1px solid rgba(220, 38, 38, 0.25);
+    }
+
+    .admin-danger-zone .section-help {
+      margin: 0 0 0.75rem;
+      color: #b91c1c;
+      font-size: 0.88rem;
     }
 
     .search-box {
@@ -3666,5 +3890,37 @@ const adminLocationData = {
     .delay-100 { animation-delay: 0.1s; }
     .delay-200 { animation-delay: 0.2s; }
     @keyframes fadeInUp { to { opacity: 1; transform: translateY(0); } }
+
+    .form-row-inline {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.75rem;
+    }
+    @media (min-width: 640px) {
+      .form-row-inline { grid-template-columns: 1fr 1fr; }
+    }
+
+    .application-edit-form,
+    .application-ilan-edit-list {
+      display: grid;
+      gap: 0.85rem;
+    }
+
+    .application-ilan-edit {
+      border: 1px solid #e2e8f0;
+      border-radius: 0.75rem;
+      padding: 0.85rem 1rem;
+      background: #f8fafc;
+    }
+
+    .application-ilan-edit-title {
+      margin: 0 0 0.65rem;
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .admin-tab.is-hidden { display: none; }
   </style>
-</BaseLayout>
+)}
+</AdminLayout>

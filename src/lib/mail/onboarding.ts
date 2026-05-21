@@ -24,7 +24,7 @@ export async function sendClubProvisionedMail(input: {
     auth: { user: smtpUser, pass: smtpPass },
   });
 
-  const panelUrl = `${env('SITE_URL') ?? 'https://spornerede.net'}/panel/giris`;
+  const panelUrl = `${env('SITE_URL') ?? 'https://spornerede.net'}/admin`;
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 620px; margin: 0 auto; padding: 20px;">
       <h2 style="margin:0 0 10px; color:#212529;">Kulup panel hesabiniz hazir</h2>

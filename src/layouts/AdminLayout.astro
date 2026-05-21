@@ -1,0 +1,36 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description = 'SporNerede yönetim paneli' } = Astro.props;
+const pageTitle = `${title} | SporNerede`;
+---
+
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>{pageTitle}</title>
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#0f172a" />
+  </head>
+  <body class="admin-body">
+    <slot />
+  </body>
+</html>
+
+<style is:global>
+  .admin-body {
+    margin: 0;
+    min-height: 100vh;
+    background: #f1f5f9;
+    font-family: 'Outfit', system-ui, sans-serif;
+    color: #0f172a;
+  }
+</style>

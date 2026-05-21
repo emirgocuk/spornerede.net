@@ -46,7 +46,6 @@ const isHomePage = currentPath === '/';
 
     <!-- ===== HEADER SAĞ KISIM ===== -->
     <div class="header-actions">
-      <a href="/panel/giris" class="btn btn-outline btn-sm header-login" data-auth-link>Üye girişi</a>
       <!-- Masaüstünde CTA -->
       <a href="/basvuru" class="btn btn-primary header-cta" id="header-cta-btn">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -58,6 +57,10 @@ const isHomePage = currentPath === '/';
           <span class="header-cta-sep">/</span>
           <span class="header-cta-line">Kulübünü Ekle</span>
         </span>
+      </a>
+
+      <a href="/basvuru" class="header-cta-mobile btn btn-primary">
+        Spor kursunu ve kulübünü ekle
       </a>
 
       <!-- Mobil hamburger butonu -->
@@ -108,9 +111,6 @@ const isHomePage = currentPath === '/';
           </a>
         </div>
       ))}
-      <div class="mobile-nav-group mobile-nav-group--account">
-        <a href="/panel/giris" class="mobile-nav-link mobile-nav-link--secondary" data-auth-link-mobile>Üye girişi</a>
-      </div>
     </nav>
 
     <!-- Mobil CTA -->
@@ -503,7 +503,44 @@ const isHomePage = currentPath === '/';
     font-weight: 800;
   }
 
-  @media (min-width: 768px) {
+  .header-cta-mobile {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.62rem;
+    font-weight: 700;
+    line-height: 1.15;
+    padding: 0.4rem 0.55rem;
+    max-width: 7.5rem;
+    text-align: center;
+    white-space: normal;
+    flex-shrink: 1;
+    min-width: 0;
+  }
+
+  @media (max-width: 1023px) {
+    .header-cta-mobile {
+      display: inline-flex;
+    }
+
+    .header-actions {
+      gap: 0.4rem;
+    }
+  }
+
+  .site-header--home:not(.scrolled) .header-cta-mobile {
+    background: #e30a17;
+    border-color: #e30a17;
+    color: #ffffff;
+  }
+
+  .site-header--home:not(.scrolled) .header-cta-mobile:hover {
+    background: #b5080f;
+    border-color: #b5080f;
+    color: #ffffff;
+  }
+
+  @media (min-width: 1024px) {
     .header-cta { display: inline-flex; }
   }
 
@@ -778,46 +815,4 @@ const isHomePage = currentPath === '/';
     if (e.key === 'Escape') closeMenu();
   });
 
-  // Oturum varsa header login linklerini panel linkine cevir.
-  // Anonim ziyaretciler icin /api/panel/session fetch'i tamamen atlanir
-  // (LCP'yi kritik yoldan cikariyoruz). Hint cookie HttpOnly degil, JS okuyabilir.
-  function hasSessionHintCookie() {
-    return document.cookie.split(';').some((c) => c.trim().startsWith('spornerede_session_hint='));
-  }
-
-  function applyAuthenticatedUI() {
-    const desktop = document.querySelector('[data-auth-link]');
-    if (desktop) {
-      desktop.setAttribute('href', '/panel');
-      desktop.textContent = 'Panelim';
-    }
-    const mobile = document.querySelector('[data-auth-link-mobile]');
-    if (mobile) {
-      mobile.setAttribute('href', '/panel');
-      mobile.textContent = 'Panelim';
-    }
-  }
-
-  async function hydrateAuthLinks() {
-    if (!hasSessionHintCookie()) return;
-    try {
-      const response = await fetch('/api/panel/session', { credentials: 'same-origin' });
-      if (!response.ok) return;
-      const payload = await response.json();
-      if (payload?.authenticated) applyAuthenticatedUI();
-    } catch {
-      // Sessiz gec: auth endpoint ulasilamazsa varsayilan link kalsin.
-    }
-  }
-
-  const runWhenIdle =
-    typeof window.requestIdleCallback === 'function'
-      ? (cb: IdleRequestCallback) => window.requestIdleCallback(cb, { timeout: 2000 })
-      : (cb: () => void) => window.setTimeout(cb, 1);
-
-  if (document.readyState === 'complete') {
-    runWhenIdle(() => hydrateAuthLinks());
-  } else {
-    window.addEventListener('load', () => runWhenIdle(() => hydrateAuthLinks()), { once: true });
-  }
 </script>

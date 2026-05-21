@@ -38,4 +38,5 @@ Sitemap: https://spornerede.net/sitemaps/districts.xml
 Sitemap: https://spornerede.net/sitemaps/news.xml
 Sitemap: https://spornerede.net/sitemaps/clubs.xml
 Sitemap: https://spornerede.net/sitemaps/listings.xml
+Sitemap: https://spornerede.net/sitemaps/guides.xml
 `;

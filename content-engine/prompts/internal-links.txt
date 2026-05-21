@@ -1,0 +1,2 @@
+Asagidaki URL'leri makale govdesinde dogal Turkce anchor metinleriyle kullan (en az 2, en fazla 5):
+{{IC_LINK_LIST}}

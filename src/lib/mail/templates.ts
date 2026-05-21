@@ -22,8 +22,7 @@ export function buildApplicationNotificationMail(input: ApplicationNotificationI
         <p><strong>Yetkili:</strong> ${input.yetkili}</p>
         <p><strong>Telefon:</strong> ${input.telefon}</p>
         <p><strong>E-posta:</strong> ${input.email}</p>
-        <p><strong>Paket:</strong> ${input.paket}</p>
-        <p><strong>Odeme Modeli:</strong> Havale/EFT (odeme onaylandi)</p>
+        <p><strong>Branş sayısı:</strong> ${input.paket}</p>
         ${input.aciklama ? `<p><strong>Aciklama:</strong> ${input.aciklama}</p>` : ''}
       </div>
     </div>

@@ -1,6 +1,5 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import Breadcrumb from '../../components/Breadcrumb.astro';
 import { getProgramListingById } from '../../lib/repositories/catalog';
 import { courseSchema, SITE_URL } from '../../lib/seo/jsonld';
 import { extractIdFromSlug, listingSlug, isPureNumericSlug, clubSlug } from '../../lib/seo/slug';
@@ -113,7 +112,7 @@ const ilanDescription = listing.aciklama
 
 const listingJsonLd = courseSchema({
   url: canonicalUrl,
-  name: listing.ad,
+  name: `${listing.club.ad} — ${listing.ad}`,
   description: ilanDescription,
   providerName: listing.club.ad,
   providerUrl: `${SITE_URL}/kulupler/${clubSlug({ id: listing.club.id, ad: listing.club.ad })}`,
@@ -140,20 +139,20 @@ const breadcrumbs = [
     name: listing.club.ad,
     url: `${SITE_URL}/kulupler/${clubSlug({ id: listing.club.id, ad: listing.club.ad })}`,
   },
-  { name: listing.ad, url: canonicalUrl },
+  { name: `${listing.club.ad} — ${listing.ad}`, url: canonicalUrl },
 ];
 
 // OG image: ilan galerisi varsa ilk goruntu, yoksa dinamik endpoint
 const ogParams = new URLSearchParams({
-  title: listing.ad,
-  kicker: listing.club.brans || 'Spor ilani',
+  title: listing.club.ad,
+  kicker: `${listing.ad} · ${listing.club.brans || 'Spor'}`,
   badge: listing.club.ilce || listing.club.il || '',
 });
-const ogImage = listing.gallery?.[0] || `${SITE_URL}/api/og.png?${ogParams.toString()}`;
+const ogImage = `${SITE_URL}/api/og.png?${ogParams.toString()}`;
 ---
 
 <BaseLayout
-  title={`${listing.ad} | ${listing.club.ad}`}
+  title={`${listing.club.ad} — ${listing.ad}`}
   description={ilanDescription}
   keywords={`${listing.club.bransSlug} ilanı, ${listing.club.ilce} spor kursu, ${listing.ad.toLowerCase()}`}
   canonical={canonicalUrl}
@@ -166,11 +165,6 @@ const ogImage = listing.gallery?.[0] || `${SITE_URL}/api/og.png?${ogParams.toStr
   <section class="section listing-page relative z-10">
     <div class="container listing-wrap" data-club-lat={listing.club.enlem || ''} data-club-lng={listing.club.boylam || ''}>
 
-      <div class="mb-3 animate-fade-in-up">
-        <Breadcrumb items={breadcrumbs.map((b) => ({ name: b.name, url: b.url }))} />
-      </div>
-
-      <!-- Back Link -->
       <div class="mb-6 animate-fade-in-up">
         <a href={`/ara?brans=${listing.club.bransSlug || ''}`} class="back-link group">
           <span class="back-icon group-hover:-translate-x-1 transition-transform">←</span>
@@ -188,14 +182,15 @@ const ogImage = listing.gallery?.[0] || `${SITE_URL}/api/og.png?${ogParams.toStr
           <div class="hero-text">
             <p class="kicker">
               <span class="pulse-dot"></span>
-              {listing.club.brans || 'Spor'} İlanı
+              {listing.ad} · {listing.club.ilce || listing.club.il}
             </p>
-            <h1 class="listing-title">{listing.ad}</h1>
+            <h1 class="listing-title">{listing.club.ad}</h1>
             <div class="hero-badges-inline">
-              <span class="badge-modern"><i class="badge-icon">📅</i>{dateRangeText()}</span>
-              <span class="badge-modern"><i class="badge-icon">⏰</i>{scheduleText()}</span>
-              <span class="badge-modern"><i class="badge-icon">⭐</i>{listing.seviye || 'Genel seviye'}</span>
-              <span class="badge-modern badge-highlight"><i class="badge-icon">💳</i>{listing.ucretBilgisi || 'Fiyat sorunuz'}</span>
+              {listing.yasAraligi && (
+                <span class="badge-modern"><i class="badge-icon">👥</i>Yaş: {listing.yasAraligi}</span>
+              )}
+              <span class="badge-modern badge-highlight"><i class="badge-icon">💳</i>{listing.ucretBilgisi || 'Aidat sorunuz'}</span>
+              <span class="badge-modern"><i class="badge-icon">📍</i>{listing.club.il}{listing.club.ilce ? ` - ${listing.club.ilce}` : ''}</span>
             </div>
           </div>
         </div>
@@ -206,41 +201,33 @@ const ogImage = listing.gallery?.[0] || `${SITE_URL}/api/og.png?${ogParams.toStr
         <!-- Main Content -->
         <div class="main-column">
           <article class="content-card card-glass">
-            <h2 class="card-title">Kurs Detayları</h2>
-            <ul class="meta-grid">
-              <li class="meta-item">
-                <div class="meta-icon">📅</div>
-                <div class="meta-info">
-                  <span class="meta-label">Tarih Aralığı</span>
-                  <strong class="meta-value">{dateRangeText()}</strong>
-                </div>
-              </li>
-              <li class="meta-item">
-                <div class="meta-icon">⏰</div>
-                <div class="meta-info">
-                  <span class="meta-label">Gün / Saat</span>
-                  <strong class="meta-value">{scheduleText()}</strong>
-                </div>
-              </li>
-              <li class="meta-item">
-                <div class="meta-icon">🗺️</div>
-                <div class="meta-info">
-                  <span class="meta-label">Konum</span>
-                  <strong class="meta-value">{listing.locationText || listing.club.ilce || listing.club.il}</strong>
-                  {listing.mapsUrl && (
-                    <a class="maps-link" href={listing.mapsUrl} target="_blank" rel="noreferrer">Google Maps'te Aç</a>
-                  )}
-                </div>
-              </li>
-              <li class="meta-item location-item">
-                <div class="meta-icon">📍</div>
-                <div class="meta-info">
-                  <span class="meta-label">Eve Uzaklık</span>
-                  <strong class="meta-value distance-output text-brand-red">Hesaplanıyor...</strong>
-                </div>
-              </li>
-            </ul>
-            
+            <h2 class="card-title">Bilgiler</h2>
+            <div class="listing-summary-grid">
+              <section class="listing-summary-card">
+                <h3>Kulüp</h3>
+                <p class="summary-lead"><strong>{listing.club.ad}</strong></p>
+                <ul class="summary-facts">
+                  <li><span>İl / İlçe</span><strong>{listing.club.il}{listing.club.ilce ? ` - ${listing.club.ilce}` : ''}</strong></li>
+                  {listing.club.adres && <li><span>Tesis / Adres</span><strong>{listing.club.adres}</strong></li>}
+                </ul>
+              </section>
+              <section class="listing-summary-card">
+                <h3>Branş ilanı</h3>
+                <p class="summary-lead"><strong>{listing.ad}</strong></p>
+                <ul class="summary-facts">
+                  {listing.yasAraligi && <li><span>Yaş aralığı</span><strong>{listing.yasAraligi}</strong></li>}
+                  <li><span>Aidat</span><strong>{listing.ucretBilgisi || 'Fiyat sorunuz'}</strong></li>
+                </ul>
+              </section>
+            </div>
+
+            {listing.club.aciklama && (
+              <div class="summary-box">
+                <h3 class="summary-box-title">Kulüp hakkında</h3>
+                <p>{listing.club.aciklama}</p>
+              </div>
+            )}
+
             {listing.aciklama && (
               <div class="summary-box">
                 <p>{listing.aciklama}</p>
@@ -261,110 +248,10 @@ const ogImage = listing.gallery?.[0] || `${SITE_URL}/api/og.png?${ogParams.toStr
           </article>
 
         </div>
-
-        <!-- Sidebar -->
-        <div class="sidebar-column">
-          <article class="content-card card-glass sticky-sidebar">
-            <h2 class="card-title">Galeri</h2>
-            {listing.gallery.length > 0 ? (
-              <div class="gallery-grid">
-                {listing.gallery.map((imageUrl, idx) => (
-                  <button type="button" class="gallery-item" data-viewer-image={imageUrl}>
-                    <img
-                      src={imageUrl}
-                      alt={`${listing.ad} - ${listing.club.brans || 'spor'} ilanı görseli ${idx + 1}`}
-                      loading={idx === 0 ? 'eager' : 'lazy'}
-                      decoding="async"
-                      width="800"
-                      height="600"
-                    />
-                    <div class="gallery-overlay"><span>Büyüt</span></div>
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <div class="empty-state sm">
-                <div class="empty-icon">📷</div>
-                <p>Bu ilan için henüz görsel eklenmedi.</p>
-              </div>
-            )}
-            
-          </article>
-        </div>
       </div>
     </div>
   </section>
-  <div class="image-viewer" aria-hidden="true">
-    <div class="image-viewer-backdrop" data-close-viewer></div>
-    <div class="image-viewer-dialog" role="dialog" aria-modal="true" aria-label="Görsel görüntüleyici">
-      <button type="button" class="image-viewer-close" data-close-viewer aria-label="Kapat">×</button>
-      <img class="image-viewer-img" src="" alt="Büyütülmüş ilan görseli" />
-    </div>
-  </div>
 </BaseLayout>
-
-<script is:inline>
-  const container = document.querySelector('.listing-wrap');
-  if (container) {
-    const lat = Number(container.getAttribute('data-club-lat'));
-    const lng = Number(container.getAttribute('data-club-lng'));
-    const out = document.querySelector('.distance-output');
-    const setOutput = (text) => {
-      if (out) out.textContent = text;
-    };
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-      setOutput('Konum bilgisi yok');
-    } else if (!navigator.geolocation) {
-      setOutput('Tarayıcı desteklemiyor');
-    } else {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const toRad = (value) => (value * Math.PI) / 180;
-          const earthRadiusKm = 6371;
-          const dLat = toRad(lat - pos.coords.latitude);
-          const dLon = toRad(lng - pos.coords.longitude);
-          const a =
-            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-            Math.cos(toRad(pos.coords.latitude)) * Math.cos(toRad(lat)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-          const km = Math.round(earthRadiusKm * c * 10) / 10;
-          setOutput(`${km} km`);
-        },
-        () => setOutput('Konum izni verilmedi')
-      );
-    }
-  }
-
-  const viewer = document.querySelector('.image-viewer');
-  const viewerImage = viewer?.querySelector('.image-viewer-img');
-  const closeTriggers = viewer ? Array.from(viewer.querySelectorAll('[data-close-viewer]')) : [];
-  const galleryButtons = Array.from(document.querySelectorAll('[data-viewer-image]'));
-
-  const closeViewer = () => {
-    if (!viewer || !viewerImage) return;
-    viewer.classList.remove('is-open');
-    viewer.setAttribute('aria-hidden', 'true');
-    viewerImage.setAttribute('src', '');
-    document.body.style.overflow = '';
-  };
-
-  galleryButtons.forEach((button) => {
-    button.addEventListener('click', () => {
-      if (!viewer || !viewerImage) return;
-      const imageUrl = button.getAttribute('data-viewer-image') || '';
-      if (!imageUrl) return;
-      viewerImage.setAttribute('src', imageUrl);
-      viewer.classList.add('is-open');
-      viewer.setAttribute('aria-hidden', 'false');
-      document.body.style.overflow = 'hidden';
-    });
-  });
-
-  closeTriggers.forEach((node) => node.addEventListener('click', closeViewer));
-  document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') closeViewer();
-  });
-</script>
 
 <style>
   .page-background {
@@ -559,10 +446,68 @@ const ogImage = listing.gallery?.[0] || `${SITE_URL}/api/og.png?${ogParams.toStr
     gap: 2rem;
   }
   
-  @media (min-width: 992px) {
-    .grid-layout {
-      grid-template-columns: 2fr 1fr;
-    }
+  .listing-summary-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  @media (min-width: 640px) {
+    .listing-summary-grid { grid-template-columns: 1fr 1fr; }
+  }
+
+  .listing-summary-card {
+    padding: 1rem 1.15rem;
+    border-radius: 0.85rem;
+    background: var(--color-brand-gray-50);
+    border: 1px solid var(--color-brand-gray-200);
+  }
+
+  .listing-summary-card h3 {
+    margin: 0 0 0.5rem;
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-brand-gray-500);
+  }
+
+  .summary-lead {
+    margin: 0 0 0.65rem;
+    font-size: 1rem;
+    color: var(--color-brand-gray-900);
+  }
+
+  .summary-facts {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.45rem;
+  }
+
+  .summary-facts li {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    font-size: 0.88rem;
+  }
+
+  .summary-facts span {
+    color: var(--color-brand-gray-500);
+    font-weight: 600;
+    font-size: 0.75rem;
+  }
+
+  .summary-box-title {
+    margin: 0 0 0.5rem;
+    font-size: 0.95rem;
+    font-weight: 800;
+  }
+
+  .meta-grid--compact {
+    grid-template-columns: 1fr;
   }
   
   .main-column, .sidebar-column {

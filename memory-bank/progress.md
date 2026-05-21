@@ -2,7 +2,7 @@
 
 ## Özet Durum
 
-**Faz: Faz 12 (SEO + reklam altyapısı) canlıda; sıradaki geliştirme sırası: Faz 13 → 14 → 15 → 16 → 17, ardından veya paralel Faz 4 (harita ve derin ürün).** Checklist: `faz-gelistirme-checklist-tr.md`.
+**Faz: Faz 12 (SEO + reklam altyapısı) canlıda; sıradaki geliştirme sırası: Faz 13 → 14 → 15 → 16 → 17, ardından veya paralel Faz 4 (harita ve derin ürün) ve Faz 18 → 19 → 20 → 21 (SEO Otopilot — Soro benzeri kendi kendine çalışan içerik motoru).** Checklist: `faz-gelistirme-checklist-tr.md`.
 **Versiyon:** 0.4.0
 
 Ana takip dosyasi: `memory-bank/faz-gelistirme-checklist-tr.md` (faz bazli [x]/[ ] durum takibi)
@@ -77,7 +77,7 @@ Tekrarlayan manuel işi, destek talebini ve yoğun sorgu maliyetini düşürmeye
 
 ### Gelir ve trafik (strateji öneri havuzu)
 
-Satılabilir B2B/B2C paketler, pazar yeri fikirleri ve SEO ile siteye çekme taktikleri: `memory-bank/growth-revenue-traffic-tr.md`. Uygulama fazları ve sırası: **Faz 13 → 14 → 15 → 16 → 17** (+ Faz 4 epik); detaylı maddeler `memory-bank/faz-gelistirme-checklist-tr.md`. **Organik sıra ve SERP CTR** (GSC analizi, programatik meta şablonları, FAQ/şema, görsel SEO; LLM şart değil): `memory-bank/seo-ctr-organic-plan-tr.md`.
+Satılabilir B2B/B2C paketler, pazar yeri fikirleri ve SEO ile siteye çekme taktikleri: `memory-bank/growth-revenue-traffic-tr.md`. Uygulama fazları ve sırası: **Faz 13 → 14 → 18–21 (SEO otopilot ücretsiz) → 15 → 16 → 17** (+ Faz 4 epik); detaylı maddeler `memory-bank/faz-gelistirme-checklist-tr.md`. **Organik sıra ve SERP CTR:** `memory-bank/seo-ctr-organic-plan-tr.md`. **Otopilot rehber (0 TL):** `memory-bank/seo-autopilot-plan-tr.md`.
 
 ---
 
@@ -336,7 +336,100 @@ Detaylı plan: `memory-bank/seo-ads-plan.md`. Tüm altyapı turu tek seferde tam
 - Yorum/puanlama sistemi (moderasyon + KVKK)
 - Arama filtrelerinin URL tabanlı sorgu ile derinleştirilmesi
 
-**Önerilen sıra (özet):** 13 → 14 → 15 → 16 → 17 → (kaynak planına göre) Faz 4. Ayrıntılı `[ ]` maddeler: `memory-bank/faz-gelistirme-checklist-tr.md`. Strateji ve taktik havuzu: `memory-bank/growth-revenue-traffic-tr.md`.
+**Önerilen sıra (özet):** 13 → 14 → 15 → 16 → 17 → (kaynak planına göre) Faz 4; ardından paralel veya sıralı **Faz 18 → 19 → 20 → 21 (SEO Otopilot)**. Ayrıntılı `[ ]` maddeler: `memory-bank/faz-gelistirme-checklist-tr.md`. Strateji ve taktik havuzu: `memory-bank/growth-revenue-traffic-tr.md`.
+
+---
+
+## SEO Otopilot (MVP · Ücretsiz — 0 TL/ay)
+
+> Teknik plan: `memory-bank/seo-autopilot-plan-tr.md` · İzole uygulama: `content-engine/` · `memory-bank/content-engine-isolated-plan-tr.md`
+
+**Profil:** `SEO_USE_PAID_APIS=false` — LLM: **OpenRouter `:free` sabit model** (Gemini/Google AI Studio yok; fatura sızıntısı riski). GSC + PocketBase/Astro. Günde **1** taslak → admin düzenler → yayın.
+
+### Faz 18 — Keyword kuyruğu (ücretsiz)
+
+**Amaç:** Yazılacak anahtar kelimeleri önceliklendirmek.
+
+**Kaynaklar (0 TL):**
+- Google Search Console API — impression ≥ 50, CTR < %3 öncelik
+- `scripts/seo-autopilot/seed-keywords-tr.json` (~130 seed)
+- PocketBase şehir × branş programatik üretim
+
+**Çıktı:** `seo_keywords` (skor = GSC impression + niyet + iç link potansiyeli)
+
+**Dosyalar:** `keyword-engine.ts`, `seed-keywords-tr.json`, `seo-keyword-weekly.timer`
+
+---
+
+### Faz 19 — İçerik pipeline (OpenRouter `:free`)
+
+**Amaç:** Günde 1 Türkçe SEO **taslağı** (kalite admin + site verisi ile tamamlanır).
+
+**Adımlar:**
+1. En yüksek skorlu keyword
+2. Site bağlamı (kulüp/program sayısı — PB)
+3. İç link listesi
+4. OpenRouter sabit `:free` model → `rehber_yazilari` (`incelemede`)
+5. Parse fail → 1 retry; `429` → ertesi gün
+
+**`.env`:** `OPENROUTER_API_KEY`, `SEO_OPENROUTER_MODEL=…:free`, `SEO_LLM_PROVIDER=openrouter`, `SEO_GSC_*` — **`SEO_GEMINI_API_KEY` yok**
+
+**Dosyalar:** `content-pipeline.ts`, `llm-openrouter.ts`, `prompts/*.txt`, `seo-content-daily.timer`
+
+---
+
+### Faz 20 — Yayın ve teknik SEO
+
+**Amaç:** Onaylanan taslakları sitenin `/rehber/` bölümünde yayınlamak; tam teknik SEO otomasyonu.
+
+**Yeni Sayfalar:**
+- `src/pages/rehber/index.astro` — Hub sayfası (kategori bazlı liste, SEO açıklaması)
+- `src/pages/rehber/[slug].astro` — Tek makale (JSON-LD, CTA, ilgili makaleler, E-E-A-T)
+- `src/pages/rehber/[kategori]/index.astro` (opsiyonel, Faz 21'de eklenebilir)
+
+**Her Makale Sayfasında:**
+- `Article` + `FAQPage` / `HowTo` JSON-LD (schema_tipi'ne göre dinamik)
+- Breadcrumb: Ana Sayfa → Rehber → Kategori → Başlık
+- CTA bloku: "Bu branşta yakınındaki kulüpleri bul →" (→ `/ara?brans=X&il=Y`)
+- İlgili makaleler: aynı kategoriden 3 öneri
+- Yazar: "spornerede.net Editörü" + yayınlanma tarihi (E-E-A-T)
+- OG image: `/api/og.png?title=&kicker=Rehber&badge=` (zaten mevcut endpoint)
+- Sitemap'e otomatik dahil (mevcut sitemap altyapısı ile)
+
+**Admin Paneli:**
+- Yeni "SEO İçerik" sekmesi (taslak/yayında/arşiv listesi)
+- TipTap editörle düzenleme
+- "Yayınla" / "Arşivle" akışı
+- Onay bekleyen taslak sayısı dashboard widget'ı
+
+**Dosyalar:**
+- `src/pages/rehber/` (yeni)
+- `src/lib/repositories/seoArticles.ts`
+- Admin paneli SEO İçerik sekmesi (`admin.astro` genişletmesi)
+
+---
+
+### Faz 21 — SEO Otopilot: Ölçüm, Geri Bildirim ve Öğrenen Döngü
+
+**Amaç:** Yayınlanan makalelerin Google performansını takip edip sistemi kendi kendine iyileştiren geri bildirim döngüsü.
+
+**Haftalık GSC Sync:**
+- Her Pazartesi çalışır, tüm `/rehber/*` sayfaları için tıklama/gösterim/konum çeker
+- `rehber_yazilari.gsc_*` alanlarına günceller
+- Admin dashboardunda haftalık özet
+
+**Akıllı Kararlar (Otomatik):**
+- **Yüksek gösterim + düşük CTR:** Başlık / meta açıklama varyantı öner
+- **>50 tıklama/hafta:** Aynı kategoriden 2 yeni keyword öner (genişletme)
+- **4 hafta + <10 gösterim:** `dusuk_performans` işaretle, yeniden yazma kuyruğuna al
+
+**Raporlama:**
+- `scripts/seo-autopilot/gsc-reporter.ts`
+- Admin dashboard: toplam makale, bu hafta tıklama/gösterim, top 5 makale, bekleyen onay
+
+**Dosyalar:**
+- `scripts/seo-autopilot/gsc-reporter.ts`
+- `systemd/seo-gsc-weekly.service` + `.timer`
 
 ---
 
@@ -351,5 +444,7 @@ MVP odağını sade tutmak için aşağıdaki bilgilendirme dokumanlari eklendi:
 - `memory-bank/seo-ads-plan.md` (Faz 12: SEO + Reklam Hazırlığı tam yol haritası)
 - `memory-bank/growth-revenue-traffic-tr.md` (gelir + SEO/trafik taktikleri; Faz 14–17 ile eşlenen strateji havuzu)
 - `memory-bank/seo-ctr-organic-plan-tr.md` (organik sıra + CTR: GSC analizi, programatik meta şablonları, FAQ/şema disiplini, görsel SEO, ölçüm; **LLM şart değil**)
+- `memory-bank/seo-autopilot-plan-tr.md` (Faz 18–21: SEO otopilot MVP **ücretsiz** — OpenRouter `:free`)
+- `memory-bank/content-engine-isolated-plan-tr.md` + `content-engine/README.md` (site kodundan izole paket)
 
 Bu set, detayli kurumsal dokumantasyondan ziyade "hemen uygulanabilir adim" odaklidir.

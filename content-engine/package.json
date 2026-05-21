@@ -1,0 +1,32 @@
+{
+  "name": "@spornerede/content-engine",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "check:env": "tsx src/cli/check-env.ts",
+    "check:pb": "tsx src/cli/check-pb-collections.ts",
+    "gsc:check": "tsx src/cli/check-gsc.ts",
+    "gsc:oauth": "tsx src/cli/oauth-gsc.ts",
+    "setup:collections": "tsx src/cli/setup-collections.ts",
+    "repair:collections": "tsx src/cli/repair-collections.ts",
+    "seed:keywords": "tsx src/cli/seed-keywords.ts",
+    "list:drafts": "tsx src/cli/list-drafts.ts",
+    "publish:draft": "tsx src/cli/publish-draft.ts",
+    "job:keywords": "tsx src/jobs/keyword-engine.ts",
+    "job:gsc": "tsx src/jobs/gsc-reporter.ts",
+    "job:draft": "tsx src/jobs/content-pipeline.ts"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "googleapis": "^144.0.0",
+    "pocketbase": "^0.25.2"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.2"
+  }
+}

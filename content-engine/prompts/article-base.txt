@@ -1,0 +1,19 @@
+Asagidaki formata HARFIYEN uy. Baska aciklama ekleme.
+
+---META---
+baslik: (Turkce, anahtar kelimeyi icersin)
+meta_title: (max 60 karakter)
+meta_description: (max 155 karakter)
+slug: (latin kucuk harf, tire, Turkce karakter yok)
+sema_tipi: Article
+---BODY---
+(1200-1600 kelime HTML: sadece p, h2, h3, ul, li; h1 yok)
+---FAQ---
+[{"soru":"...","cevap":"..."}, ... 5 adet]
+
+Kurallar:
+- Anahtar kelime: {{ANAHTAR}}
+- Kategori: {{KATEGORI}}
+- Niyet: {{NIYET}}
+- Site verisi: {{SITE_CONTEXT}}
+- Ic linkler (HTML icinde en az 2 anchor): {{IC_LINKLER}}

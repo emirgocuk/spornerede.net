@@ -18,6 +18,6 @@ export const POST: APIRoute = async ({ request }) => {
   const headers = new Headers();
   headers.append('Set-Cookie', buildSessionCookieDeletion());
   headers.append('Set-Cookie', buildSessionHintCookieDeletion());
-  headers.set('Location', '/panel/giris');
+  headers.set('Location', '/admin');
   return new Response(null, { status: 303, headers });
 };

@@ -9,7 +9,7 @@ export type ClubProgram = {
   aktif?: boolean;
 };
 
-export function buildClubProgramsSectionHtml(programs: ClubProgram[]) {
+export function buildClubProgramsSectionHtml(programs: ClubProgram[], bransList: string[] = []) {
   const listItems = !programs.length
     ? '<div class="empty-hint">Henüz yayınlanan ilan yok.</div>'
     : programs
@@ -25,7 +25,7 @@ export function buildClubProgramsSectionHtml(programs: ClubProgram[]) {
         })
         .join('');
 
-  const editorHtml = clubProgramEditorHtml();
+  const editorHtml = clubProgramEditorHtml(bransList);
   return `<div id="club-program-workspace" class="club-program-workspace">
     <div id="club-program-list-view">
       <div class="club-program-list-head">
@@ -61,7 +61,21 @@ export function bindClubProgramEditor(
   const editorPanel = root.querySelector('#club-program-editor-panel');
   const form = root.querySelector('#club-program-form');
   const idEl = root.querySelector('#club-program-id') as HTMLInputElement | null;
-  const bransEl = root.querySelector('#club-program-brans') as HTMLInputElement | null;
+  const bransEl = root.querySelector('#club-program-brans') as HTMLSelectElement | null;
+
+  function setBransValue(value: string) {
+    if (!bransEl) return;
+    if (value) {
+      const exists = Array.from(bransEl.options).some((opt) => opt.value === value);
+      if (!exists) {
+        const extra = document.createElement('option');
+        extra.value = value;
+        extra.textContent = value;
+        bransEl.appendChild(extra);
+      }
+    }
+    bransEl.value = value;
+  }
   const yasEl = root.querySelector('#club-program-yas-araligi') as HTMLInputElement | null;
   const aidatEl = root.querySelector('#club-program-aidat') as HTMLInputElement | null;
   const aktifEl = root.querySelector('#club-program-aktif') as HTMLInputElement | null;
@@ -81,7 +95,7 @@ export function bindClubProgramEditor(
 
   function clearForm() {
     if (idEl) idEl.value = '';
-    if (bransEl) bransEl.value = '';
+    setBransValue('');
     if (yasEl) yasEl.value = '';
     if (aidatEl) aidatEl.value = '';
     if (aktifEl) aktifEl.checked = true;
@@ -90,7 +104,7 @@ export function bindClubProgramEditor(
 
   function fillForm(program: ClubProgram) {
     if (idEl) idEl.value = String(program.id);
-    if (bransEl) bransEl.value = program.ad || '';
+    setBransValue(program.ad || '');
     if (yasEl) yasEl.value = program.yasAraligi || '';
     if (aidatEl) aidatEl.value = program.aidatBilgisi || program.ucretBilgisi || '';
     if (aktifEl) aktifEl.checked = Boolean(program.aktif);

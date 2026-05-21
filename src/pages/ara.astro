@@ -35,13 +35,15 @@ const filtreliIlanlar = filtreliKulupler.flatMap((kulup) =>
     ...program,
     kulupId: kulup.id,
     kulupAd: kulup.ad,
+    kulupAdres: kulup.adres,
+    kulupYasAraligi: kulup.yasAraligi,
+    kulupIl: kulup.il,
+    kulupAciklama: kulup.aciklama,
     ilce: kulup.ilce,
-    brans: kulup.brans,
+    bransSlug: kulup.bransSlug,
+    bransAd: program.ad,
     emoji: kulup.emoji,
     renk: kulup.renk,
-    puan: kulup.puan,
-    yorumSayisi: kulup.yorumSayisi,
-    distanceKm: kulup.distanceKm,
   }))
 );
 
@@ -66,7 +68,7 @@ const canonicalAra = `${SITE_URL}/ara`;
 const itemListJson = itemListSchema(
   filtreliIlanlar.slice(0, 10).map((item) => ({
     url: `${SITE_URL}/ilanlar/${listingSlug({ id: item.id, ad: item.ad, clubAd: item.kulupAd })}`,
-    name: `${item.kulupAd} - ${item.ad}`,
+    name: `${item.kulupAd} — ${item.bransAd}`,
   })),
   {
     name: `${baslikIlce} ${baslikBrans} ilanları`,
@@ -196,50 +198,63 @@ const breadcrumbsAra = [
                     <span class="icon-emoji" aria-hidden="true">{ilan.emoji}</span>
                   </div>
                   <div class="kulup-header-info">
-                    <h2 class="kulup-ad">{ilan.ad}</h2>
+                    <h2 class="kulup-ad">{ilan.kulupAd}</h2>
                     <div class="kulup-meta-row">
-                      <span class="badge-modern badge-branch">{ilan.brans}</span>
-                      <span class="badge-modern"><i class="badge-icon">📍</i>{ilan.ilce}</span>
-                      {hasUserLocation && ilan.distanceKm !== null && (
-                        <span class="badge-modern badge-distance"><i class="badge-icon">🚗</i>{Math.round(ilan.distanceKm)} km</span>
-                      )}
+                      <span class="badge-modern badge-branch">{ilan.bransAd}</span>
+                      <span class="badge-modern"><i class="badge-icon">📍</i>{ilan.kulupIl}{ilan.ilce ? ` - ${ilan.ilce}` : ''}</span>
                     </div>
-                  </div>
-                  <div class="kulup-puan-box">
-                    <span class="star">★</span>
-                    <span class="score">{ilan.puan}</span>
-                    <span class="reviews">({ilan.yorumSayisi})</span>
                   </div>
                 </div>
 
-                <p class="kulup-aciklama">{ilan.aciklama || 'Bu ilan için henüz bir açıklama eklenmedi. Detaylar için ilanı inceleyebilirsiniz.'}</p>
+                <div class="kulup-summary-grid">
+                  <div class="summary-block">
+                    <span class="summary-label">Kulüp</span>
+                    <strong class="summary-value">{ilan.kulupAd}</strong>
+                    {ilan.kulupAdres && <p class="summary-hint">{ilan.kulupAdres}</p>}
+                  </div>
+                  <div class="summary-block">
+                    <span class="summary-label">Branş ilanı</span>
+                    <strong class="summary-value">{ilan.bransAd}</strong>
+                    <p class="summary-hint">
+                      {[
+                        ilan.yasAraligi && `Yaş: ${ilan.yasAraligi}`,
+                        ilan.ucretBilgisi && `Aidat: ${ilan.ucretBilgisi}`,
+                      ]
+                        .filter(Boolean)
+                        .join(' · ') || 'Yaş ve aidat bilgisi için detaya bakın.'}
+                    </p>
+                  </div>
+                </div>
+
+                {(ilan.kulupAciklama || ilan.aciklama) && (
+                  <p class="kulup-aciklama">{ilan.aciklama || ilan.kulupAciklama}</p>
+                )}
 
                 <div class="kulup-details-grid">
                   <div class="detail-item">
-                    <span class="detail-icon">📅</span>
+                    <span class="detail-icon">👥</span>
                     <div class="detail-text">
-                      <span class="detail-label">Tarih</span>
-                      <strong class="detail-value">{ilan.eventDate || 'Belirtilmedi'}</strong>
-                    </div>
-                  </div>
-                  <div class="detail-item">
-                    <span class="detail-icon">⏰</span>
-                    <div class="detail-text">
-                      <span class="detail-label">Saat</span>
-                      <strong class="detail-value">{ilan.gunSaat || 'Belirtilmedi'}</strong>
+                      <span class="detail-label">Yaş Aralığı</span>
+                      <strong class="detail-value">{ilan.yasAraligi || 'Belirtilmedi'}</strong>
                     </div>
                   </div>
                   <div class="detail-item">
                     <span class="detail-icon">💳</span>
                     <div class="detail-text">
-                      <span class="detail-label">Ücret</span>
-                      <strong class="detail-value">{ilan.ucretBilgisi || 'Fiyat Sorunuz'}</strong>
+                      <span class="detail-label">Aidat</span>
+                      <strong class="detail-value">{ilan.ucretBilgisi || 'Fiyat sorunuz'}</strong>
+                    </div>
+                  </div>
+                  <div class="detail-item">
+                    <span class="detail-icon">🏟️</span>
+                    <div class="detail-text">
+                      <span class="detail-label">Tesis / Konum</span>
+                      <strong class="detail-value">{ilan.kulupAdres || ilan.locationText || ilan.ilce}</strong>
                     </div>
                   </div>
                 </div>
 
-                <div class="kulup-footer">
-                  <p class="kulup-adres"><i class="badge-icon">🗺️</i> {ilan.locationText || ilan.ilce}</p>
+                <div class="kulup-footer kulup-footer--cta-only">
                   <a href={`/ilanlar/${listingSlug({ id: ilan.id, ad: ilan.ad, clubAd: ilan.kulupAd })}`} class="btn btn-primary shadow-md hover:shadow-lg transition-all kulup-detay-btn">İlanı İncele →</a>
                 </div>
               </article>
@@ -801,6 +816,54 @@ const breadcrumbsAra = [
     gap: 0.5rem;
   }
 
+  .kulup-location-line {
+    margin: 0.35rem 0 0;
+    font-size: 0.85rem;
+    color: var(--color-brand-gray-500);
+    font-weight: 600;
+  }
+
+  .kulup-summary-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    padding: 0.85rem 1rem;
+    background: var(--color-brand-gray-50);
+    border: 1px dashed var(--color-brand-gray-200);
+    border-radius: 0.75rem;
+  }
+
+  @media (min-width: 640px) {
+    .kulup-summary-grid { grid-template-columns: 1fr 1fr; }
+  }
+
+  .summary-block {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .summary-label {
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-brand-gray-500);
+  }
+
+  .summary-value {
+    font-size: 0.95rem;
+    color: var(--color-brand-gray-900);
+  }
+
+  .summary-hint {
+    margin: 0;
+    font-size: 0.82rem;
+    color: var(--color-brand-gray-600);
+    line-height: 1.45;
+  }
+
   .badge-modern {
     display: inline-flex;
     align-items: center;
@@ -880,6 +943,10 @@ const breadcrumbsAra = [
     padding-top: 1.25rem;
     border-top: 1px solid var(--color-brand-gray-100);
     margin-top: auto;
+  }
+
+  .kulup-footer--cta-only {
+    justify-content: flex-end;
   }
 
   .kulup-adres {

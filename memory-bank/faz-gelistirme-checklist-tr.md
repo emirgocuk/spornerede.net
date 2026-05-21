@@ -79,7 +79,7 @@ Bu dosya, proje ilerlemesini tek yerden takip etmek için faz bazlı ana checkli
 - [ ] Bing Webmaster Tools doğrulama + sitemap gönderimi
 - [ ] Yandex Webmaster doğrulama + sitemap gönderimi
 - [ ] Search Console haftalık rutin şablonu (`mvp-metrics.md` veya operasyon notu ile hizalı)
-- [ ] Uzun kuyruk rehber mimarisi (blog veya statik rehber koleksiyonu) + ilk içerik seti (≥3 yazı)
+- [ ] Uzun kuyruk rehber mimarisi — **Faz 18–20** ile `/rehber/` + otopilot; elle ≥3 yazı veya ilk 3 otopilot taslağı onayı
 - [ ] Şehir / ilçe / branş landing: thin content riskine karşı benzersiz giriş + SSS + iç link (şablon/kurallar + kod)
 - [ ] Haber ve ilan detaylarından şehir–branş / kulüp hub’larına iç linkleme (otomatik blok veya yayın checklist’i)
 - [ ] JSON-LD genişletmesi: `NewsArticle` (haber), `HowTo` / `FAQPage` (rehber), `Event` (kamp/etkinlik sayfası varsa)
@@ -109,6 +109,37 @@ Bu dosya, proje ilerlemesini tek yerden takip etmek için faz bazlı ana checkli
 - [ ] Ödeme sağlayıcı iskeleti (Iyzico veya Stripe) — paket veya kredi satın alma
 - [ ] B2C (opsiyonel bu faz içinde): kayıtlı arama + e-posta uyarı; mini kulüp karşılaştırma (2–3 kulüp)
 
+## Faz 18 — SEO Otopilot: Keyword Kuyruğu (MVP · 0 TL)
+
+> Plan: `memory-bank/seo-autopilot-plan-tr.md` · `SEO_USE_PAID_APIS=false`
+
+- [x] PocketBase `seo_keywords` + `rehber_yazilari` (`content-engine` setup)
+- [x] Seed ~146 keyword (`buildSeedRows`)
+- [x] `keyword-engine.ts` (GSC opsiyonel + skor)
+- [ ] GSC service account JSON + `SEO_GSC_SERVICE_ACCOUNT_PATH` (lokal test)
+- [ ] `seo-keyword-weekly.timer` (canlıya siz karar verince)
+
+## Faz 19 — SEO Otopilot: İçerik Pipeline (OpenRouter `:free`)
+
+- [x] OpenRouter + DeepSeek yedek; parse retry
+- [x] `content-pipeline.ts`, prompt seti, günde 1 taslak
+- [x] `list:drafts` / `publish:draft` CLI
+- [ ] `seo-content-daily.timer` (canlıya siz karar verince)
+
+## Faz 20 — SEO Otopilot: Yayın ve Teknik SEO
+
+- [x] `/rehber` + `/rehber/[slug]` + `seoArticles.ts` + sitemap `guides.xml`
+- [x] Admin **SEO Rehber** sekmesi (liste, HTML düzenle, Yayınla/Arşiv)
+- [ ] İlk ≥5 makale yayında (lokal test süreci)
+- [ ] Rich Results test (canlıda siz)
+
+## Faz 21 — SEO Otopilot: GSC Ölçüm ve Geri Bildirim
+
+- [x] `gsc-reporter.ts` (GSC path varsa)
+- [ ] `seo-gsc-weekly.timer`
+- [x] Admin sekme badge (bekleyen taslak sayısı)
+- [ ] Otomatik `dusuk_performans` kuralı (sonraki iterasyon)
+
 ## Faz 4 — Gelişmiş Ürün (Harita, Tam Quiz, Yorum) — Büyük Epik
 
 > Faz numarası tarihsel; **uygulama sırası** aşağıdaki önerilen blokta yer alır. Harita / tam akıllı eşleştirme / yorum sistemi yüksek efor.
@@ -122,10 +153,11 @@ Bu dosya, proje ilerlemesini tek yerden takip etmek için faz bazlı ana checkli
 
 1. **Faz 13** — Ölçüm ve ücretli trafik (GA/GTM/Ads/AdSense yol haritası)  
 2. **Faz 14** — Organik SEO (indeks + içerik + programatik kalite + şema)  
-3. **Faz 15** — Trafik kancaları (quiz MVP, sezon sayfası, bülten)  
-4. **Faz 16** — Güven ve dış dağıtım (E-E-A-T, doğrulama taslağı, PR şablonu)  
-5. **Faz 17** — Gelir MVP (öne çıkarma, paket, kredi, ödeme)  
-6. **Faz 4** — Harita ve derin ürün (kaynak planına göre 14–17 ile paralel veya 17 sonrası yoğun sprint)
+3. **Faz 18 → 19 → 20 → 21** — SEO otopilot **ücretsiz** (GSC + Gemini free + `/rehber/`; Faz 14 rehber maddesiyle birleştirilebilir)  
+4. **Faz 15** — Trafik kancaları (quiz MVP, sezon sayfası, bülten)  
+5. **Faz 16** — Güven ve dış dağıtım (E-E-A-T, doğrulama taslağı, PR şablonu)  
+6. **Faz 17** — Gelir MVP (öne çıkarma, paket, kredi, ödeme)  
+7. **Faz 4** — Harita ve derin ürün (14–17 ile paralel veya 17 sonrası)
 
 Detaylı gelir ve trafik taktik listesi: `growth-revenue-traffic-tr.md`. Operasyonel yük azaltma maddeleri: `activeContext.md` (Operasyonel yükü düşüren backlog).
 

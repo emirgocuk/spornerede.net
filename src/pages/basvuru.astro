@@ -39,6 +39,9 @@ const DISTRICTS_BY_CITY = districtRows.reduce<Record<string, { ad: string; slug:
   acc[district.il].push({ ad: district.ad, slug: district.slug });
   return acc;
 }, {});
+for (const il of Object.keys(DISTRICTS_BY_CITY)) {
+  DISTRICTS_BY_CITY[il].sort((a, b) => a.ad.localeCompare(b.ad, 'tr'));
+}
 
 const bransListesi = [
   ...branchRows.map((b) => b.isim).sort((a, b) => a.localeCompare(b, 'tr')),
@@ -189,8 +192,9 @@ const { iban, accountName, bankName, branch } = getBankTransferDisplay();
     const districtSelect = document.getElementById('kulup-ilce');
     const districtDataEl = document.getElementById('district-data');
     const districtsByCity = districtDataEl ? JSON.parse(districtDataEl.textContent || '{}') : {};
+    const formDraftKey = 'spornerede:basvuru-form-draft:v1';
 
-    function fillDistricts(cityName) {
+    function fillDistricts(cityName, selectedDistrict = '') {
       if (!(districtSelect instanceof HTMLSelectElement)) return;
       districtSelect.innerHTML = '';
 
@@ -204,6 +208,7 @@ const { iban, accountName, bankName, branch } = getBankTransferDisplay();
         const option = document.createElement('option');
         option.value = district.ad;
         option.textContent = district.ad;
+        option.selected = district.ad === selectedDistrict;
         districtSelect.appendChild(option);
       });
     }
@@ -246,7 +251,6 @@ const { iban, accountName, bankName, branch } = getBankTransferDisplay();
       if (paymentSectionNum) paymentSectionNum.textContent = String(count + 3);
     }
 
-    // Dinamik odeme metinleri
     const kulupInput = document.getElementById('kulup-ad');
     const dynDesc = document.getElementById('dyn-payment-desc');
     const dynAmount = document.getElementById('dyn-payment-amount');
@@ -303,7 +307,106 @@ const { iban, accountName, bankName, branch } = getBankTransferDisplay();
       }
     }
 
-    function syncBranchCount(nextValue) {
+    function collectBranchDraft() {
+      return Array.from(branchRoot?.querySelectorAll('[data-branch-section]') || []).map((section) => ({
+        brans: section.querySelector('[data-field="brans"]')?.value || '',
+        yasAraligi: section.querySelector('[data-field="yasAraligi"]')?.value || '',
+        aidat: section.querySelector('[data-field="aidat"]')?.value || '',
+      }));
+    }
+
+    function applyBranchDraft(ilanlar) {
+      if (!Array.isArray(ilanlar)) return;
+      Array.from(branchRoot?.querySelectorAll('[data-branch-section]') || []).forEach((section, index) => {
+        const ilan = ilanlar[index] || {};
+        branchFieldKeys.forEach((field) => {
+          const el = section.querySelector(`[data-field="${field}"]`);
+          if (el instanceof HTMLInputElement || el instanceof HTMLSelectElement || el instanceof HTMLTextAreaElement) {
+            el.value = ilan[field] || '';
+          }
+        });
+      });
+    }
+
+    function getDraftValue(id) {
+      const el = document.getElementById(id);
+      return el instanceof HTMLInputElement || el instanceof HTMLSelectElement || el instanceof HTMLTextAreaElement
+        ? el.value
+        : '';
+    }
+
+    function collectFormDraft() {
+      const selectedPlan = getSelectedPlan();
+      const paymentConfirm = document.querySelector('input[name="odemeOnay"]');
+      return {
+        paket: selectedPlan instanceof HTMLInputElement ? selectedPlan.value : '',
+        bransSayisi: branchCountHidden instanceof HTMLInputElement ? branchCountHidden.value : '1',
+        kulupad: getDraftValue('kulup-ad'),
+        il: getDraftValue('kulup-il'),
+        ilce: getDraftValue('kulup-ilce'),
+        adres: getDraftValue('kulup-adres'),
+        yetkili: getDraftValue('yetkili-ad'),
+        telefon: getDraftValue('yetkili-telefon'),
+        email: getDraftValue('yetkili-email'),
+        odemeOnay: paymentConfirm instanceof HTMLInputElement ? paymentConfirm.checked : false,
+        ilanlar: collectBranchDraft(),
+      };
+    }
+
+    function saveFormDraft() {
+      try {
+        window.localStorage.setItem(formDraftKey, JSON.stringify(collectFormDraft()));
+      } catch {
+        // LocalStorage kapalıysa form normal şekilde çalışmaya devam eder.
+      }
+    }
+
+    function readFormDraft() {
+      try {
+        const raw = window.localStorage.getItem(formDraftKey);
+        return raw ? JSON.parse(raw) : null;
+      } catch {
+        return null;
+      }
+    }
+
+    function applyFormDraft(draft) {
+      if (!draft || typeof draft !== 'object') return;
+
+      const simpleFields = {
+        'kulup-ad': draft.kulupad,
+        'kulup-adres': draft.adres,
+        'yetkili-ad': draft.yetkili,
+        'yetkili-telefon': draft.telefon,
+        'yetkili-email': draft.email,
+      };
+      Object.entries(simpleFields).forEach(([id, value]) => {
+        const el = document.getElementById(id);
+        if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+          el.value = value || '';
+        }
+      });
+
+      if (citySelect instanceof HTMLSelectElement) {
+        citySelect.value = draft.il || '';
+        fillDistricts(citySelect.value, draft.ilce || '');
+      }
+
+      radios.forEach((radio) => {
+        if (radio instanceof HTMLInputElement) radio.checked = radio.value === draft.paket;
+      });
+
+      const paymentConfirm = document.querySelector('input[name="odemeOnay"]');
+      if (paymentConfirm instanceof HTMLInputElement) {
+        paymentConfirm.checked = Boolean(draft.odemeOnay);
+      }
+
+      const branchCount = Number(draft.bransSayisi || draft.ilanlar?.length || 1);
+      syncBranchCount(branchCount, Array.isArray(draft.ilanlar) ? draft.ilanlar : []);
+      updatePaymentInfo();
+    }
+
+    function syncBranchCount(nextValue, preservedIlanlar = collectBranchDraft()) {
       const count = Number.isFinite(nextValue) ? Math.max(1, Math.min(10, Math.floor(nextValue))) : 1;
       if (branchCountHidden instanceof HTMLInputElement) {
         branchCountHidden.value = String(count);
@@ -314,17 +417,38 @@ const { iban, accountName, bankName, branch } = getBankTransferDisplay();
         }
       });
       renderBranchSections(count);
+      applyBranchDraft(preservedIlanlar);
       updatePaymentInfo();
     }
 
-    kulupInput?.addEventListener('input', updatePaymentInfo);
+    kulupInput?.addEventListener('input', () => {
+      updatePaymentInfo();
+      saveFormDraft();
+    });
     branchCountInputs.forEach((input) => {
-      input.addEventListener('input', () => syncBranchCount(Number(input.value)));
+      input.addEventListener('input', () => {
+        syncBranchCount(Number(input.value));
+        saveFormDraft();
+      });
       input.addEventListener('click', (event) => event.stopPropagation());
       input.addEventListener('keydown', (event) => event.stopPropagation());
     });
-    radios.forEach((radio) => radio.addEventListener('change', updatePaymentInfo));
+    radios.forEach((radio) =>
+      radio.addEventListener('change', () => {
+        updatePaymentInfo();
+        saveFormDraft();
+      }),
+    );
     syncBranchCount(1);
+    if (new URLSearchParams(window.location.search).has('error')) {
+      applyFormDraft(readFormDraft());
+    }
+    document.getElementById('basvuru-form')?.addEventListener('input', saveFormDraft);
+    document.getElementById('basvuru-form')?.addEventListener('change', saveFormDraft);
+    document.getElementById('basvuru-form')?.addEventListener('submit', saveFormDraft);
+    if (new URLSearchParams(window.location.search).get('success') === '1') {
+      window.localStorage.removeItem(formDraftKey);
+    }
     updatePaymentInfo();
   </script>
 

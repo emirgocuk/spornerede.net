@@ -1,0 +1,174 @@
+---
+interface Props {
+  errorCode?: string;
+}
+
+const { errorCode = '' } = Astro.props;
+
+const errorMessage =
+  errorCode === 'invalid'
+    ? 'E-posta veya şifre hatalı.'
+    : errorCode === 'missing'
+      ? 'Lütfen e-posta ve şifre alanlarını doldurun.'
+      : errorCode === 'auth'
+        ? 'Bu sayfayı görmek için giriş yapmalısınız.'
+        : errorCode === 'forbidden'
+          ? 'Panele erişim için onaylı kulüp hesabı gerekir.'
+          : errorCode === 'password_changed'
+            ? 'Şifreniz güncellendi. Yeni şifrenizle giriş yapabilirsiniz.'
+            : '';
+---
+
+<section class="admin-login-page">
+  <div class="admin-login-card">
+    <div class="admin-login-brand">
+      <div class="admin-login-logo" aria-hidden="true">SN</div>
+      <div>
+        <h1>Yönetim Paneli</h1>
+        <p>SporNerede.net başvuru ve kulüp yönetimi</p>
+      </div>
+    </div>
+
+    {errorMessage && <p class="admin-login-error" role="alert">{errorMessage}</p>}
+
+    <form class="admin-login-form" method="post" action="/api/panel/login">
+      <input type="hidden" name="redirectTo" value="/admin" />
+      <label>
+        <span>E-posta</span>
+        <input name="email" type="email" autocomplete="username" required />
+      </label>
+      <label>
+        <span>Şifre</span>
+        <input name="password" type="password" autocomplete="current-password" required />
+      </label>
+      <button type="submit">Giriş yap</button>
+    </form>
+
+    <p class="admin-login-foot">
+      <a href="/">← Ana siteye dön</a>
+    </p>
+  </div>
+</section>
+
+<style>
+  .admin-login-page {
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 2rem 1.25rem;
+    background:
+      radial-gradient(ellipse 80% 60% at 20% 0%, rgba(227, 10, 23, 0.12), transparent 55%),
+      radial-gradient(ellipse 70% 50% at 100% 100%, rgba(15, 23, 42, 0.08), transparent 50%),
+      #f1f5f9;
+  }
+
+  .admin-login-card {
+    width: 100%;
+    max-width: 26rem;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 1.25rem;
+    padding: 2rem 1.75rem;
+    box-shadow: 0 24px 48px rgba(15, 23, 42, 0.08);
+  }
+
+  .admin-login-brand {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .admin-login-logo {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 0.85rem;
+    background: linear-gradient(135deg, #e30a17, #b5080f);
+    color: #fff;
+    font-weight: 900;
+    display: grid;
+    place-items: center;
+    font-size: 0.95rem;
+    flex-shrink: 0;
+  }
+
+  .admin-login-brand h1 {
+    margin: 0;
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: #0f172a;
+  }
+
+  .admin-login-brand p {
+    margin: 0.25rem 0 0;
+    font-size: 0.88rem;
+    color: #64748b;
+  }
+
+  .admin-login-error {
+    margin: 0 0 1rem;
+    padding: 0.65rem 0.85rem;
+    border-radius: 0.65rem;
+    background: #fff5f5;
+    border: 1px solid #ffc9c9;
+    color: #c92a2a;
+    font-size: 0.88rem;
+  }
+
+  .admin-login-form {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .admin-login-form label {
+    display: grid;
+    gap: 0.4rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #334155;
+  }
+
+  .admin-login-form input {
+    border: 1px solid #cbd5e1;
+    border-radius: 0.65rem;
+    padding: 0.7rem 0.85rem;
+    font-size: 0.95rem;
+  }
+
+  .admin-login-form input:focus {
+    outline: none;
+    border-color: #e30a17;
+    box-shadow: 0 0 0 3px rgba(227, 10, 23, 0.15);
+  }
+
+  .admin-login-form button {
+    margin-top: 0.25rem;
+    border: 0;
+    border-radius: 0.7rem;
+    padding: 0.75rem 1rem;
+    background: #e30a17;
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: pointer;
+  }
+
+  .admin-login-form button:hover {
+    background: #b5080f;
+  }
+
+  .admin-login-foot {
+    margin: 1.25rem 0 0;
+    text-align: center;
+    font-size: 0.85rem;
+  }
+
+  .admin-login-foot a {
+    color: #64748b;
+    text-decoration: none;
+  }
+
+  .admin-login-foot a:hover {
+    color: #e30a17;
+  }
+</style>

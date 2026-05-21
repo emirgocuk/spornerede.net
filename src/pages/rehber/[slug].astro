@@ -1,0 +1,155 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getPublishedGuideBySlug, getPublishedGuides } from '../../lib/repositories/seoArticles';
+
+export const prerender = false;
+
+const slug = String(Astro.params.slug ?? '').trim();
+const guide = await getPublishedGuideBySlug(slug);
+
+if (!guide) {
+  Astro.response.status = 404;
+}
+
+const all = await getPublishedGuides();
+const related = all.filter((g) => g.slug !== slug).slice(0, 4);
+
+const canonical = `https://spornerede.net/rehber/${slug}`;
+const pageTitle = guide?.metaTitle || 'Rehber Bulunamadi';
+const pageDescription = guide?.metaDescription || 'Aradiginiz rehber bulunamadi.';
+
+const articleSchema = guide
+  ? {
+      '@context': 'https://schema.org',
+      '@type': guide.semaTipi === 'HowTo' ? 'HowTo' : 'Article',
+      headline: guide.metaTitle,
+      description: guide.metaDescription,
+      datePublished: guide.yayinlanmaTarihi || new Date().toISOString(),
+      dateModified: guide.yayinlanmaTarihi || new Date().toISOString(),
+      inLanguage: 'tr-TR',
+      mainEntityOfPage: canonical,
+      author: { '@type': 'Organization', name: 'SporNerede.net' },
+      publisher: { '@type': 'Organization', name: 'SporNerede.net' },
+    }
+  : null;
+
+const faqSchema =
+  guide && guide.faq.length > 0
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: guide.faq.map((item) => ({
+          '@type': 'Question',
+          name: item.soru,
+          acceptedAnswer: { '@type': 'Answer', text: item.cevap },
+        })),
+      }
+    : null;
+---
+
+<BaseLayout
+  title={pageTitle}
+  description={pageDescription}
+  canonical={canonical}
+  ogType="article"
+  keywords="spor rehberi, kurs secimi, spor kursu"
+  breadcrumbs={[
+    { name: 'Ana Sayfa', url: 'https://spornerede.net/' },
+    { name: 'Rehber', url: 'https://spornerede.net/rehber' },
+    ...(guide ? [{ name: guide.baslik, url: canonical }] : []),
+  ]}
+>
+  {articleSchema && (
+    <script type="application/ld+json" set:html={JSON.stringify(articleSchema)} />
+  )}
+  {faqSchema && (
+    <script type="application/ld+json" set:html={JSON.stringify(faqSchema)} />
+  )}
+
+  <section class="news-detail section">
+    <div class="container news-detail-container">
+      {guide ? (
+        <>
+          <article class="news-article">
+            <header class="article-head">
+              <div class="article-meta">
+                <span class="badge badge-blue">Rehber</span>
+                {guide.yayinlanmaLabel && (
+                  <time datetime={guide.yayinlanmaTarihi}>{guide.yayinlanmaLabel}</time>
+                )}
+              </div>
+              <h1>{guide.baslik}</h1>
+              <p class="seo-lead">{guide.metaDescription}</p>
+            </header>
+
+            <div class="article-body guide-body" set:html={guide.icerikHtml} />
+
+            {guide.faq.length > 0 && (
+              <section class="guide-faq" aria-labelledby="faq-heading">
+                <h2 id="faq-heading">Sikca sorulan sorular</h2>
+                <div class="guide-faq-list">
+                  {guide.faq.map((item) => (
+                    <div class="guide-faq-item">
+                      <h3>{item.soru}</h3>
+                      <p>{item.cevap}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            <p class="guide-cta-box">
+              <a class="btn btn-primary" href="/ara">Bu bransta yakinindaki kurslari bul</a>
+            </p>
+          </article>
+
+          {related.length > 0 && (
+            <aside class="related-news">
+              <h2>Diger rehberler</h2>
+              <div class="related-grid">
+                {related.map((item) => (
+                  <a class="related-card" href={`/rehber/${item.slug}`}>
+                    <strong>{item.baslik}</strong>
+                    <span>{item.metaDescription}</span>
+                  </a>
+                ))}
+              </div>
+            </aside>
+          )}
+        </>
+      ) : (
+        <div class="empty-state">
+          <h1>Rehber bulunamadi</h1>
+          <a class="btn btn-primary" href="/rehber">Rehberlere don</a>
+        </div>
+      )}
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .guide-body :global(h2) {
+    margin-top: 1.5rem;
+    font-size: 1.35rem;
+  }
+  .guide-body :global(h3) {
+    margin-top: 1rem;
+    font-size: 1.15rem;
+  }
+  .guide-faq {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--color-border, #e8e8e8);
+  }
+  .guide-faq-item h3 {
+    font-size: 1.05rem;
+    margin: 1rem 0 0.35rem;
+  }
+  .guide-faq-item p {
+    margin: 0;
+    color: var(--color-muted, #555);
+  }
+  .guide-cta-box {
+    margin-top: 2rem;
+  }
+</style>

@@ -78,13 +78,13 @@ export const POST: APIRoute = async ({ request }) => {
     const kulupad = formData.get('kulupad')?.toString().trim() || '';
     const il = formData.get('il')?.toString().trim() || '';
     const ilce = formData.get('ilce')?.toString().trim() || '';
-    const paket = formData.get('paket')?.toString().trim() || '';
     const adres = formData.get('adres')?.toString().trim() || '';
     const fiyat = formData.get('fiyat')?.toString().trim() || '';
     const aciklama = formData.get('aciklama')?.toString().trim() || '';
     const yetkili = formData.get('yetkili')?.toString().trim() || '';
     const telefon = formData.get('telefon')?.toString().trim() || '';
     const email = formData.get('email')?.toString().trim() || '';
+    const paket = formData.get('paket')?.toString().trim() || '';
     const odemeOnay = formData.get('odemeOnay')?.toString().trim() || '';
     const bransSayisiRaw = Number(formData.get('bransSayisi')?.toString().trim() || '1');
     const bransSayisi = Number.isFinite(bransSayisiRaw) ? Math.max(1, Math.floor(bransSayisiRaw)) : 1;

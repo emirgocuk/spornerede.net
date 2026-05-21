@@ -6,14 +6,14 @@ import { listPanelPrograms } from '../../lib/repositories/panelPrograms';
 
 const session = await getCurrentSessionUser(Astro.request);
 if (!session) {
-  return Astro.redirect('/panel/giris?error=auth');
+  return Astro.redirect('/admin?error=auth');
 }
 if (session.mustChangePassword) {
   return Astro.redirect('/panel/sifre-degistir?required=1');
 }
 const membership = await getUserPrimaryClub(session.userId);
 if (!membership || membership.clubStatus !== 'approved') {
-  return Astro.redirect('/panel/giris?error=forbidden');
+  return Astro.redirect('/admin?error=forbidden');
 }
 const programs = await listPanelPrograms(session.userId);
 const activePrograms = programs.filter((program) => program.aktif);

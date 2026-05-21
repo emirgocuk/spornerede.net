@@ -1,5 +1,6 @@
 import { getDb, hasDatabaseUrl } from '../../db/client';
 import { plateCodeFromIlSlug } from '../trIlPlateBySlug';
+import { enrichBranchFields } from '../branches/branchEmoji';
 import { displayIlAd } from '../turkishIlDisplay';
 import { expireDueMemberships } from './memberships';
 import { parseProgramContent } from './programContent';
@@ -32,19 +33,37 @@ function requireDatabase() {
   }
 }
 
+function branchVisualFromRow(row: Record<string, unknown> | undefined) {
+  if (!row) return { emoji: '', renk: '' };
+  const enriched = enrichBranchFields({
+    slug: String(row.slug ?? ''),
+    isim: String(row.ad ?? ''),
+    emoji: String(row.emoji ?? ''),
+    renk: String(row.renk ?? ''),
+  });
+  return { emoji: enriched.emoji, renk: enriched.renk };
+}
+
 /** PocketBase filter string içinde güvenli tırnak kaçışı */
 function escapePbFilter(value: string) {
   return String(value ?? '').replace(/\\/g, '\\\\').replace(/"/g, '\\"');
 }
 
+/** Türkçe alfabe sırası (ı, ğ, ü, ş, ö, ç vb.) */
+function sortByTurkishAd<T extends { ad: string }>(items: T[]): T[] {
+  return [...items].sort((a, b) => a.ad.localeCompare(b.ad, 'tr'));
+}
+
 export async function getAllCities() {
   requireDatabase();
   const db = await getDb();
-  const rows = await db.collection('iller').getFullList({ sort: 'ad' });
-  return rows.map((row) => ({
-    ad: displayIlAd(row.slug as string, row.ad as string),
-    slug: row.slug as string,
-  }));
+  const rows = await db.collection('iller').getFullList();
+  return sortByTurkishAd(
+    rows.map((row) => ({
+      ad: displayIlAd(row.slug as string, row.ad as string),
+      slug: row.slug as string,
+    })),
+  );
 }
 
 export async function getAllDistricts(ilSlug?: string) {
@@ -86,7 +105,7 @@ export async function getAllDistricts(ilSlug?: string) {
     (city ? plateCodeFromIlSlug(String(city.slug ?? '').toLowerCase()) : null);
 
   const mapRows = (rows: { ad?: unknown; slug?: unknown }[]) =>
-    rows.map((row) => ({ ad: row.ad as string, slug: row.slug as string }));
+    sortByTurkishAd(rows.map((row) => ({ ad: row.ad as string, slug: row.slug as string })));
 
   /** İl satırı yok veya legacyId bozuksa bile slug→plaka ile ilçe bul */
   const districtsByPlate = async (plate: number) => {
@@ -139,28 +158,32 @@ export async function getAllDistrictsWithCities() {
     db.collection('ilceler').getFullList({ sort: 'ad' }),
   ]);
   const cityById = new Map(cities.map((row) => [Number(row.legacyId), row]));
-  return districts.map((row) => {
-    const city = cityById.get(Number(row.ilLegacyId));
-    return {
-      ad: row.ad as string,
-      slug: row.slug as string,
-      il: displayIlAd(city?.slug as string | undefined, city?.ad as string | undefined),
-      ilSlug: (city?.slug as string | undefined) ?? '',
-    };
-  });
+  return sortByTurkishAd(
+    districts.map((row) => {
+      const city = cityById.get(Number(row.ilLegacyId));
+      return {
+        ad: row.ad as string,
+        slug: row.slug as string,
+        il: displayIlAd(city?.slug as string | undefined, city?.ad as string | undefined),
+        ilSlug: (city?.slug as string | undefined) ?? '',
+      };
+    }),
+  );
 }
 
 export async function getAllBranches() {
   requireDatabase();
   const db = await getDb();
   const rows = await db.collection('branslar').getFullList({ sort: 'ad' });
-  return rows.map((row) => ({
-    slug: row.slug as string,
-    isim: row.ad as string,
-    emoji: row.emoji as string,
-    renk: row.renk as string,
-    aciklama: row.aciklama as string,
-  }));
+  return rows.map((row) =>
+    enrichBranchFields({
+      slug: row.slug as string,
+      isim: row.ad as string,
+      emoji: row.emoji as string,
+      renk: row.renk as string,
+      aciklama: row.aciklama as string,
+    }),
+  );
 }
 
 export async function searchClubs(filters: SearchFilters) {
@@ -168,14 +191,13 @@ export async function searchClubs(filters: SearchFilters) {
 
   await expireDueMemberships();
   const db = await getDb();
-  const [cities, districts, clubs, clubBranches, branches, programs, memberships] = await Promise.all([
+  const [cities, districts, clubs, clubBranches, branches, programs] = await Promise.all([
     db.collection('iller').getFullList(),
     db.collection('ilceler').getFullList(),
     db.collection('kulupler').getFullList({ filter: 'durum = "approved"' }),
     db.collection('kulup_branslar').getFullList(),
     db.collection('branslar').getFullList(),
     db.collection('kulup_programlari').getFullList({ filter: 'aktif = true' }),
-    db.collection('kulup_uyelikleri').getFullList({ filter: 'odemeDurumu = "paid"' }),
   ]);
 
   const cityById = new Map(cities.map((row) => [Number(row.legacyId), row]));
@@ -189,21 +211,13 @@ export async function searchClubs(filters: SearchFilters) {
   }
 
   const hasUserLocation = Number.isFinite(filters.userLat) && Number.isFinite(filters.userLng);
-  const nowMs = Date.now();
-  const activeMembershipClubIds = new Set<number>();
-  for (const row of memberships) {
-    const clubId = Number(row.kulupLegacyId);
-    const endAt = (row.bitisTarihi as string | undefined) ?? '';
-    if (!endAt || new Date(endAt).getTime() > nowMs) {
-      activeMembershipClubIds.add(clubId);
-    }
-  }
 
   const rows = clubs
     .map((club) => {
       const city = cityById.get(Number(club.ilLegacyId));
       const district = districtById.get(Number(club.ilceLegacyId));
       const linkedBranch = branchById.get(branchLinkByClub.get(Number(club.legacyId)) ?? -1);
+      const branchVisual = branchVisualFromRow(linkedBranch as Record<string, unknown> | undefined);
       return {
         id: Number(club.legacyId),
         ad: club.ad as string,
@@ -221,13 +235,12 @@ export async function searchClubs(filters: SearchFilters) {
         oneCikan: Boolean(club.oneCikan),
         puan: Number(club.puan ?? 0),
         yorumSayisi: Number(club.yorumSayisi ?? 0),
-        emoji: (linkedBranch?.emoji as string | undefined) ?? '',
-        renk: (linkedBranch?.renk as string | undefined) ?? '',
+        emoji: branchVisual.emoji,
+        renk: branchVisual.renk,
         enlem: Number(club.enlem ?? 0),
         boylam: Number(club.boylam ?? 0),
       };
     })
-    .filter((club) => activeMembershipClubIds.has(club.id))
     .filter((club) => (!filters.il ? true : club.ilSlug === filters.il))
     .filter((club) => (!filters.ilce ? true : slugify(club.ilce) === filters.ilce))
     .filter((club) => (!filters.brans ? true : club.bransSlug === filters.brans))
@@ -244,7 +257,6 @@ export async function searchClubs(filters: SearchFilters) {
         }
       }
       if (a.oneCikan !== b.oneCikan) return a.oneCikan ? -1 : 1;
-      if (a.puan !== b.puan) return b.puan - a.puan;
       return a.ad.localeCompare(b.ad, 'tr');
     });
 
@@ -266,6 +278,7 @@ export async function searchClubs(filters: SearchFilters) {
       locationText: string;
       mapsUrl: string;
       aciklama: string;
+      yasAraligi: string;
     }>
   >();
   for (const row of programs) {
@@ -288,6 +301,7 @@ export async function searchClubs(filters: SearchFilters) {
       locationText: parsed.content.locationText,
       mapsUrl: parsed.content.mapsUrl,
       aciklama: parsed.content.summary || parsed.legacyText || '',
+      yasAraligi: parsed.content.yasAraligi,
     });
     programsByClub.set(clubId, current);
   }
@@ -372,6 +386,7 @@ export async function getClubProgramsByClubId(clubId: number) {
       mapsUrl: parsed.content.mapsUrl,
       gallery: parsed.content.gallery,
       bodyJson: parsed.content.bodyJson,
+      yasAraligi: parsed.content.yasAraligi,
     };
   });
 }
@@ -381,26 +396,17 @@ export async function getProgramListingById(programId: number) {
   await expireDueMemberships();
   const db = await getDb();
 
-  const [program, clubs, cities, districts, clubBranches, branches, memberships] = await Promise.all([
+  const [program, clubs, cities, districts, clubBranches, branches] = await Promise.all([
     db.collection('kulup_programlari').getFirstListItem(`legacyId = ${programId} && aktif = true`).catch(() => null),
     db.collection('kulupler').getFullList({ filter: 'durum = "approved"' }),
     db.collection('iller').getFullList(),
     db.collection('ilceler').getFullList(),
     db.collection('kulup_branslar').getFullList(),
     db.collection('branslar').getFullList(),
-    db.collection('kulup_uyelikleri').getFullList({ filter: 'odemeDurumu = "paid"' }),
   ]);
 
   if (!program) return null;
   const clubLegacyId = Number(program.kulupLegacyId);
-  const nowMs = Date.now();
-  const hasValidMembership = memberships.some((row) => {
-    const matchesClub = Number(row.kulupLegacyId) === clubLegacyId;
-    if (!matchesClub) return false;
-    const endAt = (row.bitisTarihi as string | undefined) ?? '';
-    return !endAt || new Date(endAt).getTime() > nowMs;
-  });
-  if (!hasValidMembership) return null;
 
   const club = clubs.find((item) => Number(item.legacyId) === clubLegacyId);
   if (!club) return null;
@@ -413,6 +419,7 @@ export async function getProgramListingById(programId: number) {
   return {
     id: Number(program.legacyId),
     ad: (program.ad as string) ?? '',
+    yasAraligi: parsed.content.yasAraligi,
     aciklama: parsed.content.summary || parsed.legacyText || '',
     gunSaat: (program.gunSaat as string) ?? '',
     seviye: (program.seviye as string) ?? '',
@@ -430,24 +437,28 @@ export async function getProgramListingById(programId: number) {
     mapsUrl: parsed.content.mapsUrl,
     gallery: parsed.content.gallery,
     bodyJson: parsed.content.bodyJson,
-    club: {
-      id: Number(club.legacyId),
-      ad: (club.ad as string) ?? '',
-      il: displayIlAd(city?.slug as string | undefined, city?.ad as string | undefined),
-      ilce: (district?.ad as string | undefined) ?? '',
-      adres: (club.adres as string) ?? '',
-      telefon: (club.telefon as string) ?? '',
-      email: (club.email as string) ?? '',
-      yasAraligi: (club.yasAraligi as string) ?? '',
-      puan: Number(club.puan ?? 0),
-      yorumSayisi: Number(club.yorumSayisi ?? 0),
-      enlem: Number(club.enlem ?? 0),
-      boylam: Number(club.boylam ?? 0),
-      emoji: (branch?.emoji as string | undefined) ?? '',
-      renk: (branch?.renk as string | undefined) ?? '',
-      brans: (branch?.ad as string | undefined) ?? '',
-      bransSlug: (branch?.slug as string | undefined) ?? '',
-    },
+    club: (() => {
+      const branchVisual = branchVisualFromRow(branch as Record<string, unknown> | undefined);
+      return {
+        id: Number(club.legacyId),
+        ad: (club.ad as string) ?? '',
+        il: displayIlAd(city?.slug as string | undefined, city?.ad as string | undefined),
+        ilce: (district?.ad as string | undefined) ?? '',
+        adres: (club.adres as string) ?? '',
+        aciklama: (club.aciklama as string) ?? '',
+        telefon: (club.telefon as string) ?? '',
+        email: (club.email as string) ?? '',
+        yasAraligi: (club.yasAraligi as string) ?? '',
+        puan: Number(club.puan ?? 0),
+        yorumSayisi: Number(club.yorumSayisi ?? 0),
+        enlem: Number(club.enlem ?? 0),
+        boylam: Number(club.boylam ?? 0),
+        emoji: branchVisual.emoji,
+        renk: branchVisual.renk,
+        brans: (branch?.ad as string | undefined) ?? '',
+        bransSlug: (branch?.slug as string | undefined) ?? '',
+      };
+    })(),
   };
 }
 

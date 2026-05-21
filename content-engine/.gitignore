@@ -1,0 +1,8 @@
+.env
+.env.*
+!.env.example
+node_modules/
+dist/
+secrets/
+*.pem
+gsc-service-account.json
