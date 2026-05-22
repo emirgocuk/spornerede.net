@@ -1,0 +1,37 @@
+Asagidaki formata HARFIYEN uy. Baska aciklama ekleme.
+
+---META---
+baslik: (Turkce, dikkat cekici haber basligi)
+seo_title: (max 60 karakter, Google icin)
+seo_description: (max 155 karakter)
+kategori: (Duyuru | Etkinlik | Platform | Spor — brans/sehir kursu icin Spor sec)
+kategori_renk: (red | blue | green | orange | purple | gray — Spor icin green)
+---BODY---
+(400-700 kelime HTML ozet: sadece p, h2, ul, li; h1 yok; haber/duyuru tonu)
+---END---
+
+Detayli kurallar sistem mesajinda (news-quality-rules). Ozet:
+
+Kurallar:
+- Konu / anahtar: {{KONU}}
+- Bu yazinin acisi: {{ANGLE}}
+- GSC / SEO ipucu: {{GSC_HINT}}
+- Son yayinlananlar (AYNI BASLIK VE KALIP KULLANMA):
+{{AVOID_LIST}}
+
+OZGUNLUK (cok onemli):
+- Sablon baslik YASAK: "{{KONU}}: kayit ve secim rehberi", "kayit ve secim rehberi" kalibi YASAK
+- Her haberde farkli baslik tonu (soru, liste, ipucu, sezon, ebeveyn, deneme dersi vb.)
+- h2 basliklari da sablon tekrari olmasin; en az bir h2 aciya ozel olsun
+- Ilk paragraf diger haberlerden farkli girisle baslasin
+- Platform: SporNerede — spor kulubu ve kurs rehberi
+- Turkiye Turkcesi, tarafsiz, guven veren; TUM BASKI (CAPS) kullanma
+- baslik ve seo alanlari somut konuyu yansitsin; "Haber" gibi genel kelime YASAK
+- seo_title ve seo_description normal cumle buyuklugu (sadece ilk harf ve ozel isimler)
+- En az 3 adet h2 alt baslik (ornek: kimler icin, program, kayit, avantajlar)
+- Son h2 veya son bolum: Kayit / kayit sureci / nasil basvurulur
+- Son paragraf: SporNerede CTA — yakinindaki kurslari aramak icin platform
+- Metin MUTLAKA tam bitmeli; yarim cumle veya yarim h2 YASAK (ornek: "Kayit ve" ile bitirme)
+- ---END--- satirini mutlaka yaz
+- Abartili vaat yok; Ingilizce kelime karistirma (schedule vb. yerine ders programi)
+- Voleybol, basketbol vb. brans konularinda bransi ve sehri metinde dogal gecir

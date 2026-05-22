@@ -1,0 +1,2 @@
+Bu istek artik KULLANILMIYOR — tam metin rewrite polish-news uzerinden yapilir.
+Konu: {{KONU}}

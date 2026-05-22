@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 import { cfg, getOpenRouterModelChain, requireOpenRouter } from '../config.js';
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const RETRY_DELAYS_MS = [0, 12_000, 25_000];
+const RETRY_DELAYS_MS = [0, 8_000, 18_000];
 
 export type ChatMessage = { role: 'system' | 'user' | 'assistant'; content: string };
 
@@ -19,6 +19,7 @@ function isRateLimited(err: unknown): boolean {
 export async function chatCompletion(
   messages: ChatMessage[],
   model: string,
+  opts?: { temperature?: number },
 ): Promise<string> {
   const apiKey = requireOpenRouter();
   let lastErr: unknown;
@@ -28,7 +29,7 @@ export async function chatCompletion(
       await sleep(RETRY_DELAYS_MS[i]);
     }
     try {
-      return await chatCompletionOnce(messages, model, apiKey);
+      return await chatCompletionOnce(messages, model, apiKey, opts?.temperature);
     } catch (e) {
       lastErr = e;
       if (!isRateLimited(e) || i === RETRY_DELAYS_MS.length - 1) throw e;
@@ -41,6 +42,7 @@ async function chatCompletionOnce(
   messages: ChatMessage[],
   model: string,
   apiKey: string,
+  temperature = 0.7,
 ): Promise<string> {
   const res = await fetch(OPENROUTER_URL, {
     method: 'POST',
@@ -53,9 +55,10 @@ async function chatCompletionOnce(
     body: JSON.stringify({
       model,
       messages,
-      temperature: 0.7,
-      max_tokens: 8192,
+      temperature,
+      max_tokens: 4096,
     }),
+    signal: AbortSignal.timeout(cfg.openrouterRequestTimeoutMs),
   });
 
   if (!res.ok) {
@@ -64,15 +67,36 @@ async function chatCompletionOnce(
   }
 
   const data = (await res.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
+    choices?: Array<{
+      message?: { content?: string | null; reasoning?: string | null };
+      finish_reason?: string;
+    }>;
+    error?: { message?: string };
   };
-  const content = data.choices?.[0]?.message?.content?.trim();
-  if (!content) throw new Error(`OpenRouter bos yanit (${model})`);
-  return content;
+
+  if (data.error?.message) {
+    throw new Error(`OpenRouter API (${model}): ${data.error.message}`);
+  }
+
+  const msg = data.choices?.[0]?.message;
+  const content = msg?.content?.trim();
+  if (content) return content;
+
+  const finish = data.choices?.[0]?.finish_reason ?? '';
+  const reasoningOnly = Boolean(msg?.reasoning?.trim() && !content);
+  if (reasoningOnly || finish === 'length') {
+    throw new Error(
+      `OpenRouter bos veya yarim yanit (${model})${finish ? ` [${finish}]` : ''}`,
+    );
+  }
+  throw new Error(`OpenRouter bos yanit (${model})`);
 }
 
 /** Model zinciri: birincil → yedek → SEO_OPENROUTER_MODELS */
-export async function chatWithFallback(messages: ChatMessage[]): Promise<{
+export async function chatWithFallback(
+  messages: ChatMessage[],
+  opts?: { temperature?: number },
+): Promise<{
   content: string;
   modelUsed: string;
 }> {
@@ -80,11 +104,12 @@ export async function chatWithFallback(messages: ChatMessage[]): Promise<{
   let lastError: unknown;
   for (const model of models) {
     try {
-      const content = await chatCompletion(messages, model);
+      const content = await chatCompletion(messages, model, opts);
       return { content, modelUsed: model };
     } catch (e) {
       lastError = e;
-      console.warn(`[llm] ${model} basarisiz, sonraki modele geciliyor...`);
+      const brief = String(e).slice(0, 120);
+      console.warn(`[llm] ${model} basarisiz (${brief}), sonraki model...`);
     }
   }
   throw lastError;

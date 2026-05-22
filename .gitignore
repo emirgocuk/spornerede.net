@@ -15,6 +15,9 @@ yarn-error.log*
 pnpm-debug.log*
 
 
+# local backups (GitHub'a yuklenmez)
+backups/
+
 # environment variables (asla commit etmeyin)
 .env
 .env.*

@@ -1,0 +1,25 @@
+Asagidaki TASLAK metni SIL bastan duzenle. Ekleme modu YASAK — tek parca tutarli haber uret.
+
+Konu: {{KONU}}
+Baslik (koru veya iyilestir): {{BASLIK}}
+
+Taslak (hatalari duzelt, tekrarlari sil):
+{{DRAFT_HTML}}
+
+---META---
+baslik: ...
+seo_title: (max 60)
+seo_description: (max 155)
+kategori: (Spor | Duyuru | Platform | Etkinlik)
+kategori_renk: (green | blue | ...)
+---BODY---
+(tam HTML haber metni)
+---END---
+
+Zorunlu h2 iskeleti (sirasi degisebilir, hepsi dolu olmali):
+1) Konuya giris veya kimler icin
+2) Program / egitim / avantajlar (konuya gore)
+3) Kayit ve kayit sureci (tek h2, imla: "Kayıt ve kayıt süreci")
+4) Istee SporNerede avantajlari veya platform
+
+Son paragraf SporNerede CTA ile bitsin. Ilgili sayfalar link blogu EKLEME (sistem ekler).

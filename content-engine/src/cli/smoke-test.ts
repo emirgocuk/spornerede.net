@@ -9,6 +9,7 @@ import { fetchGscQueries, listGscSiteEntries } from '../gsc/client.js';
 import { formatPerfRuleSummary } from '../gsc/performance-rules.js';
 import { getAdminPb } from '../pb/client.js';
 import { listGuideRecords } from '../pb/list-guides.js';
+import { listNewsRecords } from '../pb/news.js';
 
 const skipDraft = process.argv.includes('--skip-draft');
 
@@ -34,7 +35,7 @@ async function main() {
       cfg.pocketbaseAdminEmail,
       cfg.pocketbaseAdminPassword,
     );
-    for (const c of ['seo_keywords', 'rehber_yazilari']) {
+    for (const c of ['seo_keywords', 'rehber_yazilari', 'haberler']) {
       const r = await pb.collection(c).getList(1, 1);
       if (r.totalItems < 0) throw new Error(`${c} liste hatasi`);
     }
@@ -98,11 +99,19 @@ async function main() {
     ['yayinda', 'dusuk_performans'].includes(String(r.durum)),
   );
 
+  const newsRows = await listNewsRecords(pb);
+  const newsAktif = newsRows.filter((r) => Boolean(r.aktif));
+  const newsPasif = newsRows.filter((r) => !r.aktif);
+
   console.log('\n--- Ozet ---');
   console.log(`  Incelemede/taslak: ${pending.length}`);
   console.log(`  Yayinda/dusuk_perf: ${yayin.length}`);
   if (yayin[0]) {
     console.log(`  Ornek yayin: /rehber/${yayin[0].slug}`);
+  }
+  console.log(`  Haber aktif/pasif: ${newsAktif.length}/${newsPasif.length}`);
+  if (newsPasif[0]) {
+    console.log(`  Ornek pasif haber: npm run publish:news -- ${newsPasif[0].slug}`);
   }
   console.log('\nSmoke test tamam.\n');
 }

@@ -23,6 +23,9 @@ type ApiDeps = {
   apiPost: (path: string, body: Record<string, unknown>) => Promise<unknown>;
   apiDelete: (path: string, body: Record<string, unknown>) => Promise<unknown>;
   escapeHtml: (value: string) => string;
+  initGuideEditor: (html: string) => Promise<void>;
+  destroyGuideEditor: () => Promise<void>;
+  getGuideEditorHtml: () => string;
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -173,14 +176,14 @@ export function mountGuidesAdminTab(deps: ApiDeps) {
 
   function renderDetail(guide: GuideRow) {
     const publicUrl = guide.durum === 'yayinda' || guide.durum === 'dusuk_performans'
-      ? `/rehber/${guide.slug}`
+      ? `/haberler?q=${encodeURIComponent(guide.baslik)}`
       : '';
     const canRequeue = Boolean(guide.anahtarKelimeId);
 
     detailEl.innerHTML = `
       <div class="detail-header">
         <div class="detail-title-area">
-          <span class="kicker">SEO REHBER</span>
+          <span class="kicker">SEO ICERIK</span>
           <h2>${deps.escapeHtml(guide.baslik)}</h2>
           <p class="text-sm text-muted">${deps.escapeHtml(guide.kaynak || 'manuel')}${guide.keywordAnahtar ? ` · KW: ${deps.escapeHtml(guide.keywordAnahtar)}` : ''}</p>
         </div>
@@ -208,9 +211,10 @@ export function mountGuidesAdminTab(deps: ApiDeps) {
               <label>Meta aciklama (≤155)</label>
               <textarea id="guide-meta-description" class="modern-textarea" rows="2">${deps.escapeHtml(guide.metaDescription)}</textarea>
             </div>
-            <div class="form-group">
-              <label>Icerik (HTML)</label>
-              <textarea id="guide-icerik" class="modern-textarea guide-html-editor" rows="14">${deps.escapeHtml(guide.icerikHtml)}</textarea>
+            <div class="form-group guide-editor-wrap">
+              <label>Metin</label>
+              <div id="guide-icerik-mount" class="admin-editor-mount"></div>
+              <textarea id="guide-icerik" class="admin-editor-sr-only" aria-hidden="true" tabindex="-1"></textarea>
             </div>
             <p class="section-help guide-gsc-detail">
               GSC (son ~28 gun): <strong>${guide.gscGosterim}</strong> gosterim,
@@ -218,9 +222,10 @@ export function mountGuidesAdminTab(deps: ApiDeps) {
               ort. konum <strong>${guide.gscKonum > 0 ? guide.gscKonum.toFixed(1) : '—'}</strong>,
               CTR <strong>${guide.gscGosterim > 0 ? `%${(guide.gscCtr * 100).toFixed(2)}` : '—'}</strong>
             </p>
+            <p class="section-help">Yayin: <code>/haberler/[slug]</code> — rehber sayfasi degil.</p>
             <div class="form-actions-row">
               <button type="button" id="guide-save-btn" class="btn btn-primary">Kaydet</button>
-              <button type="button" id="guide-publish-btn" class="btn btn-success">Yayinla</button>
+              <button type="button" id="guide-publish-news-btn" class="btn btn-success">Habere yayinla</button>
               <button type="button" id="guide-archive-btn" class="btn btn-outline">Arsivle</button>
               ${
                 canRequeue
@@ -242,8 +247,22 @@ export function mountGuidesAdminTab(deps: ApiDeps) {
       </div>
     `;
 
+    void deps.initGuideEditor(guide.icerikHtml || '');
+
     document.getElementById('guide-save-btn')?.addEventListener('click', () => saveGuide(guide.id, guide.durum));
-    document.getElementById('guide-publish-btn')?.addEventListener('click', () => saveGuide(guide.id, 'yayinda'));
+    document.getElementById('guide-publish-news-btn')?.addEventListener('click', async () => {
+      if (!confirm(`"${guide.baslik}" haber olarak yayinlansin mi?`)) return;
+      try {
+        await saveGuide(guide.id, guide.durum);
+        const res = (await deps.apiPost('/api/admin/content-engine/publish-guide-as-news', {
+          guideId: guide.id,
+        })) as { previewUrl?: string };
+        alert(`Haber yayinda: ${res?.previewUrl ?? '/haberler'}`);
+        await loadGuides();
+      } catch (e) {
+        alert(e instanceof Error ? e.message : 'Haber yayinlanamadi');
+      }
+    });
     document.getElementById('guide-archive-btn')?.addEventListener('click', () => saveGuide(guide.id, 'arsiv'));
     document.getElementById('guide-requeue-btn')?.addEventListener('click', async () => {
       try {
@@ -272,7 +291,7 @@ export function mountGuidesAdminTab(deps: ApiDeps) {
     const meta_title = (document.getElementById('guide-meta-title') as HTMLInputElement | null)?.value?.trim() ?? '';
     const meta_description =
       (document.getElementById('guide-meta-description') as HTMLTextAreaElement | null)?.value?.trim() ?? '';
-    const icerik_html = (document.getElementById('guide-icerik') as HTMLTextAreaElement | null)?.value ?? '';
+    const icerik_html = deps.getGuideEditorHtml();
 
     if (!baslik || !slug) {
       alert('Baslik ve slug zorunlu.');
@@ -303,12 +322,13 @@ export function mountGuidesAdminTab(deps: ApiDeps) {
       <div class="empty-state">
         <div class="empty-icon">📚</div>
         <h3>Rehber secin</h3>
-        <p>Content Engine taslaklarini inceleyip yayinlayin. Lokal: /rehber/[slug]</p>
+        <p>SEO taslaklarini duzenleyip <strong>Habere yayinla</strong> ile /haberler altinda paylasin.</p>
       </div>
     `;
   }
 
   async function loadGuides() {
+    await deps.destroyGuideEditor();
     listEl.innerHTML = '<li class="loading-state"><div class="spinner-small"></div> Yukleniyor...</li>';
     try {
       const rows = (await deps.apiGet('/api/admin/guides')) as GuideRow[];
@@ -329,12 +349,13 @@ export function mountGuidesAdminTab(deps: ApiDeps) {
     }
   }
 
-  listEl.addEventListener('click', (event) => {
+  listEl.addEventListener('click', async (event) => {
     const target = event.target;
     if (!(target instanceof HTMLElement)) return;
     const button = target.closest('button[data-guide-id]');
     if (!button) return;
     const id = button.getAttribute('data-guide-id') || '';
+    await deps.destroyGuideEditor();
     selectedId = id;
     renderList();
     const guide = cached.find((g) => g.id === id);

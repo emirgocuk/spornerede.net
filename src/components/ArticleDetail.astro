@@ -1,0 +1,71 @@
+---
+import '../styles/article-detail.css';
+
+interface BreadcrumbItem {
+  label: string;
+  href?: string;
+}
+
+interface Props {
+  breadcrumbs?: BreadcrumbItem[];
+  badgeLabel: string;
+  badgeClass?: string;
+  dateLabel?: string;
+  dateIso?: string;
+  title: string;
+  lead: string;
+}
+
+const {
+  breadcrumbs = [],
+  badgeLabel,
+  badgeClass = 'article-badge-blue',
+  dateLabel,
+  dateIso,
+  title,
+  lead,
+} = Astro.props;
+---
+
+<section class="article-page section">
+  <div class="container article-page-container">
+    {breadcrumbs.length > 0 && (
+      <nav class="article-breadcrumb" aria-label="Breadcrumb">
+        {breadcrumbs.map((item, index) => (
+          <span class="article-breadcrumb-part">
+            {index > 0 && <span aria-hidden="true"> / </span>}
+            {item.href ? (
+              <a href={item.href}>{item.label}</a>
+            ) : (
+              <span>{item.label}</span>
+            )}
+          </span>
+        ))}
+      </nav>
+    )}
+
+    <article class="article-card">
+      <header class="article-hero">
+        <div class="article-hero-accent" aria-hidden="true"></div>
+        <div class="article-meta">
+          <span class={`article-badge ${badgeClass}`}>{badgeLabel}</span>
+          {dateLabel && <time datetime={dateIso}>{dateLabel}</time>}
+        </div>
+        <h1>{title}</h1>
+        <p class="article-lead">{lead}</p>
+      </header>
+
+      <div class="article-prose">
+        <slot />
+      </div>
+
+      <div class="article-footer-slot">
+        <slot name="footer" />
+      </div>
+    </article>
+
+    <div class="article-aside">
+      <slot name="aside" />
+    </div>
+  </div>
+</section>

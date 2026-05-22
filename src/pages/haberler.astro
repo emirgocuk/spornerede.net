@@ -56,7 +56,7 @@ const listeHaberleri = haberler.slice(1);
                 <span class="news-date">{haber.tarih}</span>
               </div>
               <h2>{haber.baslik}</h2>
-              <div class="news-summary" set:html={haber.ozet}></div>
+              <p class="news-summary">{haber.kartOzet}</p>
               <a href={`/haberler/${haber.slug}`} class="featured-link">Öne çıkan haberi oku →</a>
             </div>
             <div class={`featured-visual ${haber.gorsel}`} aria-hidden="true">
@@ -66,11 +66,13 @@ const listeHaberleri = haberler.slice(1);
             </div>
           </article>
         ))}
-        <div class="slider-dots" aria-hidden="true">
-          {haberler.map((_, index) => (
-            <button type="button" class={`slider-dot ${index === 0 ? 'is-active' : ''}`} data-featured-dot={index}></button>
-          ))}
-        </div>
+        {haberler.length > 1 && (
+          <div class="slider-dots" aria-hidden="true">
+            {haberler.map((_, index) => (
+              <button type="button" class={`slider-dot ${index === 0 ? 'is-active' : ''}`} data-featured-dot={index}></button>
+            ))}
+          </div>
+        )}
       </section>
 
       <div class="news-toolbar">
@@ -90,7 +92,7 @@ const listeHaberleri = haberler.slice(1);
                 <span class="news-date">{haber.tarih}</span>
               </div>
               <h2>{haber.baslik}</h2>
-              <div class="news-summary" set:html={haber.ozet}></div>
+              <p class="news-summary">{haber.kartOzet}</p>
               <a href={`/haberler/${haber.slug}`} class="news-link">Detayı Gör →</a>
             </div>
           </article>
@@ -248,22 +250,13 @@ const listeHaberleri = haberler.slice(1);
 
   .news-featured-slide .news-summary {
     max-width: 680px;
-    color: rgba(255, 255, 255, 0.8);
+    margin: 0;
+    color: rgba(255, 255, 255, 0.82);
     line-height: 1.65;
-    max-height: 9.6rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
     overflow: hidden;
-    position: relative;
-  }
-
-  .news-featured-slide .news-summary::after {
-    content: '';
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    height: 3rem;
-    background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(120, 8, 14, 0.88) 100%);
-    pointer-events: none;
   }
 
   .featured-link {
@@ -513,11 +506,16 @@ const listeHaberleri = haberler.slice(1);
     color: #1f2937;
   }
 
-  .news-card p {
+  .news-card .news-summary {
+    margin: 0;
     font-size: 0.9rem;
     color: #4b5563;
     line-height: 1.6;
     flex: 1;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
 
   .news-link {

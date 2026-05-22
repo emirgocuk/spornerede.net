@@ -49,7 +49,7 @@ const kategoriRenkler: Record<string, string> = {
                 <h3 class="featured-title">
                   <a href={`/haberler/${haber.slug}`}>{haber.baslik}</a>
                 </h3>
-                <div class="featured-summary" set:html={haber.ozet}></div>
+                <p class="featured-summary">{haber.kartOzet}</p>
                 <a href={`/haberler/${haber.slug}`} class="featured-link" aria-label={`${haber.baslik} haberini oku`}>
                   Haberi İncele
                   <span aria-hidden="true">→</span>
@@ -248,10 +248,10 @@ const kategoriRenkler: Record<string, string> = {
 
   .featured-summary {
     max-width: 620px;
+    margin: 0 0 1.5rem;
     color: rgba(255, 255, 255, 0.78);
     line-height: 1.65;
     font-size: 0.98rem;
-    margin-bottom: 1.5rem;
     display: -webkit-box;
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;

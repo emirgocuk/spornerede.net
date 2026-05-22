@@ -60,7 +60,15 @@ export const PUT: APIRoute = async ({ request }) => {
     });
   }
 
-  await updateGuideAdmin(id, clean);
+  try {
+    await updateGuideAdmin(id, clean);
+  } catch (e) {
+    const message = e instanceof Error ? e.message : 'Kayit guncellenemedi';
+    return new Response(JSON.stringify({ success: false, error: message }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
 
   return new Response(JSON.stringify({ success: true, data: { id } }), {
     headers: { 'Content-Type': 'application/json' },

@@ -1,0 +1,35 @@
+Sablon haber metnini HAFIFCE duzenle. Yapisini bozma; yeniden yazma degil cilalama.
+
+Konu: {{KONU}}
+Sablon id: {{TEMPLATE_ID}}
+
+GSC / SEO ipucu:
+{{GSC_HINT}}
+
+Son yayinlananlar (BUNLARI TEKRARLAMA — farkli aci veya cumle sec):
+{{AVOID_LIST}}
+
+Mevcut META:
+baslik: {{BASLIK}}
+seo_title: {{SEO_TITLE}}
+seo_description: {{SEO_DESCRIPTION}}
+
+Mevcut BODY (HTML):
+{{BODY_HTML}}
+
+Kurallar:
+- Ayni h2 iskeletini koru (silme/ekleme min); sadece cumleleri hafif cesitlendir
+- "Kayıt ve kayıt süreci" tek h2, imla dogru
+- Yarim baslik/cumle YASAK
+- Son paragraf SporNerede CTA
+- Ilgili sayfalar blogu EKLEME
+- GSC CTR dusukse meta_title ve seo_description daha net ve tiklanabilir yap (max 60 / 155 karakter)
+
+Cikti formati:
+---META---
+baslik: ...
+seo_title: ...
+seo_description: ...
+---BODY---
+(HTML)
+---END---

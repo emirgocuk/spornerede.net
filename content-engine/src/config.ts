@@ -33,11 +33,32 @@ export const cfg = {
     .split(',')
     .map((m) => m.trim())
     .filter(Boolean),
+  /** Bos yanit/429 sonrasi en fazla kac model denensin */
+  openrouterMaxModelTries: Math.max(1, Number(opt('SEO_OPENROUTER_MAX_MODEL_TRIES', '4')) || 4),
+  openrouterRequestTimeoutMs: Math.max(
+    15_000,
+    Number(opt('SEO_OPENROUTER_REQUEST_TIMEOUT_MS', '90000')) || 90_000,
+  ),
   draftFailSoft: opt('SEO_DRAFT_FAIL_SOFT', 'true') !== 'false',
   llmProvider: opt('SEO_LLM_PROVIDER', 'openrouter'),
   usePaidApis: opt('SEO_USE_PAID_APIS', 'false') === 'true',
   dailyArticleLimit: Math.max(1, Number(opt('SEO_DAILY_ARTICLE_LIMIT', '1')) || 1),
+  /**
+   * llm = tam uretim (ozgunluk, varsayilan)
+   * template_llm | template | hybrid = sablon tabanli
+   */
+  newsMode: opt('SEO_NEWS_MODE', 'llm') as
+    | 'template'
+    | 'template_llm'
+    | 'llm'
+    | 'hybrid',
+  /** template_llm: sablon sonrasi hafif duzenleme */
+  templateLlmPolish: opt('SEO_TEMPLATE_LLM_POLISH', 'true') !== 'false',
+  /** Tam metin LLM rewrite (sablon modunda kapali tutun) */
+  llmRewriteEnabled: opt('SEO_LLM_REWRITE', 'false') === 'true',
   autoPublish: opt('SEO_AUTO_PUBLISH', 'false') === 'true',
+  /** Sablon + kalite OK ise otomatik aktif (SEO_AUTO_PUBLISH ile birlikte kullanilabilir) */
+  templateAutoPublish: opt('SEO_NEWS_TEMPLATE_AUTO_PUBLISH', 'true') === 'true',
   gscSiteUrl: opt('SEO_GSC_SITE_URL', 'https://spornerede.net'),
   gscAuthMode: opt('SEO_GSC_AUTH_MODE', 'service_account') as 'service_account' | 'oauth',
   gscServiceAccountPath: opt('SEO_GSC_SERVICE_ACCOUNT_PATH'),
@@ -54,7 +75,8 @@ export function getOpenRouterModelChain(): string[] {
     cfg.openrouterModelFallback,
     ...cfg.openrouterExtraModels,
   ].filter(Boolean);
-  return [...new Set(chain)];
+  const unique = [...new Set(chain)];
+  return unique.slice(0, cfg.openrouterMaxModelTries);
 }
 
 export function requireOpenRouter() {

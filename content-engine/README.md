@@ -2,9 +2,12 @@
 
 Ana site (`src/`, Astro sayfaları) **dokunulmadan** çalışır. Bu klasör:
 
-- PocketBase’e yalnızca **API** ile yazar (`seo_keywords`, `rehber_yazilari`)
-- OpenRouter `:free` ile taslak üretir
-- Yayın öncesi içerik **admin onaylı** (`durum: incelemede`)
+- PocketBase’e yalnızca **API** ile yazar (`seo_keywords`, `rehber_yazilari`, `haberler` taslak)
+- Admin **Content Engine** sekmesi: SEO haber yaz → incele → yayinla (`/haberler/`)
+- **Varsayılan:** tam LLM uretim (`SEO_NEWS_MODE=llm`) — ozgun baslik/metin, GSC + tekrar onleme
+- `SEO_NEWS_MODE=template_llm` / `template` → sablon (deneme; benzer metin riski)
+- `SEO_NEWS_MODE=hybrid` → sablon once, yoksa LLM
+- `SEO_NEWS_TEMPLATE_AUTO_PUBLISH=true` → kalite OK ise otomatik `/haberler/` yayini
 
 Canlı sitede `/rehber/` sayfaları ayrı bir fazda, ince entegrasyonla eklenecek.
 
@@ -46,6 +49,15 @@ POCKETBASE_ADMIN_EMAIL=...    # ana proje .env ile ayni
 POCKETBASE_ADMIN_PASSWORD=...
 SEO_OPENROUTER_MODEL=nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free
 SEO_OPENROUTER_MODEL_FALLBACK=deepseek/deepseek-v4-flash:free
+SEO_NEWS_MODE=llm
+SEO_LLM_REWRITE=true
+SEO_NEWS_TEMPLATE_AUTO_PUBLISH=true
+```
+
+Sablon testi (yalnizca `SEO_NEWS_MODE=template` iken):
+
+```bash
+npm run template:news -- istanbul voleybol kursu
 ```
 
 ```bash
@@ -84,6 +96,10 @@ Adım 1–4 bitmeden zorunlu değil.
 | `npm run job:gsc` | GSC sync + dusuk_performans kurallari |
 | `npm run list:drafts` | Bekleyen taslaklar |
 | `npm run publish:draft -- <slug>` | Taslagi yayina al (lokal /rehber) |
+| `npm run create:manual-news -- "<baslik>"` | Pasif haber taslagı (CLI) |
+| Admin → **Content Engine** | SEO haber yaz / manuel taslak / yayinla |
+| `npm run list:news` | Haber listesi (aktif/pasif) |
+| `npm run publish:news -- <slug>` | Pasif haberi aktif yap (`/haberler/`) |
 | `npm run job:keywords` | GSC + skor guncelle (GSC JSON gerekli) |
 | `npm run job:gsc` | Yayindaki makalelere GSC metrikleri |
 

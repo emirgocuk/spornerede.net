@@ -19,6 +19,12 @@
     "list:drafts": "tsx src/cli/list-drafts.ts",
     "publish:draft": "tsx src/cli/publish-draft.ts",
     "create:manual-draft": "tsx src/cli/create-manual-draft.ts",
+    "create:manual-news": "tsx src/cli/create-manual-news.ts",
+    "list:news": "tsx src/cli/list-news.ts",
+    "publish:news": "tsx src/cli/publish-news.ts",
+    "complete:news": "tsx src/cli/run-news-complete-json.ts",
+    "template:news": "tsx src/cli/run-template-news-json.ts",
+    "purge:news": "tsx src/cli/purge-news.ts",
     "job:keywords": "tsx src/jobs/keyword-engine.ts",
     "job:gsc": "tsx src/jobs/gsc-reporter.ts",
     "job:draft": "tsx src/jobs/content-pipeline.ts"

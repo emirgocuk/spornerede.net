@@ -1,4 +1,6 @@
+import { ClientResponseError } from 'pocketbase';
 import { getDb, hasDatabaseUrl } from '../../db/client';
+import { sanitizeArticleHtml, pbDateNow } from '../html/sanitizeArticleHtml';
 
 async function listAllRehberRows(): Promise<Array<Record<string, unknown>>> {
   const db = await getDb();
@@ -231,11 +233,59 @@ export async function updateGuideAdmin(
     throw new Error('POCKETBASE_URL is not configured.');
   }
   const db = await getDb();
-  const payload: Record<string, unknown> = { ...input };
-  if (input.durum === 'yayinda' && !input.yayinlanma_tarihi) {
-    payload.yayinlanma_tarihi = new Date().toISOString();
+  const payload: Record<string, unknown> = {};
+
+  if (input.baslik !== undefined) {
+    const baslik = String(input.baslik).trim();
+    if (!baslik) throw new Error('Baslik bos olamaz.');
+    payload.baslik = baslik;
   }
-  await db.collection('rehber_yazilari').update(id, payload);
+  if (input.meta_title !== undefined) payload.meta_title = String(input.meta_title).trim();
+  if (input.meta_description !== undefined) {
+    payload.meta_description = String(input.meta_description).trim();
+  }
+  if (input.icerik_html !== undefined) {
+    payload.icerik_html = sanitizeArticleHtml(input.icerik_html);
+  }
+  if (input.durum !== undefined) payload.durum = input.durum;
+  if (input.sema_tipi !== undefined) payload.sema_tipi = String(input.sema_tipi).trim();
+
+  if (input.slug !== undefined) {
+    const slug = String(input.slug).trim();
+    if (!slug) throw new Error('Slug bos olamaz.');
+    try {
+      const dup = await db.collection('rehber_yazilari').getFirstListItem(
+        `slug = ${JSON.stringify(slug)}`,
+      );
+      if (String(dup.id) !== id) {
+        throw new Error(`Slug zaten kullaniliyor: ${slug}`);
+      }
+    } catch (e) {
+      if (!(e instanceof ClientResponseError && e.status === 404)) {
+        if (e instanceof Error && e.message.startsWith('Slug zaten')) throw e;
+        throw e;
+      }
+    }
+    payload.slug = slug;
+  }
+
+  if (input.durum === 'yayinda') {
+    payload.yayinlanma_tarihi = input.yayinlanma_tarihi ?? pbDateNow();
+  }
+
+  try {
+    await db.collection('rehber_yazilari').update(id, payload);
+  } catch (e) {
+    if (e instanceof ClientResponseError) {
+      const detail = e.response?.data;
+      const fields =
+        detail && typeof detail === 'object' && 'data' in detail
+          ? JSON.stringify((detail as { data?: unknown }).data)
+          : '';
+      throw new Error(fields || e.message || 'Kayit guncellenemedi.');
+    }
+    throw e;
+  }
 }
 
 export async function getPublishedGuideBySlug(slug: string): Promise<GuideArticle | null> {

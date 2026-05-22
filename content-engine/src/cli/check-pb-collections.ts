@@ -9,7 +9,7 @@ async function main() {
     .collection('_superusers')
     .authWithPassword(pocketbaseAdminEmail, pocketbaseAdminPassword);
 
-  for (const name of ['seo_keywords', 'rehber_yazilari']) {
+  for (const name of ['seo_keywords', 'rehber_yazilari', 'haberler']) {
     try {
       const r = await pb.collection(name).getList(1, 1);
       console.log(`[OK] ${name} — ${r.totalItems} kayit`);

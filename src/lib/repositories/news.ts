@@ -1,4 +1,14 @@
 import { getDb, hasDatabaseUrl } from '../../db/client';
+import { sanitizeArticleHtml } from '../html/sanitizeArticleHtml';
+import {
+  assessNewsDraft,
+  stripCeKonuFromOzet,
+  wrapOzetWithKonu,
+} from '../contentEngine/newsDraftQuality';
+import { repairNewsHtml } from '../contentEngine/repairNewsHtml';
+import { injectNewsInternalLinks } from '../contentEngine/newsDraftQuality';
+import { SITE_URL } from '../seo/jsonld';
+import { buildNewsCardExcerpt } from '../newsExcerpt';
 
 export type NewsItem = {
   id: number;
@@ -8,6 +18,8 @@ export type NewsItem = {
   tarihIso?: string;
   baslik: string;
   ozet: string;
+  /** Liste / kart icin kisa duz metin */
+  kartOzet: string;
   link: string;
   aktif: boolean;
   slug: string;
@@ -83,7 +95,12 @@ export async function getActiveNews() {
       const baslik = String(row.baslik ?? '');
       const rawSummary = String(row.ozet ?? '');
       const seoTitle = String(row.seoTitle ?? '').trim();
-      const seoDescription = String(row.seoDescription ?? '').trim();
+      const seoDescriptionRaw = String(row.seoDescription ?? '').trim();
+      const kartOzet = buildNewsCardExcerpt({
+        ozet: rawSummary,
+        seoDescription: seoDescriptionRaw,
+        baslik,
+      });
       const slug = String(row.slug ?? '').trim() || buildNewsSlug(baslik, id);
       return {
         id,
@@ -97,11 +114,12 @@ export async function getActiveNews() {
         }),
         baslik,
         ozet: rawSummary,
+        kartOzet,
         link: String(row.link ?? '#'),
         aktif: Boolean(row.aktif),
         slug,
         seoTitle: seoTitle || baslik,
-        seoDescription: seoDescription || stripHtml(rawSummary).slice(0, 160),
+        seoDescription: seoDescriptionRaw || kartOzet,
       };
     });
 }
@@ -136,6 +154,9 @@ export async function getAllNewsAdmin() {
       const seoTitle = String(row.seoTitle ?? '').trim();
       const seoDescription = String(row.seoDescription ?? '').trim();
       const slug = String(row.slug ?? '').trim() || buildNewsSlug(baslik, id);
+      const { konu, body } = stripCeKonuFromOzet(rawSummary);
+      const isTemplate = /<!--\s*ce-template:/i.test(rawSummary);
+      const draftQuality = assessNewsDraft(body, konu || baslik, { template: isTemplate });
       return {
         id,
         kategori: String(row.kategori ?? 'Genel'),
@@ -148,8 +169,23 @@ export async function getAllNewsAdmin() {
         slug,
         seoTitle: seoTitle || baslik,
         seoDescription: seoDescription || stripHtml(rawSummary).slice(0, 160),
+        ceKonu: konu,
+        draftComplete: draftQuality.complete,
+        draftWordCount: draftQuality.wordCount,
+        draftIssues: draftQuality.issues,
       };
     });
+}
+
+export function assessNewsForPublish(ozet: string, baslik: string) {
+  const { konu, body } = stripCeKonuFromOzet(ozet);
+  const isTemplate = /<!--\s*ce-template:/i.test(ozet);
+  return assessNewsDraft(body, konu || baslik, { template: isTemplate });
+}
+
+export async function getNewsAdminByLegacyId(legacyId: number) {
+  const all = await getAllNewsAdmin();
+  return all.find((n) => n.id === legacyId) ?? null;
 }
 
 export async function createNews(input: NewsWriteInput) {
@@ -181,6 +217,18 @@ export async function updateNews(id: number, input: Partial<NewsWriteInput>) {
   const db = await getDb();
   const existing = await db.collection('haberler').getFirstListItem(`legacyId = ${id}`);
   const payload: Record<string, unknown> = { ...input };
+  if (input.ozet !== undefined) {
+    const raw = String(input.ozet);
+    const { konu, body } = stripCeKonuFromOzet(raw);
+    const repaired = repairNewsHtml(body).html;
+    const withLinks = injectNewsInternalLinks(
+      repaired,
+      konu || String(existing.baslik ?? ''),
+      SITE_URL,
+    );
+    const cleaned = sanitizeArticleHtml(withLinks);
+    payload.ozet = konu ? wrapOzetWithKonu(konu, cleaned) : cleaned;
+  }
   if (input.baslik && !input.slug) {
     payload.slug = buildNewsSlug(String(input.baslik), id);
   }

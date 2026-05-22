@@ -27,7 +27,7 @@ if (!anahtar) {
   process.exit(1);
 }
 
-const TEMPLATE_HTML = `<p><strong>{{ANAHTAR}}</strong> hakkinda rehber taslagidir. Asagidaki bolumleri doldurun.</p>
+const TEMPLATE_HTML = `<p><strong>{{ANAHTAR}}</strong> — SEO haber taslagidir. Metni duzenleyip /haberler altinda yayinlayin.</p>
 <h2>Genel bilgi</h2>
 <p>...</p>
 <h2>Kurs secimi ipuclari</h2>
@@ -77,7 +77,7 @@ async function main() {
     baslik,
     slug,
     meta_title: `${baslik} | SporNerede`,
-    meta_description: `${baslik} rehberi — yakinindaki spor kurslarini SporNerede ile bulun.`,
+    meta_description: `${baslik} — spor kurslari ve kayit bilgileri SporNerede'de.`,
     icerik_html: html,
     icerik_json: { faq: [] },
     anahtar_kelime_id: keywordId,
@@ -86,7 +86,7 @@ async function main() {
   });
 
   console.log('Manuel taslak:', record.id, slug);
-  console.log('Admin → SEO Rehber → duzenle → Yayinla');
+  console.log('Admin → SEO Rehber → duzenle → Habere yayinla');
   if (!cfg.autoPublish) {
     console.log(`npm run publish:draft -- ${slug}`);
   }

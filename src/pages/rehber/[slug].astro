@@ -1,5 +1,6 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import ArticleDetail from '../../components/ArticleDetail.astro';
 import { getPublishedGuideBySlug, getPublishedGuides } from '../../lib/repositories/seoArticles';
 import { articleGuideSchema, faqPageSchema } from '../../lib/seo/jsonld';
 
@@ -52,91 +53,62 @@ const jsonLdNodes = guide
   ]}
   jsonLd={jsonLdNodes}
 >
+  {guide ? (
+    <ArticleDetail
+      breadcrumbs={[
+        { label: 'Ana Sayfa', href: '/' },
+        { label: 'Rehber', href: '/rehber' },
+        { label: guide.baslik },
+      ]}
+      badgeLabel="Rehber"
+      badgeClass="article-badge-blue"
+      dateLabel={guide.yayinlanmaLabel}
+      dateIso={guide.yayinlanmaTarihi}
+      title={guide.baslik}
+      lead={guide.metaDescription}
+    >
+      <div set:html={guide.icerikHtml} />
 
-  <section class="news-detail section">
-    <div class="container news-detail-container">
-      {guide ? (
-        <>
-          <article class="news-article">
-            <header class="article-head">
-              <div class="article-meta">
-                <span class="badge badge-blue">Rehber</span>
-                {guide.yayinlanmaLabel && (
-                  <time datetime={guide.yayinlanmaTarihi}>{guide.yayinlanmaLabel}</time>
-                )}
+      <div slot="footer">
+        {guide.faq.length > 0 && (
+          <section class="article-faq" aria-labelledby="faq-heading">
+            <h2 id="faq-heading">Sikca sorulan sorular</h2>
+            {guide.faq.map((item) => (
+              <div class="article-faq-item">
+                <h3>{item.soru}</h3>
+                <p>{item.cevap}</p>
               </div>
-              <h1>{guide.baslik}</h1>
-              <p class="seo-lead">{guide.metaDescription}</p>
-            </header>
+            ))}
+          </section>
+        )}
+        <div class="article-cta-band">
+          <a class="btn btn-primary" href="/ara">Bu bransta yakinindaki kurslari bul</a>
+        </div>
+      </div>
 
-            <div class="article-body guide-body" set:html={guide.icerikHtml} />
-
-            {guide.faq.length > 0 && (
-              <section class="guide-faq" aria-labelledby="faq-heading">
-                <h2 id="faq-heading">Sikca sorulan sorular</h2>
-                <div class="guide-faq-list">
-                  {guide.faq.map((item) => (
-                    <div class="guide-faq-item">
-                      <h3>{item.soru}</h3>
-                      <p>{item.cevap}</p>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            <p class="guide-cta-box">
-              <a class="btn btn-primary" href="/ara">Bu bransta yakinindaki kurslari bul</a>
-            </p>
-          </article>
-
-          {related.length > 0 && (
-            <aside class="related-news">
-              <h2>Diger rehberler</h2>
-              <div class="related-grid">
-                {related.map((item) => (
-                  <a class="related-card" href={`/rehber/${item.slug}`}>
-                    <strong>{item.baslik}</strong>
-                    <span>{item.metaDescription}</span>
-                  </a>
-                ))}
-              </div>
-            </aside>
-          )}
-        </>
-      ) : (
-        <div class="empty-state">
-          <h1>Rehber bulunamadi</h1>
-          <a class="btn btn-primary" href="/rehber">Rehberlere don</a>
+      {related.length > 0 && (
+        <div slot="aside">
+          <h2>Diger rehberler</h2>
+          <div class="article-related-grid">
+            {related.map((item) => (
+              <a class="article-related-card" href={`/rehber/${item.slug}`}>
+                <strong>{item.baslik}</strong>
+                <span>{item.metaDescription}</span>
+              </a>
+            ))}
+          </div>
         </div>
       )}
-    </div>
-  </section>
+    </ArticleDetail>
+  ) : (
+    <section class="article-page section">
+      <div class="container article-page-container">
+        <div class="article-empty">
+          <h1>Rehber bulunamadi</h1>
+          <p>Aradiginiz icerik kaldirilmis veya adres hatali olabilir.</p>
+          <a class="btn btn-primary" href="/rehber">Rehberlere don</a>
+        </div>
+      </div>
+    </section>
+  )}
 </BaseLayout>
-
-<style>
-  .guide-body :global(h2) {
-    margin-top: 1.5rem;
-    font-size: 1.35rem;
-  }
-  .guide-body :global(h3) {
-    margin-top: 1rem;
-    font-size: 1.15rem;
-  }
-  .guide-faq {
-    margin-top: 2rem;
-    padding-top: 1.5rem;
-    border-top: 1px solid var(--color-border, #e8e8e8);
-  }
-  .guide-faq-item h3 {
-    font-size: 1.05rem;
-    margin: 1rem 0 0.35rem;
-  }
-  .guide-faq-item p {
-    margin: 0;
-    color: var(--color-muted, #555);
-  }
-  .guide-cta-box {
-    margin-top: 2rem;
-  }
-</style>
