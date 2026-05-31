@@ -86,7 +86,13 @@ async function main() {
 
   const { tokens } = await oauth2.getToken(code);
   oauth2.setCredentials(tokens);
-  saveOAuthToken(tokenPath, tokens);
+  saveOAuthToken(tokenPath, {
+    refresh_token: tokens.refresh_token ?? undefined,
+    access_token: tokens.access_token ?? undefined,
+    expiry_date: tokens.expiry_date ?? undefined,
+    token_type: tokens.token_type ?? undefined,
+    scope: tokens.scope ?? undefined,
+  });
 
   console.log('Token kaydedildi:', tokenPath);
   console.log('\n.env icine ekleyin:\n');

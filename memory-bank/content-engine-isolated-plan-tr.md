@@ -74,15 +74,22 @@ npm run content-engine:check
    - Dokunulacak: `prompts/news-quality-rules.txt`, `prompts/news-base.txt`, `prompts/news-rewrite.txt`, `src/lib/news-draft-quality.ts`.
    - **Not:** Ö1.3 ideal olarak Ö2.2 (dedup gate) ile birlikte; gevşeyen kapı zayıf modelde bozuk çıktı riskini artırır, `repairNewsHtml` korunmalı.
 
-### Faz Ö2 — Çeşitlilik ve otomatik kontrol — ~1–2 gün
+### Faz Ö2 — Çeşitlilik ve otomatik kontrol — ✅ uygulandı (2026-05-31)
+
+> Uygulama: `src/lib/similarity.ts` (trigram Jaccard) + `published-topics.ts` → `loadRecentPublishedBodies`; `news-draft-runner.ts` LLM pipeline'ına dedup gate (eşik aşılırsa alternatif açıyla 1 yeniden üretim, hâlâ benzerse otomatik yayın yok → incelemeye düşer). `news-angles.ts` açı havuzu 8 → 18 + `pickAlternativeAngle`. `config.ts` → `SEO_NEWS_TEMPERATURE` (0.8) + `SEO_NEWS_DEDUP_MAX` (0.45); `generate-news.ts` temperature'ı kullanıyor.
+
+
 1. **İçerik tipi çeşitliliği (KN-5).** Tek "kurs tanıtımı" yerine tipler: karşılaştırma, maliyet rehberi, yaş-bazlı, SSS, sezon takvimi. Her tip kendi iskeleti. `news-angles.ts` → `content-types.ts`; tip seçimi `seed-keywords`'teki `niyet` (bilgi/işlem/yönlendirme) alanına bağlanır. Açı havuzu 8 → 20+; son kullanılan açı PB'de tutulup tekrar engellenir.
 2. **Benzerlik kapısı / dedup gate (KN-3 destek).** Yeni `src/lib/similarity.ts` (trigram + Jaccard). Yayın öncesi yeni metni son N (örn. 20) yayınla karşılaştır; eşik (> 0.30) üstüyse RETRY_HINT ile yeniden üret, 2 denemede de geçemezse "incelemeye düşür" (pasif taslak). `news-draft-runner.ts` / `complete-news-runner.ts` akışına entegre.
 3. **Model / sampling.** `SEO_OPENROUTER_MODEL` için küçük ücretli model ile A/B; `config.ts`'e `SEO_NEWS_TEMPERATURE` ekle (data-grounding aktifken 0.65 → 0.8).
 
-### Faz Ö3 — Sonra (opsiyonel)
-- GSC sorgularından gerçek arama sorularını başlık/H2'ye çevir (gerçek "People Also Ask").
-- Pillar + cluster içerik mimarisi ve iç link genişletme (`buildInternalLinks`).
-- Auto-publish yerine insan editör onay kuyruğu.
+### Faz Ö3 — ✅ kısmen uygulandı (content-engine kapsamı) (2026-05-31)
+- ✅ **İç link genişletme:** `buildNewsInternalLinksHtml` `parseKonu` ile tüm branş + şehir + şehir/branş hub linkleri üretiyor.
+- ✅ **Rewrite/tamamla grounding:** `complete-news-runner.ts` → `buildNewsRealData` → `completeNewsBody → polishNewsHtml → rewriteNewsFull` boyunca `{{REAL_DATA}}`.
+- ✅ **Editör onayı (mevcut):** auto-publish toggle + dedup "incelemeye düşürme" + admin haber taslağı düzenle/yayınla.
+- ✅ **Tip temizliği:** content-engine `tsc --noEmit` temiz (exit 0).
+- ⏭️ **Ana site Faz 20'ye ait (content-engine dışı):** Pillar + cluster `/rehber/` Astro sayfaları + admin "SEO İçerik" sekmesi.
+- ⏭️ **Faz 21'e ait:** GSC tabanlı gerçek "People Also Ask" başlık/H2 (daha fazla GSC veri toplama gerekir).
 
 ### Önerilen uygulama sırası
 Ö1.2 (dolgu kaldır) → Ö1.1 (data-grounding) → Ö2.2 (dedup gate, ölçüm) → Ö1.3 (iskelet gevşet) → Ö2.1 + Ö2.3 (çeşitlilik + model).

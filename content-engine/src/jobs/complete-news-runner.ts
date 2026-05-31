@@ -6,6 +6,7 @@ import {
   stripCeKonuFromOzet,
   wrapOzetWithKonu,
 } from '../lib/news-draft-quality.js';
+import { buildNewsRealData } from '../lib/site-context.js';
 
 export type CompleteNewsResult =
   | {
@@ -44,11 +45,14 @@ export async function runCompleteNewsPipeline(legacyId: number): Promise<Complet
   let merged = body;
   let rewritten = false;
 
+  const realData = await buildNewsRealData(pb, topic);
+
   try {
     const result = await completeNewsBody({
       konu: topic,
       baslik,
       existingHtml: body,
+      realData,
     });
     merged = result.html;
     modelUsed = result.modelUsed;

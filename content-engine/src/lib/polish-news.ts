@@ -20,7 +20,7 @@ function isTemplateGenerated(html: string) {
 export async function polishNewsHtml(
   html: string,
   konu: string,
-  options?: { baslik?: string; allowRewrite?: boolean },
+  options?: { baslik?: string; allowRewrite?: boolean; realData?: string },
 ): Promise<PolishResult> {
   let body = stripInternalLinksFooter(html);
   const fromTemplate = isTemplateGenerated(html);
@@ -41,6 +41,7 @@ export async function polishNewsHtml(
         konu,
         baslik: options.baslik,
         draftHtml: repaired,
+        realData: options.realData,
       });
       const again = repairNewsHtml(result.html);
       repaired = again.html;

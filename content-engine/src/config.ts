@@ -59,6 +59,16 @@ export const cfg = {
   autoPublish: opt('SEO_AUTO_PUBLISH', 'false') === 'true',
   /** Sablon + kalite OK ise otomatik aktif (SEO_AUTO_PUBLISH ile birlikte kullanilabilir) */
   templateAutoPublish: opt('SEO_NEWS_TEMPLATE_AUTO_PUBLISH', 'true') === 'true',
+  /** LLM uretim sicakligi (yuksek = daha cesitli; data-grounding ile birlikte onerilir) */
+  newsTemperature: Math.min(
+    1.2,
+    Math.max(0, Number(opt('SEO_NEWS_TEMPERATURE', '0.8')) || 0.8),
+  ),
+  /** Yayin oncesi benzerlik esigi (word-trigram Jaccard). Ustundeyse incelemeye duser. */
+  newsDedupMax: Math.min(
+    1,
+    Math.max(0, Number(opt('SEO_NEWS_DEDUP_MAX', '0.45')) || 0.45),
+  ),
   gscSiteUrl: opt('SEO_GSC_SITE_URL', 'https://spornerede.net'),
   gscAuthMode: opt('SEO_GSC_AUTH_MODE', 'service_account') as 'service_account' | 'oauth',
   gscServiceAccountPath: opt('SEO_GSC_SERVICE_ACCOUNT_PATH'),

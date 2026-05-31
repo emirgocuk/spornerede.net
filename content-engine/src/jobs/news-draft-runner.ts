@@ -14,10 +14,17 @@ import {
   assessNewsDraft,
   ensureMinNewsWords,
   injectNewsInternalLinks,
+  stripAllInternalLinksFooters,
 } from '../lib/news-draft-quality.js';
 import { repairNewsHtml } from '../lib/repair-news-html.js';
-import { pickNewsWritingAngle, buildAvoidListForPrompt } from '../lib/news-angles.js';
+import {
+  pickNewsWritingAngle,
+  pickAlternativeAngle,
+  buildAvoidListForPrompt,
+} from '../lib/news-angles.js';
 import { buildNewsRealData } from '../lib/site-context.js';
+import { loadRecentPublishedBodies } from '../lib/published-topics.js';
+import { maxSimilarity } from '../lib/similarity.js';
 
 export type NewsDraftRunResult =
   | {
@@ -175,56 +182,94 @@ async function createFromLlmPipeline(
   }
 
   const avoidList = buildAvoidListForPrompt(history);
-  const angle = pickNewsWritingAngle(konu + (keyword.id || ''));
+  const seed = konu + (keyword.id || '');
+  const angle = pickNewsWritingAngle(seed);
   const realData = await buildNewsRealData(pb, konu);
   if (realData) {
     console.error('[news] gercek veri eklendi (data-grounding)');
   }
+  const recentBodies = await loadRecentPublishedBodies(pb, 20);
 
-  let parsed;
-  let modelUsed = cfg.openrouterModel;
+  type GenOk = {
+    parsed: Awaited<ReturnType<typeof generateNewsParsed>>['parsed'];
+    modelUsed: string;
+    bodyHtml: string;
+  };
+
   console.error('[news] LLM haber uretimi:', konu);
-  try {
-    const result = await generateNewsParsed(konu, {
-      gscHint: keyword.gscHint,
-      avoidList,
-      angle,
-      realData,
-    });
-    parsed = result.parsed;
-    modelUsed = result.modelUsed;
-  } catch (e) {
-    const msg = String(e);
-    if (msg.includes('429') || msg.toLowerCase().includes('rate-limited')) {
-      return { ok: false, code: 'rate_limit', message: 'Model kotasi (429).' };
+  const generateOnce = async (
+    angleArg: string,
+  ): Promise<GenOk | { error: NewsDraftRunResult }> => {
+    let parsed;
+    let modelUsed = cfg.openrouterModel;
+    try {
+      const result = await generateNewsParsed(konu, {
+        gscHint: keyword.gscHint,
+        avoidList,
+        angle: angleArg,
+        realData,
+      });
+      parsed = result.parsed;
+      modelUsed = result.modelUsed;
+    } catch (e) {
+      const msg = String(e);
+      if (msg.includes('429') || msg.toLowerCase().includes('rate-limited')) {
+        return { error: { ok: false, code: 'rate_limit', message: 'Model kotasi (429).' } };
+      }
+      return { error: { ok: false, code: 'error', message: msg } };
     }
-    return { ok: false, code: 'error', message: msg };
+
+    const bodyHtml = injectNewsInternalLinks(repairNewsHtml(parsed.ozetHtml).html, konu, cfg.siteUrl);
+    const check = assessNewsDraft(bodyHtml, konu, { template: false });
+    if (!check.complete) {
+      return {
+        error: { ok: false, code: 'quality', message: `LLM kalite: ${check.issues.join('; ')}` },
+      };
+    }
+    return { parsed, modelUsed, bodyHtml };
+  };
+
+  const first = await generateOnce(angle);
+  if ('error' in first) return first.error;
+
+  const similarityOf = (g: GenOk) =>
+    recentBodies.length ? maxSimilarity(stripAllInternalLinksFooters(g.bodyHtml), recentBodies) : 0;
+
+  let chosen = first;
+  let usedAngle = angle;
+  let sim = similarityOf(chosen);
+
+  if (recentBodies.length && sim >= cfg.newsDedupMax) {
+    console.warn(
+      `[news] benzerlik yuksek (${sim.toFixed(2)} >= ${cfg.newsDedupMax}); alternatif aci ile yeniden uretiliyor`,
+    );
+    const altAngle = pickAlternativeAngle(seed, angle);
+    const second = await generateOnce(altAngle);
+    if (!('error' in second)) {
+      const sim2 = similarityOf(second);
+      if (sim2 < sim) {
+        chosen = second;
+        usedAngle = altAngle;
+        sim = sim2;
+      }
+    }
   }
 
-  const bodyHtml = injectNewsInternalLinks(
-    repairNewsHtml(parsed.ozetHtml).html,
-    konu,
-    cfg.siteUrl,
-  );
-  const check = assessNewsDraft(bodyHtml, konu, { template: false });
-  if (!check.complete) {
-    return {
-      ok: false,
-      code: 'quality',
-      message: `LLM kalite: ${check.issues.join('; ')}`,
-    };
+  const needsReview = recentBodies.length > 0 && sim >= cfg.newsDedupMax;
+  if (needsReview) {
+    console.warn(`[news] hala benzer (${sim.toFixed(2)}); incelemeye dusuruluyor (otomatik yayin yok)`);
   }
 
-  const ozet = wrapLlmOzet(konu, bodyHtml, keyword.id);
-  const shouldPublish = shouldAutoPublishNews();
+  const ozet = wrapLlmOzet(konu, chosen.bodyHtml, keyword.id);
+  const shouldPublish = shouldAutoPublishNews() && !needsReview;
 
   const { legacyId, slug, record } = await createNewsDraft(pb, {
-    baslik: parsed.baslik,
-    kategori: parsed.kategori,
-    kategoriRenk: parsed.kategoriRenk,
+    baslik: chosen.parsed.baslik,
+    kategori: chosen.parsed.kategori,
+    kategoriRenk: chosen.parsed.kategoriRenk,
     ozet,
-    seoTitle: parsed.seoTitle,
-    seoDescription: parsed.seoDescription,
+    seoTitle: chosen.parsed.seoTitle,
+    seoDescription: chosen.parsed.seoDescription,
     aktif: shouldPublish,
   });
 
@@ -235,8 +280,9 @@ async function createFromLlmPipeline(
   if (keyword.id) {
     await markKeywordUsed(pb, keyword.id, {
       haber_slug: slug,
-      model: modelUsed,
-      angle,
+      model: chosen.modelUsed,
+      angle: usedAngle,
+      similarity: Number(sim.toFixed(3)),
     });
   }
 
@@ -244,10 +290,11 @@ async function createFromLlmPipeline(
     ok: true,
     legacyId,
     slug,
-    baslik: parsed.baslik,
-    modelUsed,
+    baslik: chosen.parsed.baslik,
+    modelUsed: chosen.modelUsed,
     konu,
     autoPublished: shouldPublish,
+    duplicateSkipped: needsReview,
   };
 }
 

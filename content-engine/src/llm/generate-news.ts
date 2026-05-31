@@ -70,7 +70,9 @@ export async function generateNewsParsed(
     try {
       const msgs = attempt === 0 ? messages : [...messages, RETRY_HINT];
       console.error(`[llm:news] model zinciri (deneme ${attempt + 1}/2)...`);
-      const { content, modelUsed: m } = await chatWithFallback(msgs, { temperature: 0.65 });
+      const { content, modelUsed: m } = await chatWithFallback(msgs, {
+        temperature: cfg.newsTemperature,
+      });
       modelUsed = m;
       let parsed = parseNewsOutput(content);
       parsed.ozetHtml = repairNewsHtml(parsed.ozetHtml).html;

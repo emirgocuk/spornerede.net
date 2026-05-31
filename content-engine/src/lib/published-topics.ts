@@ -1,5 +1,5 @@
 import type PocketBase from 'pocketbase';
-import { stripCeKonuFromOzet } from './news-draft-quality.js';
+import { stripCeKonuFromOzet, stripAllInternalLinksFooters } from './news-draft-quality.js';
 import { signaturesSimilar, topicSignature } from './topic-signature.js';
 
 export type PublishedEntry = {
@@ -56,6 +56,19 @@ export function isKonuAlreadyPublished(
     if (entry.konu.toLowerCase().trim() === konu.toLowerCase().trim()) return true;
   }
   return false;
+}
+
+/** Son yayinlarin ic-link footer'i cikarilmis ana govdeleri (dedup karsilastirmasi icin) */
+export async function loadRecentPublishedBodies(pb: PocketBase, limit = 20): Promise<string[]> {
+  const rows = await pb.collection('haberler').getFullList({ sort: '-created' });
+  const out: string[] = [];
+  for (const row of rows) {
+    const { body } = stripCeKonuFromOzet(String(row.ozet ?? ''));
+    const clean = stripAllInternalLinksFooters(body).trim();
+    if (clean) out.push(clean);
+    if (out.length >= limit) break;
+  }
+  return out;
 }
 
 export function recentTemplateIds(history: PublishedEntry[], limit = 8): string[] {

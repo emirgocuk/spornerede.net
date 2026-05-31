@@ -10,16 +10,21 @@ const brandVoice = readFileSync(resolve(root, 'prompts/brand-voice.txt'), 'utf8'
 const qualityRules = readFileSync(resolve(root, 'prompts/news-quality-rules.txt'), 'utf8');
 const rewriteTpl = readFileSync(resolve(root, 'prompts/news-rewrite.txt'), 'utf8');
 
+const NO_REAL_DATA =
+  '(Bu konu icin platform verisi yok. Yeni sayi/isim uydurma; mevcut metni dogal ve klise olmadan duzenle.)';
+
 export async function rewriteNewsFull(params: {
   konu: string;
   baslik: string;
   draftHtml: string;
+  realData?: string;
 }): Promise<{ html: string; meta?: ReturnType<typeof parseNewsOutput>; modelUsed: string }> {
   const draft = String(params.draftHtml ?? '').trim().slice(0, 6000);
   const user = rewriteTpl
     .replace(/\{\{KONU\}\}/g, params.konu)
     .replace(/\{\{BASLIK\}\}/g, params.baslik)
-    .replace(/\{\{DRAFT_HTML\}\}/g, draft);
+    .replace(/\{\{DRAFT_HTML\}\}/g, draft)
+    .replace(/\{\{REAL_DATA\}\}/g, params.realData?.trim() || NO_REAL_DATA);
 
   const messages: ChatMessage[] = [
     { role: 'system', content: `${brandVoice}\n\n${qualityRules}` },

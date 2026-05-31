@@ -6,6 +6,9 @@ Baslik (koru veya iyilestir): {{BASLIK}}
 Taslak (hatalari duzelt, tekrarlari sil):
 {{DRAFT_HTML}}
 
+PLATFORM VERISI (gercek; varsa somut detaylari koru/dogal yedir, yeni sayi-isim uydurma):
+{{REAL_DATA}}
+
 ---META---
 baslik: ...
 seo_title: (max 60)

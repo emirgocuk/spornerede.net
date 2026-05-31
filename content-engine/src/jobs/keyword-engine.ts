@@ -53,7 +53,7 @@ async function main() {
         gsc_position: gsc.position,
       };
     }
-    await pb.collection('seo_keywords').update(kw.id, patch);
+    await pb.collection('seo_keywords').update(String(kw.id), patch);
     updated++;
   }
 

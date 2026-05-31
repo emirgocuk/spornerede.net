@@ -1,4 +1,5 @@
 /** Haber taslağı kalite — src/lib/contentEngine/newsDraftQuality.ts ile senkron tutun */
+import { parseKonu } from './parse-konu.js';
 
 export const MIN_NEWS_WORDS = 250;
 /** Sablon haberler — admin ve kalite kapisi */
@@ -141,15 +142,23 @@ export function suggestNewsCategory(konu: string): { kategori: string; kategoriR
 
 export function buildNewsInternalLinksHtml(konu: string, siteUrl: string): string {
   const base = siteUrl.replace(/\/$/, '');
+  const p = parseKonu(konu);
   const links: string[] = [
     `<a href="${base}/ara">Kurs ara</a>`,
     `<a href="${base}/haberler">Haberler</a>`,
   ];
-  const lower = konu.toLowerCase();
-  if (lower.includes('voleybol')) links.push(`<a href="${base}/branslar/voleybol">Voleybol branslari</a>`);
-  if (lower.includes('basketbol')) links.push(`<a href="${base}/branslar/basketbol">Basketbol branslari</a>`);
-  if (lower.includes('istanbul')) links.push(`<a href="${base}/ara?il=istanbul">Istanbul kurslari</a>`);
-  return `<p><strong>Ilgili sayfalar:</strong> ${links.join(' · ')}.</p>`;
+  if (p.hasBrans) {
+    links.push(`<a href="${base}/branslar/${p.brans}">${p.bransLabel} branşları</a>`);
+  }
+  if (p.hasSehir) {
+    links.push(`<a href="${base}/ara?il=${p.sehir}">${p.sehirLabel} kursları</a>`);
+    if (p.hasBrans) {
+      links.push(
+        `<a href="${base}/sehirler/${p.sehir}/${p.brans}">${p.sehirLabel} ${p.bransLabel.toLocaleLowerCase('tr-TR')}</a>`,
+      );
+    }
+  }
+  return `<p><strong>İlgili sayfalar:</strong> ${links.join(' · ')}.</p>`;
 }
 
 /** Konuya gore degisen dolgu paragraflari — birebir tekrari (duplicate content) onler */

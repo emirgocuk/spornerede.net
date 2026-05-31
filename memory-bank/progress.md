@@ -88,7 +88,7 @@ Satılabilir B2B/B2C paketler, pazar yeri fikirleri ve SEO ile siteye çekme tak
 | ------------------------------------------ | ---------------- | ------------------------------------- |
 | Nginx yönlendirme sorunlarının geçmişi var | ✅ Çözüldü        | Cloudflare SSL modu düzenlendi        |
 | Astro image sharp pixel limiti             | ✅ Geçici çözüldü | CTA görselleri `img` olarak sunuluyor |
-| Content-engine LLM metinleri basma kalıp   | 🚧 Ö1 uygulandı  | Data-grounding + varyantlı dolgu + iskelet gevşetme; sırada Ö2 (dedup). Plan: `content-engine-isolated-plan-tr.md` |
+| Content-engine LLM metinleri basma kalıp   | ✅ Ö1+Ö2+Ö3 | Data-grounding + varyantlı dolgu + iskelet gevşetme + dedup gate + açı çeşitliliği + temperature + iç link kümeleme + rewrite grounding + tip-temiz. /rehber pillar sayfaları → site Faz 20. Plan: `content-engine-isolated-plan-tr.md` |
 
 
 ---

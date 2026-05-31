@@ -460,8 +460,18 @@ Tam `[ ]` checklist: `memory-bank/faz-gelistirme-checklist-tr.md`. Strateji ve t
 - **Ö1.1 data-grounding:** `content-engine/src/lib/site-context.ts` → yeni `buildNewsRealData(pb, anahtar)`; konudan şehir/branş çıkarıp onaylı `kulupler` + aktif `kulup_programlari`'ndan PII'siz somut veri (semt, yaş, gün/saat, ücret, örnek program) üretir. `news-draft-runner.ts` LLM pipeline'ı bu veriyi `generateNewsParsed` → `buildNewsPrompt` → `{{REAL_DATA}}` bloğuna geçirir. Veri yoksa "uydurma" talimatlı güvenli fallback.
 - **Ö1.2 dolgu paragrafı:** `news-draft-quality.ts` → `ensureMinNewsWords` artık sabit "Pratik öneriler" paragrafı yerine konuya göre seçilen 4 varyantlı blok kullanıyor (birebir duplicate content giderildi).
 - **Ö1.3 iskelet gevşetme:** `prompts/news-base.txt`, `news-quality-rules.txt`, `news-rewrite.txt` → zorunlu sabit h2 sırası ve ayrı zorunlu "Kayıt ve kayıt süreci" h2'si önerilere çevrildi; h2 başlıkları açıya göre serbest. `assessNewsDraft` kalite kapısı (min kelime, ≥3 h2, CTA, tam bitiş) korundu.
-- **Doğrulama:** Düzenlenen 4 dosyada lint temiz; `tsc --noEmit` yalnızca önceden var olan 2 hata gösterdi (`oauth-gsc.ts`, `keyword-engine.ts` — bu turla ilgisiz).
-- **Sırada (Ö2):** dedup gate (trigram/Jaccard), içerik tipi çeşitliliği, `SEO_NEWS_TEMPERATURE`. Not: `complete-news-runner.ts` rewrite yolu henüz realData beslenmiyor (Ö2'de ele alınacak); şablon (`template_*`) yolu için data-grounding eklenmedi.
+- **Doğrulama:** Düzenlenen dosyalarda lint temiz; `tsc --noEmit` yalnızca önceden var olan 2 hata gösterdi (`oauth-gsc.ts`, `keyword-engine.ts` — bu turla ilgisiz).
+
+**Durum (2026-05-31): Faz Ö2 de uygulandı.**
+- **Ö2.2 dedup gate:** `src/lib/similarity.ts` (kelime-trigram Jaccard), `published-topics.ts` → `loadRecentPublishedBodies(pb,20)`. `news-draft-runner.ts` LLM pipeline'ı: üretim sonrası son 20 yayınla benzerlik ölçülür; `SEO_NEWS_DEDUP_MAX` (0.45) aşılırsa alternatif açıyla 1 kez yeniden üretip daha az benzer olanı seçer; hâlâ aşıyorsa otomatik yayın yapmaz, taslağı incelemeye düşürür (`duplicateSkipped: true`). Benzerlik skoru `seo_keywords.site_context`'e yazılır.
+- **Ö2.1 çeşitlilik:** `news-angles.ts` açı havuzu 8 → 18 (karşılaştırma, maliyet, yaş-bazlı, SSS, sezon vb.) + `pickAlternativeAngle`.
+- **Ö2.3 sampling:** `config.ts` → `newsTemperature` (`SEO_NEWS_TEMPERATURE`, vars. 0.8) + `newsDedupMax` (`SEO_NEWS_DEDUP_MAX`, 0.45); `generate-news.ts` artık bu temperature'ı kullanıyor. `.env.example` güncellendi.
+**Durum (2026-05-31): Faz Ö3 (içerik motoru kapsamı) + tip temizliği tamamlandı.**
+- **İç link kümeleme:** `news-draft-quality.ts` → `buildNewsInternalLinksHtml` artık `parseKonu` ile tüm branş + şehir + şehir/branş hub linklerini üretiyor (önceki sabit voleybol/basketbol/istanbul yerine).
+- **Rewrite/tamamla yolu grounding:** `complete-news-runner.ts` → `buildNewsRealData` hesaplayıp `completeNewsBody → polishNewsHtml → rewriteNewsFull` zinciri boyunca `{{REAL_DATA}}` olarak `news-rewrite.txt`'e geçiriyor. Böylece "Tamamla" aksiyonu da gerçek veriyle çalışıyor.
+- **Tip temizliği:** Önceden var olan 2 `tsc` hatası giderildi (`oauth-gsc.ts` null→undefined, `keyword-engine.ts` `String(kw.id)`). `tsc --noEmit` artık temiz (exit 0).
+- **Onay/inceleme mekanizması:** Auto-publish toggle (`SEO_AUTO_PUBLISH`/`SEO_NEWS_TEMPLATE_AUTO_PUBLISH`) + dedup "incelemeye düşürme" + admin haber taslağı düzenle/yayınla zaten editör onay akışını sağlıyor.
+- **İçerik motoru paketi dışı kalan (bilinçli):** Pillar+cluster **/rehber/** sayfaları ana sitenin **Faz 20** işidir (Astro sayfaları + admin SEO İçerik sekmesi); content-engine yalnızca PB'ye taslak yazar. GSC tabanlı gerçek "People Also Ask" başlık üretimi, daha fazla GSC veri toplama gerektirir (Faz 21); şu an GSC hint'i prompt'a giriyor.
 
 ## Bir Sonraki Konuşmada Yapılacaklar
 
