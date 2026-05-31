@@ -1,5 +1,5 @@
-import { spawn } from 'node:child_process';
 import { resolve } from 'node:path';
+import { spawnContentEngineCli } from './spawnContentEngine.js';
 
 const contentEngineRoot = resolve(process.cwd(), 'content-engine');
 
@@ -17,13 +17,9 @@ export type CompleteNewsRunResult =
   | { ok: false; code: string; message: string };
 
 export function runNewsCompleteFromAdmin(legacyId: number): Promise<CompleteNewsRunResult> {
-  const args = ['tsx', 'src/cli/run-news-complete-json.ts', String(legacyId)];
-
   return new Promise((resolvePromise) => {
-    const child = spawn('npx', args, {
+    const child = spawnContentEngineCli('src/cli/run-news-complete-json.ts', [String(legacyId)], {
       cwd: contentEngineRoot,
-      shell: true,
-      env: process.env,
     });
     let out = '';
     child.stdout?.on('data', (d) => {

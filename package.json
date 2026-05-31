@@ -27,6 +27,8 @@
     "pb:setup": "tsx scripts/pb-setup.ts",
     "content-engine:install": "npm install --prefix content-engine",
     "content-engine:check": "npm run check:env --prefix content-engine",
+    "content-engine:sync-env": "bash deploy/sync-content-engine-env.sh",
+    "content-engine:sync-env:win": "powershell -NoProfile -ExecutionPolicy Bypass -File deploy/sync-content-engine-env.ps1",
     "content-engine:setup": "npm run setup:collections --prefix content-engine",
     "content-engine:repair": "npm run repair:collections --prefix content-engine",
     "content-engine:seed": "npm run seed:keywords --prefix content-engine",

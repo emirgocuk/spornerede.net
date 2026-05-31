@@ -160,10 +160,18 @@ if [[ -d "${APP_REPO_DIR}/content-engine" ]]; then
     --exclude 'node_modules/' \
     --exclude '.env' \
     "${APP_REPO_DIR}/content-engine/" "${NEW_RELEASE}/content-engine/"
-  if (cd "${NEW_RELEASE}/content-engine" && npm ci); then
+  if (cd "${NEW_RELEASE}/content-engine" && npm ci --include=dev); then
     log "Content Engine bagimliliklari kuruldu."
   else
     log "UYARI: content-engine npm ci basarisiz; admin Content Engine sekmesi calismayabilir."
+  fi
+  CE_ENV_SRC="${REMOTE_BASE}/content-engine.env"
+  if [[ -f "${CE_ENV_SRC}" ]]; then
+    cp "${CE_ENV_SRC}" "${NEW_RELEASE}/content-engine/.env"
+    chmod 600 "${NEW_RELEASE}/content-engine/.env"
+    log "Content Engine .env kopyalandi (${CE_ENV_SRC})."
+  else
+    log "UYARI: ${CE_ENV_SRC} yok — admin Content Engine icin: bash deploy/sync-content-engine-env.sh"
   fi
 fi
 

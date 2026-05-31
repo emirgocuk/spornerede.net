@@ -1,5 +1,5 @@
-import { spawn } from 'node:child_process';
 import { resolve } from 'node:path';
+import { spawnContentEngineCli } from './spawnContentEngine.js';
 
 const contentEngineRoot = resolve(process.cwd(), 'content-engine');
 /** Admin UI — LLM zinciri icin ust sinir (asilirsa surec oldurulur) */
@@ -26,9 +26,9 @@ export type NewsDraftRunResult =
     };
 
 export function runNewsDraftFromAdmin(konu?: string): Promise<NewsDraftRunResult> {
-  const args = ['tsx', 'src/cli/run-news-draft-json.ts'];
+  const extraArgs: string[] = [];
   if (konu?.trim()) {
-    args.push('--', konu.trim());
+    extraArgs.push('--', konu.trim());
   }
 
   return new Promise((resolve) => {
@@ -40,10 +40,8 @@ export function runNewsDraftFromAdmin(konu?: string): Promise<NewsDraftRunResult
       resolve(result);
     };
 
-    const child = spawn('npx', args, {
+    const child = spawnContentEngineCli('src/cli/run-news-draft-json.ts', extraArgs, {
       cwd: contentEngineRoot,
-      shell: true,
-      env: { ...process.env, FORCE_COLOR: '0' },
     });
 
     let out = '';

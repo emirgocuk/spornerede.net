@@ -1,5 +1,5 @@
-import { spawn } from 'node:child_process';
 import { resolve } from 'node:path';
+import { spawnContentEngineCli } from './spawnContentEngine.js';
 
 const contentEngineRoot = resolve(process.cwd(), 'content-engine');
 
@@ -20,10 +20,8 @@ export type DraftRunResult =
 
 export function runDraftFromAdmin(): Promise<DraftRunResult> {
   return new Promise((resolve) => {
-    const child = spawn('npx', ['tsx', 'src/cli/run-draft-json.ts'], {
+    const child = spawnContentEngineCli('src/cli/run-draft-json.ts', [], {
       cwd: contentEngineRoot,
-      shell: true,
-      env: process.env,
     });
     let out = '';
     child.stdout?.on('data', (d) => {
