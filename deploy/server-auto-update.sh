@@ -148,6 +148,25 @@ if [[ -f "${APP_REPO_DIR}/package-lock.json" ]]; then
 fi
 (cd "${NEW_RELEASE}" && npm ci --omit=dev)
 
+# Content Engine (izole CLI) — admin "Content Engine" sekmesi calisma aninda
+# release icindeki content-engine/ klasorunu `npx tsx` ile spawn eder
+# (cwd = current/content-engine). Bu yuzden kaynagi + bagimliliklarini release'e
+# tasiriz. node_modules ve .env haric tutulur; env degerleri systemd
+# EnvironmentFile (/opt/spornerede/.env) uzerinden process.env ile gecer.
+# Hata main site deploy'unu durdurmasin diye non-fatal birakilir.
+if [[ -d "${APP_REPO_DIR}/content-engine" ]]; then
+  log "Content Engine release'e kopyalaniyor..."
+  rsync -a --delete \
+    --exclude 'node_modules/' \
+    --exclude '.env' \
+    "${APP_REPO_DIR}/content-engine/" "${NEW_RELEASE}/content-engine/"
+  if (cd "${NEW_RELEASE}/content-engine" && npm ci); then
+    log "Content Engine bagimliliklari kuruldu."
+  else
+    log "UYARI: content-engine npm ci basarisiz; admin Content Engine sekmesi calismayabilir."
+  fi
+fi
+
 ln -sfn "${NEW_RELEASE}" "${CURRENT_LINK}"
 log "Release aktif: ${NEW_RELEASE}"
 

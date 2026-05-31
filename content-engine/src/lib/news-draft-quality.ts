@@ -152,13 +152,40 @@ export function buildNewsInternalLinksHtml(konu: string, siteUrl: string): strin
   return `<p><strong>Ilgili sayfalar:</strong> ${links.join(' · ')}.</p>`;
 }
 
+/** Konuya gore degisen dolgu paragraflari — birebir tekrari (duplicate content) onler */
+function buildWordSupplement(topic: string): string {
+  const variants: Array<{ h2: string; p: string }> = [
+    {
+      h2: 'Nelere dikkat etmeli',
+      p: `${topic} seçerken deneme dersi, grup yoğunluğu, antrenör deneyimi ve ulaşım süresini birlikte değerlendirmek kayıt sonrası sürprizleri azaltır. Ücret, ekipman ve iptal koşullarını yazılı olarak teyit edin.`,
+    },
+    {
+      h2: 'Karşılaştırma ipuçları',
+      p: `${topic} için birkaç seçeneği yan yana koymak işi kolaylaştırır: program günleri, seviye grupları, salon/tesis koşulları ve yıllık maliyet kalemleri bir arada bakıldığında daha sağlıklı karar verilir. Aceleci tek tercih yerine kısa bir liste oluşturun.`,
+    },
+    {
+      h2: 'Aileler için pratik notlar',
+      p: `${topic} araştırırken çocuğun yaşına uygun grup, antrenör iletişimi ve devam edilebilir bir program saatini öne almak motivasyonu korur. Deneme döneminde gözlem yapmak ve beklentileri kulüple açıkça konuşmak uzun vadede fark yaratır.`,
+    },
+    {
+      h2: 'Başlamadan önce',
+      p: `${topic} için kayıt öncesi konum, ders sıklığı ve ödeme planını netleştirmek en sık yaşanan karışıklıkları önler. Sezon başı kontenjanlarının erken dolabileceğini hatırlayın ve uygun bulduğunuz kulüple önceden iletişime geçin.`,
+    },
+  ];
+
+  let h = 0;
+  for (let i = 0; i < topic.length; i += 1) h = (h * 31 + topic.charCodeAt(i)) >>> 0;
+  const v = variants[h % variants.length]!;
+  return `<h2>${v.h2}</h2>
+<p>${v.p} <strong>SporNerede</strong> üzerinde konum ve branş filtreleriyle kısa liste oluşturup başvuru yapabilirsiniz.</p>`;
+}
+
 export function ensureMinNewsWords(bodyHtml: string, konu: string, min = MIN_NEWS_WORDS_TEMPLATE): string {
   let body = stripAllInternalLinksFooters(bodyHtml);
   if (countWordsFromHtml(body) >= min) return body;
 
   const topic = konu.trim() || 'spor kursu';
-  const supplement = `<h2>Pratik öneriler</h2>
-<p>${topic} seçerken deneme dersi, grup yoğunluğu, antrenör deneyimi ve ulaşım süresini birlikte değerlendirmek kayıt sonrası sürprizleri azaltır. Ücret, ekipman ve iptal koşullarını yazılı olarak teyit edin; mümkünse birkaç kulübün programını yan yana karşılaştırın. <strong>SporNerede</strong> ilanlarında konum, iletişim ve branş filtreleriyle kısa liste oluşturup kayıt için doğrudan başvuru yapabilirsiniz.</p>`;
+  const supplement = buildWordSupplement(topic);
 
   const kayitIdx = body.search(/<h2[^>]*>[^<]*kay[ıi]t[^<]*<\/h2>/i);
   if (kayitIdx >= 0) {

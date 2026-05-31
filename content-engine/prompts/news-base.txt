@@ -19,17 +19,22 @@ Kurallar:
 - Son yayinlananlar (AYNI BASLIK VE KALIP KULLANMA):
 {{AVOID_LIST}}
 
+PLATFORM VERISI (gercek; somut yazmak icin kullan):
+{{REAL_DATA}}
+- Yukaridaki gercek verilerden en az 2-3 somut detayi (semt, yas grubu, gun/saat, ucret, ornek program) metne dogal sekilde yedir.
+- Veri yoksa SAYI/ISIM UYDURMA; o zaman konuya ozgu, genel ama klise olmayan bir metin yaz.
+
 OZGUNLUK (cok onemli):
 - Sablon baslik YASAK: "{{KONU}}: kayit ve secim rehberi", "kayit ve secim rehberi" kalibi YASAK
 - Her haberde farkli baslik tonu (soru, liste, ipucu, sezon, ebeveyn, deneme dersi vb.)
-- h2 basliklari da sablon tekrari olmasin; en az bir h2 aciya ozel olsun
+- h2 basliklari konuya/aciya gore SERBEST ve ozgun olsun; sabit iskelet tekrarlama
 - Ilk paragraf diger haberlerden farkli girisle baslasin
 - Platform: SporNerede — spor kulubu ve kurs rehberi
 - Turkiye Turkcesi, tarafsiz, guven veren; TUM BASKI (CAPS) kullanma
 - baslik ve seo alanlari somut konuyu yansitsin; "Haber" gibi genel kelime YASAK
 - seo_title ve seo_description normal cumle buyuklugu (sadece ilk harf ve ozel isimler)
-- En az 3 adet h2 alt baslik (ornek: kimler icin, program, kayit, avantajlar)
-- Son h2 veya son bolum: Kayit / kayit sureci / nasil basvurulur
+- 3-4 adet h2 alt baslik; basliklar aciya gore degissin (sabit "kimler icin / program / kayit" sirasi zorunlu DEGIL)
+- Kayit / basvuru bilgisine bir yerde deginmen onerilir ama ayri zorunlu bir "Kayit" h2'si SART degil
 - Son paragraf: SporNerede CTA — yakinindaki kurslari aramak icin platform
 - Metin MUTLAKA tam bitmeli; yarim cumle veya yarim h2 YASAK (ornek: "Kayit ve" ile bitirme)
 - ---END--- satirini mutlaka yaz

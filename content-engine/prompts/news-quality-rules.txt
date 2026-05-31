@@ -2,21 +2,23 @@ ZORUNLU YAZIM KURALLARI (ihlal = metin reddedilir):
 
 Yapi:
 - Sadece HTML: p, h2, ul, li (h1 yok)
-- Tam olarak 3 veya 4 adet h2; her h2 altinda en az bir dolu p veya ul
+- 3 veya 4 adet h2; her h2 altinda en az bir dolu p veya ul
 - h2 basliklari tek satir, 4-60 karakter, Turkce imla (bosluklar dogru)
+- h2 basliklari konuya/aciya gore ozgun olsun; sabit iskelet tekrarlama
 
 Yasaklar:
 - Yarim baslik: "Kayit ve", "Program ve" gibi tek baslik YASAK
 - Yarim cumle ile bitirme YASAK
-- Ayni konuda iki h2 (ornek iki kez "kayit") YASAK — tek "Kayit ve kayit sureci" h2
+- Ayni konuda iki ayni h2 (ornek iki kez "kayit") YASAK
 - Bitistik yazim YASAK: Kayitve, kayitsureci, Istanbulda (dogru: Kayit ve, kayit sureci, Istanbul'da)
 - Ingilizce kelime (schedule, professional) YASAK
 - TUM BASKI YASAK
 - "Haber" kelimesi baslikta YASAK
 
 Icerik:
-- Konu anahtarini giris ve kayit bolumunde gecir
-- Son h2: "Kayit ve kayit sureci" (veya esdegeri, imla dogru)
+- Konu anahtarini girise dogal gecir
+- Kayit / basvuru bilgisine bir yerde deginmen onerilir; ayri zorunlu "Kayit" h2 SART degil
+- Varsa platform verisinden somut detay (semt, yas, gun/saat, ucret, ornek program) yedir; veri yoksa uydurma
 - Son p: SporNerede CTA, cumle . veya ! ile biter
 - 400-700 kelime
 

@@ -88,6 +88,7 @@ Satılabilir B2B/B2C paketler, pazar yeri fikirleri ve SEO ile siteye çekme tak
 | ------------------------------------------ | ---------------- | ------------------------------------- |
 | Nginx yönlendirme sorunlarının geçmişi var | ✅ Çözüldü        | Cloudflare SSL modu düzenlendi        |
 | Astro image sharp pixel limiti             | ✅ Geçici çözüldü | CTA görselleri `img` olarak sunuluyor |
+| Content-engine LLM metinleri basma kalıp   | 🚧 Ö1 uygulandı  | Data-grounding + varyantlı dolgu + iskelet gevşetme; sırada Ö2 (dedup). Plan: `content-engine-isolated-plan-tr.md` |
 
 
 ---
@@ -345,6 +346,8 @@ Detaylı plan: `memory-bank/seo-ads-plan.md`. Tüm altyapı turu tek seferde tam
 > Teknik plan: `memory-bank/seo-autopilot-plan-tr.md` · İzole uygulama: `content-engine/` · `memory-bank/content-engine-isolated-plan-tr.md`
 
 **Profil:** `SEO_USE_PAID_APIS=false` — LLM: **OpenRouter `:free` sabit model** (Gemini/Google AI Studio yok; fatura sızıntısı riski). GSC + PocketBase/Astro. Günde **1** taslak → admin düzenler → yayın.
+
+> **İçerik özgünlüğü (basma kalıp) iyileştirmesi:** Üretilen metinlerin birbirine benzemesi sorununun kök neden analizi ve MVP planı (Faz Ö1 data-grounding + dolgu paragrafı kaldırma + iskelet gevşetme → Ö2 dedup gate + çeşitlilik → Ö3) `memory-bank/content-engine-isolated-plan-tr.md` içinde. Aktif odak: `activeContext.md`.
 
 ### Faz 18 — Keyword kuyruğu (ücretsiz)
 

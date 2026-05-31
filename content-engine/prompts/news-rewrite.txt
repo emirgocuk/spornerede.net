@@ -16,10 +16,10 @@ kategori_renk: (green | blue | ...)
 (tam HTML haber metni)
 ---END---
 
-Zorunlu h2 iskeleti (sirasi degisebilir, hepsi dolu olmali):
-1) Konuya giris veya kimler icin
-2) Program / egitim / avantajlar (konuya gore)
-3) Kayit ve kayit sureci (tek h2, imla: "Kayıt ve kayıt süreci")
-4) Istee SporNerede avantajlari veya platform
+h2 yapisi (3-4 adet, konuya/aciya gore ozgun; sabit iskelet tekrarlama):
+- Basliklar konuya ve aciya gore degissin; ayni kaliplari her yazida kullanma
+- Hepsi dolu olmali (her h2 altinda dolu p veya ul)
+- Kayit / basvuru bilgisine bir yerde deginilebilir; ayri zorunlu "Kayit" h2 SART degil
+- Varsa platform verisindeki somut detaylari (semt, yas, gun/saat, ucret) koru ve dogal yedir; yeni sayi/isim uydurma
 
 Son paragraf SporNerede CTA ile bitsin. Ilgili sayfalar link blogu EKLEME (sistem ekler).

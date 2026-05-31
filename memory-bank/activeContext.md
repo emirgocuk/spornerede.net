@@ -447,6 +447,22 @@ Tam `[ ]` checklist: `memory-bank/faz-gelistirme-checklist-tr.md`. Strateji ve t
 - Kulüp adı, branş(lar), ilçe, telefon, e-posta, kısa açıklama
 - Submit → Nodemailer (self-hosted SMTP) ile kurucu e-postasına bildirim
 
+## İçerik Motoru — Özgünlük (Basma Kalıp) İyileştirmesi 🆕
+
+`content-engine/` LLM çıktıları yapısal/cümlesel olarak birbirine çok benziyor ("basma kalıp"). Kök neden incelendi (gerçek veri yokluğu, koda gömülü sabit dolgu paragrafı, zorunlu tek-tip h2 iskeleti, dar konu uzayı, küçük açı havuzu + zayıf ücretsiz model). Dosya bazında MVP planı **Faz Ö1 → Ö2 → Ö3** olarak çıkarıldı: `memory-bank/content-engine-isolated-plan-tr.md` → bölüm **"İçerik Özgünlüğü — Basma Kalıp Giderme Planı"**.
+
+- **Faz Ö1 (kritik %80, ~0.5–1 gün):** (1) PB `kulupler`/`programlar`'tan data-grounding, (2) `ensureMinNewsWords` sabit paragrafını kaldır, (3) zorunlu h2/kayıt iskeletini gevşet.
+- **Faz Ö2:** içerik tipi çeşitliliği + dedup gate (trigram/Jaccard) + `SEO_NEWS_TEMPERATURE`.
+- **Faz Ö3:** GSC sorgu → başlık/H2, pillar+cluster, editör onay kuyruğu.
+- Önerilen sıra: Ö1.2 → Ö1.1 → Ö2.2 → Ö1.3 → Ö2.1/Ö2.3.
+
+**Durum (2026-05-31): Faz Ö1 kod olarak uygulandı.**
+- **Ö1.1 data-grounding:** `content-engine/src/lib/site-context.ts` → yeni `buildNewsRealData(pb, anahtar)`; konudan şehir/branş çıkarıp onaylı `kulupler` + aktif `kulup_programlari`'ndan PII'siz somut veri (semt, yaş, gün/saat, ücret, örnek program) üretir. `news-draft-runner.ts` LLM pipeline'ı bu veriyi `generateNewsParsed` → `buildNewsPrompt` → `{{REAL_DATA}}` bloğuna geçirir. Veri yoksa "uydurma" talimatlı güvenli fallback.
+- **Ö1.2 dolgu paragrafı:** `news-draft-quality.ts` → `ensureMinNewsWords` artık sabit "Pratik öneriler" paragrafı yerine konuya göre seçilen 4 varyantlı blok kullanıyor (birebir duplicate content giderildi).
+- **Ö1.3 iskelet gevşetme:** `prompts/news-base.txt`, `news-quality-rules.txt`, `news-rewrite.txt` → zorunlu sabit h2 sırası ve ayrı zorunlu "Kayıt ve kayıt süreci" h2'si önerilere çevrildi; h2 başlıkları açıya göre serbest. `assessNewsDraft` kalite kapısı (min kelime, ≥3 h2, CTA, tam bitiş) korundu.
+- **Doğrulama:** Düzenlenen 4 dosyada lint temiz; `tsc --noEmit` yalnızca önceden var olan 2 hata gösterdi (`oauth-gsc.ts`, `keyword-engine.ts` — bu turla ilgisiz).
+- **Sırada (Ö2):** dedup gate (trigram/Jaccard), içerik tipi çeşitliliği, `SEO_NEWS_TEMPERATURE`. Not: `complete-news-runner.ts` rewrite yolu henüz realData beslenmiyor (Ö2'de ele alınacak); şablon (`template_*`) yolu için data-grounding eklenmedi.
+
 ## Bir Sonraki Konuşmada Yapılacaklar
 
 1. **Faz 13 — Reklam yayını ve ölçüm** (`progress.md`, `faz-gelistirme-checklist-tr.md`):

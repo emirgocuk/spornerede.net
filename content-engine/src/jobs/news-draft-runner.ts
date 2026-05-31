@@ -17,6 +17,7 @@ import {
 } from '../lib/news-draft-quality.js';
 import { repairNewsHtml } from '../lib/repair-news-html.js';
 import { pickNewsWritingAngle, buildAvoidListForPrompt } from '../lib/news-angles.js';
+import { buildNewsRealData } from '../lib/site-context.js';
 
 export type NewsDraftRunResult =
   | {
@@ -175,6 +176,10 @@ async function createFromLlmPipeline(
 
   const avoidList = buildAvoidListForPrompt(history);
   const angle = pickNewsWritingAngle(konu + (keyword.id || ''));
+  const realData = await buildNewsRealData(pb, konu);
+  if (realData) {
+    console.error('[news] gercek veri eklendi (data-grounding)');
+  }
 
   let parsed;
   let modelUsed = cfg.openrouterModel;
@@ -184,6 +189,7 @@ async function createFromLlmPipeline(
       gscHint: keyword.gscHint,
       avoidList,
       angle,
+      realData,
     });
     parsed = result.parsed;
     modelUsed = result.modelUsed;

@@ -27,16 +27,21 @@ export type NewsGenerationContext = {
   gscHint?: string;
   avoidList?: string;
   angle?: string;
+  realData?: string;
 };
 
 const DEFAULT_ANGLE =
   'Okuyucuya pratik, gundelik bir dilde tek bir net fayda sun (deneme dersi, zaman plani veya kulup secimi).';
+
+const NO_REAL_DATA =
+  '(Bu konu icin platform verisi yok. Uydurma somut sayi/isim verme; genel ama klise olmayan, konuya ozgu yaz.)';
 
 export function buildNewsPrompt(konu: string, ctx?: NewsGenerationContext): ChatMessage[] {
   const user = newsBase
     .replace(/\{\{KONU\}\}/g, konu)
     .replace(/\{\{GSC_HINT\}\}/g, ctx?.gscHint?.trim() || `Anahtar: ${konu}`)
     .replace(/\{\{AVOID_LIST\}\}/g, ctx?.avoidList?.trim() || '(henuz yayin yok)')
+    .replace(/\{\{REAL_DATA\}\}/g, ctx?.realData?.trim() || NO_REAL_DATA)
     .replace(/\{\{ANGLE\}\}/g, ctx?.angle?.trim() || DEFAULT_ANGLE);
   return [
     {
