@@ -1,5 +1,5 @@
 import { getContentEngineRoot } from './contentEngineRoot.js';
-import { spawnContentEngineCli } from './spawnContentEngine.js';
+import { spawnContentEngineCli, ContentEngineSpawnError } from './spawnContentEngine.js';
 import { runContentEngineScript } from './spawnContentEngineWait.js';
 
 const contentEngineRoot = getContentEngineRoot();
@@ -135,20 +135,27 @@ export async function runNewsDraftFromAdmin(
     spawnEnv.SEO_NEWS_KEYWORD_ID = keywordId.trim();
   }
 
-  let attempt = await spawnNewsDraft(topic, spawnEnv);
-  if (attempt.result.ok || !needsCollectionRepair(attempt.raw)) {
+  try {
+    let attempt = await spawnNewsDraft(topic, spawnEnv);
+    if (attempt.result.ok || !needsCollectionRepair(attempt.raw)) {
+      return attempt.result;
+    }
+
+    const repairErr = await repairContentEngineSchema();
+    if (repairErr) {
+      return {
+        ok: false,
+        code: 'error',
+        message: `seo_keywords onarilamadi: ${repairErr}`,
+      };
+    }
+
+    attempt = await spawnNewsDraft(topic, spawnEnv);
     return attempt.result;
+  } catch (e) {
+    if (e instanceof ContentEngineSpawnError) {
+      return { ok: false, code: 'error', message: e.message };
+    }
+    throw e;
   }
-
-  const repairErr = await repairContentEngineSchema();
-  if (repairErr) {
-    return {
-      ok: false,
-      code: 'error',
-      message: `seo_keywords onarilamadi: ${repairErr}`,
-    };
-  }
-
-  attempt = await spawnNewsDraft(topic, spawnEnv);
-  return attempt.result;
 }

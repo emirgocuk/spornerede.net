@@ -1,7 +1,7 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { getContentEngineRoot } from './contentEngineRoot.js';
+import { getContentEngineRoot, resolveContentEngineTsx } from './contentEngineRoot.js';
 
 /** content-engine/.env — Astro process.env bos/yanlis degerleri ezmesin diye */
 export function loadContentEngineEnv(cwd: string): NodeJS.ProcessEnv {
@@ -27,6 +27,14 @@ export function loadContentEngineEnv(cwd: string): NodeJS.ProcessEnv {
   return merged;
 }
 
+export class ContentEngineSpawnError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ContentEngineSpawnError';
+  }
+}
+
+/** node + tsx — npx kullanilmaz (systemd PATH'te npx yok) */
 export function spawnContentEngineCli(
   scriptRelPath: string,
   extraArgs: string[] = [],
@@ -34,20 +42,15 @@ export function spawnContentEngineCli(
 ): ChildProcessWithoutNullStreams {
   const cwd = options?.cwd ?? getContentEngineRoot();
   const env = { ...loadContentEngineEnv(cwd), ...options?.env };
+  const tsxCli = resolveContentEngineTsx(cwd);
 
-  const tsxCli = join(cwd, 'node_modules', 'tsx', 'dist', 'cli.mjs');
-  if (existsSync(tsxCli)) {
-    return spawn(process.execPath, [tsxCli, scriptRelPath, ...extraArgs], {
-      cwd,
-      shell: false,
-      env,
-      windowsHide: true,
-    });
+  if (!tsxCli) {
+    throw new ContentEngineSpawnError(
+      `content-engine tsx bulunamadi (${cwd}). Sunucuda: cd content-engine && npm ci --include=dev`,
+    );
   }
 
-  const isWin = process.platform === 'win32';
-  const runner = isWin ? 'npx.cmd' : 'npx';
-  return spawn(runner, ['tsx', scriptRelPath, ...extraArgs], {
+  return spawn(process.execPath, [tsxCli, scriptRelPath, ...extraArgs], {
     cwd,
     shell: false,
     env,
