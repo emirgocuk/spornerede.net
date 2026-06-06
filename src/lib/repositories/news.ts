@@ -1,3 +1,4 @@
+import { getDb, hasDatabaseUrl } from '../../db/client';
 import { parseNewsTarihMs } from '../newsTarih';
 import { sanitizeArticleHtml } from '../html/sanitizeArticleHtml';
 import {
