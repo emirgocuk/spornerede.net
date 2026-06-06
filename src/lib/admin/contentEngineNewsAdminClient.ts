@@ -63,9 +63,8 @@ export function mountContentEngineNews(deps: ApiDeps) {
     if (schedTime) schedTime.value = `${pad2(data.runHour)}:${pad2(data.runMinute)}`;
     if (schedAutoPub) schedAutoPub.checked = data.autoPublish !== false;
     if (schedNext) {
-      schedNext.textContent = data.enabled
-        ? `Sonraki: ${data.nextRunLabel}`
-        : 'Zamanlayici kapali';
+      schedNext.textContent = data.enabled ? data.nextRunLabel : 'Kapali';
+      schedNext.classList.toggle('is-on', Boolean(data.enabled));
     }
     if (schedLast) {
       if (data.lastRunAt) {

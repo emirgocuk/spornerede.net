@@ -285,44 +285,62 @@ const adminLocationData = {
           <div class="content-engine-panel">
             <div class="content-engine-intro">
               <h2>Haber & duyuru otopilot</h2>
-              <p>LLM tam uretim (ozgun baslik/metin); GSC + son haberler tekrar onlenir.</p>
-              <ol class="content-engine-steps">
-                <li><strong>SEO haber yaz</strong> — kuyruk konu → model uretir (sablon kapali: <code>SEO_NEWS_MODE=llm</code>)</li>
-                <li><strong>Otomatik yayin</strong> — <code>SEO_NEWS_TEMPLATE_AUTO_PUBLISH=true</code> ise direkt aktif</li>
-                <li><strong>Sablon modu</strong> — deneme icin <code>template</code> veya <code>template_llm</code></li>
-              </ol>
+              <p>Kuyruktaki anahtar kelimelerden LLM ile haber uretir. Son haberlerle benzerlik kontrolu yapilir.</p>
             </div>
-            <div class="admin-toolbar content-engine-toolbar">
-              <button id="ce-generate-news" class="btn btn-success shadow-sm" type="button">✨ SEO haber yaz</button>
-              <button id="ce-manual-news" class="btn btn-outline shadow-sm" type="button">📝 Manuel taslak</button>
-              <button id="add-news-btn" class="btn btn-outline shadow-sm" type="button">➕ Bos haber formu</button>
-              <button id="load-news" class="btn btn-primary shadow-sm" type="button">🔄 Yenile</button>
-              <span id="ce-news-status" class="ce-status" role="status"></span>
-            </div>
-            <div class="ce-scheduler" id="ce-scheduler">
-              <div class="ce-scheduler-head">
-                <strong>⏰ Otomatik zamanlayici</strong>
-                <span id="ce-scheduler-next" class="ce-scheduler-meta"></span>
-              </div>
-              <div class="ce-scheduler-form">
-                <label class="ce-scheduler-field">
-                  <input id="ce-sched-enabled" type="checkbox" />
-                  Aktif
-                </label>
-                <label class="ce-scheduler-field">
-                  Saat (TR)
-                  <input id="ce-sched-time" type="time" value="07:00" />
-                </label>
-                <label class="ce-scheduler-field">
-                  <input id="ce-sched-autopub" type="checkbox" checked />
-                  Dedup gecerse otomatik yayinla
-                </label>
-                <button id="ce-sched-save" class="btn btn-outline shadow-sm" type="button">Kaydet</button>
-              </div>
-              <p id="ce-sched-last" class="ce-scheduler-last"></p>
-              <p class="ce-scheduler-hint section-help">
-                Sunucu her dakika kontrol eder. GSC verisi icin haftada bir <code>job:keywords</code> calistirin.
-              </p>
+
+            <div class="ce-panel-grid">
+              <section class="ce-card">
+                <h3 class="ce-card-title">Manuel uretim</h3>
+                <p class="ce-card-desc">Tek seferlik haber veya taslak olusturmak icin.</p>
+                <div class="ce-card-actions">
+                  <button id="ce-generate-news" class="btn btn-success shadow-sm" type="button">SEO haber yaz</button>
+                  <button id="ce-manual-news" class="btn btn-outline shadow-sm" type="button">Manuel taslak</button>
+                  <button id="add-news-btn" class="btn btn-outline shadow-sm" type="button">Bos haber formu</button>
+                  <button id="load-news" class="btn btn-outline shadow-sm" type="button">Yenile</button>
+                </div>
+                <span id="ce-news-status" class="ce-status" role="status"></span>
+              </section>
+
+              <section class="ce-card ce-card--schedule" id="ce-scheduler">
+                <div class="ce-card-head-row">
+                  <h3 class="ce-card-title">Gunluk zamanlayici</h3>
+                  <span id="ce-scheduler-next" class="ce-scheduler-badge"></span>
+                </div>
+                <p class="ce-card-desc">Her gun belirlediginiz saatte (Turkiye) otomatik haber uretir.</p>
+
+                <div class="ce-scheduler-controls">
+                  <label class="ce-switch">
+                    <input id="ce-sched-enabled" type="checkbox" />
+                    <span class="ce-switch-ui" aria-hidden="true"></span>
+                    <span class="ce-switch-label">Zamanlayici acik</span>
+                  </label>
+                  <label class="ce-time-field">
+                    <span class="ce-time-label">Saat</span>
+                    <input id="ce-sched-time" type="time" value="07:00" />
+                  </label>
+                </div>
+
+                <div class="ce-option-box">
+                  <label class="ce-switch ce-switch--wide">
+                    <input id="ce-sched-autopub" type="checkbox" checked />
+                    <span class="ce-switch-ui" aria-hidden="true"></span>
+                    <span class="ce-switch-copy">
+                      <span class="ce-switch-label">Otomatik yayinla</span>
+                      <span class="ce-switch-help">
+                        Kalite ve benzerlik testinden gecerse haber sitede yayinlanir; gecmezse taslak olarak kalir, siz onaylarsiniz.
+                      </span>
+                    </span>
+                  </label>
+                </div>
+
+                <div class="ce-scheduler-footer">
+                  <button id="ce-sched-save" class="btn btn-primary shadow-sm" type="button">Kaydet</button>
+                  <p id="ce-sched-last" class="ce-scheduler-last"></p>
+                </div>
+                <p class="ce-scheduler-footnote section-help">
+                  Sunucu her dakika kontrol eder. GSC skorlari icin haftada bir <code>job:keywords</code> calistirin.
+                </p>
+              </section>
             </div>
           </div>
 
@@ -3303,100 +3321,233 @@ const adminLocationData = {
 
     .content-engine-panel {
       margin-bottom: 1.25rem;
-      padding: 1.15rem 1.25rem;
-      border-radius: 12px;
+      padding: 1.25rem 1.35rem;
+      border-radius: 1rem;
       border: 1px solid var(--admin-border);
-      background: linear-gradient(135deg, #fff8f8 0%, #ffffff 55%);
+      background: var(--admin-surface);
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
     }
 
     .content-engine-intro h2 {
       margin: 0 0 0.35rem;
       font-size: 1.15rem;
       font-weight: 800;
-      color: #1f2937;
+      color: var(--admin-text-main);
     }
 
     .content-engine-intro p {
-      margin: 0 0 0.75rem;
+      margin: 0 0 1rem;
       color: var(--admin-text-muted);
       font-size: 0.92rem;
-    }
-
-    .content-engine-steps {
-      margin: 0;
-      padding-left: 1.2rem;
-      color: #4b5563;
-      font-size: 0.88rem;
       line-height: 1.55;
+      max-width: 52rem;
     }
 
-    .content-engine-toolbar {
-      margin-bottom: 0;
+    .ce-panel-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+      gap: 1rem;
     }
 
-    .ce-scheduler {
-      margin-top: 1rem;
-      padding-top: 1rem;
-      border-top: 1px dashed #e5e7eb;
+    @media (max-width: 960px) {
+      .ce-panel-grid {
+        grid-template-columns: 1fr;
+      }
     }
 
-    .ce-scheduler-head {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: baseline;
-      gap: 0.5rem 1rem;
-      margin-bottom: 0.65rem;
-      font-size: 0.92rem;
+    .ce-card {
+      padding: 1rem 1.1rem;
+      border-radius: 0.85rem;
+      border: 1px solid var(--admin-border);
+      background: #fff;
     }
 
-    .ce-scheduler-meta {
+    .ce-card--schedule {
+      background: linear-gradient(180deg, #fafbff 0%, #fff 100%);
+    }
+
+    .ce-card-title {
+      margin: 0;
+      font-size: 0.98rem;
+      font-weight: 700;
+      color: var(--admin-text-main);
+    }
+
+    .ce-card-desc {
+      margin: 0.35rem 0 0.85rem;
+      font-size: 0.86rem;
       color: var(--admin-text-muted);
-      font-size: 0.85rem;
+      line-height: 1.5;
     }
 
-    .ce-scheduler-form {
+    .ce-card-head-row {
       display: flex;
       flex-wrap: wrap;
-      align-items: flex-end;
-      gap: 0.75rem 1rem;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem 0.75rem;
+      margin-bottom: 0.15rem;
     }
 
-    .ce-scheduler-field {
+    .ce-card-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.55rem;
+    }
+
+    .ce-scheduler-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.2rem 0.55rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #475569;
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+    }
+
+    .ce-scheduler-badge.is-on {
+      color: #166534;
+      background: #ecfdf5;
+      border-color: #bbf7d0;
+    }
+
+    .ce-scheduler-controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.85rem 1.25rem;
+      margin-bottom: 0.85rem;
+    }
+
+    .ce-switch {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.55rem;
+      cursor: pointer;
+      user-select: none;
+      color: var(--admin-text-main);
+    }
+
+    .ce-switch--wide {
+      align-items: flex-start;
+    }
+
+    .ce-switch input {
+      position: absolute;
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .ce-switch-ui {
+      flex: 0 0 auto;
+      width: 2.35rem;
+      height: 1.35rem;
+      border-radius: 999px;
+      background: #d1d5db;
+      position: relative;
+      transition: background 0.15s ease;
+    }
+
+    .ce-switch-ui::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 1.05rem;
+      height: 1.05rem;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+      transition: transform 0.15s ease;
+    }
+
+    .ce-switch input:checked + .ce-switch-ui {
+      background: #16a34a;
+    }
+
+    .ce-switch input:checked + .ce-switch-ui::after {
+      transform: translateX(1rem);
+    }
+
+    .ce-switch input:focus-visible + .ce-switch-ui {
+      outline: 2px solid #2563eb;
+      outline-offset: 2px;
+    }
+
+    .ce-switch-label {
+      font-size: 0.88rem;
+      font-weight: 600;
+    }
+
+    .ce-switch-copy {
       display: flex;
       flex-direction: column;
-      gap: 0.25rem;
-      font-size: 0.85rem;
-      color: #374151;
+      gap: 0.15rem;
     }
 
-    .ce-scheduler-field input[type='time'] {
-      padding: 0.35rem 0.5rem;
+    .ce-switch-help {
+      font-size: 0.8rem;
+      font-weight: 400;
+      color: var(--admin-text-muted);
+      line-height: 1.45;
+      max-width: 28rem;
+    }
+
+    .ce-time-field {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .ce-time-label {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #64748b;
+    }
+
+    .ce-time-field input[type='time'] {
+      padding: 0.4rem 0.55rem;
       border: 1px solid #d1d5db;
       border-radius: 8px;
       font: inherit;
+      color: var(--admin-text-main);
+      background: #fff;
     }
 
-    .ce-scheduler-field input[type='checkbox'] {
-      margin-right: 0.35rem;
+    .ce-option-box {
+      padding: 0.75rem 0.85rem;
+      border-radius: 0.65rem;
+      border: 1px solid #e5e7eb;
+      background: #f8fafc;
+      margin-bottom: 0.85rem;
+    }
+
+    .ce-scheduler-footer {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.75rem 1rem;
     }
 
     .ce-scheduler-last {
-      margin: 0.65rem 0 0;
-      font-size: 0.84rem;
-      color: #6b7280;
+      margin: 0;
+      font-size: 0.82rem;
+      color: var(--admin-text-muted);
     }
 
-    .ce-scheduler-hint {
-      margin: 0.35rem 0 0;
-      font-size: 0.8rem;
+    .ce-scheduler-footnote {
+      margin: 0.75rem 0 0;
+      font-size: 0.78rem;
     }
 
     .ce-status {
-      flex: 1;
-      min-width: 180px;
-      font-size: 0.88rem;
+      display: block;
+      margin-top: 0.75rem;
+      font-size: 0.86rem;
       color: var(--admin-text-muted);
-      align-self: center;
     }
 
     .ce-status.is-busy {
