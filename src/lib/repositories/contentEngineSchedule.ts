@@ -9,6 +9,8 @@ export type ContentEngineSchedule = {
   lastRunAt: string | null;
   lastRunStatus: string | null;
   lastRunMessage: string | null;
+  lastKeywordSyncAt: string | null;
+  lastKeywordSyncMessage: string | null;
 };
 
 const DEFAULT_SCHEDULE: Omit<ContentEngineSchedule, 'legacyId'> = {
@@ -19,6 +21,8 @@ const DEFAULT_SCHEDULE: Omit<ContentEngineSchedule, 'legacyId'> = {
   lastRunAt: null,
   lastRunStatus: null,
   lastRunMessage: null,
+  lastKeywordSyncAt: null,
+  lastKeywordSyncMessage: null,
 };
 
 const LEGACY_ID = 1;
@@ -45,6 +49,8 @@ function mapRow(row: Record<string, unknown>): ContentEngineSchedule {
     lastRunAt: row.lastRunAt ? String(row.lastRunAt) : null,
     lastRunStatus: row.lastRunStatus ? String(row.lastRunStatus) : null,
     lastRunMessage: row.lastRunMessage ? String(row.lastRunMessage) : null,
+    lastKeywordSyncAt: row.lastKeywordSyncAt ? String(row.lastKeywordSyncAt) : null,
+    lastKeywordSyncMessage: row.lastKeywordSyncMessage ? String(row.lastKeywordSyncMessage) : null,
   };
 }
 
@@ -89,7 +95,15 @@ export async function updateContentEngineSchedule(
   patch: Partial<
     Pick<
       ContentEngineSchedule,
-      'enabled' | 'runHour' | 'runMinute' | 'autoPublish' | 'lastRunAt' | 'lastRunStatus' | 'lastRunMessage'
+      | 'enabled'
+      | 'runHour'
+      | 'runMinute'
+      | 'autoPublish'
+      | 'lastRunAt'
+      | 'lastRunStatus'
+      | 'lastRunMessage'
+      | 'lastKeywordSyncAt'
+      | 'lastKeywordSyncMessage'
     >
   >,
 ): Promise<ContentEngineSchedule> {
@@ -120,6 +134,12 @@ export async function updateContentEngineSchedule(
     lastRunStatus: patch.lastRunStatus !== undefined ? patch.lastRunStatus : current.lastRunStatus,
     lastRunMessage:
       patch.lastRunMessage !== undefined ? patch.lastRunMessage : current.lastRunMessage,
+    lastKeywordSyncAt:
+      patch.lastKeywordSyncAt !== undefined ? patch.lastKeywordSyncAt : current.lastKeywordSyncAt,
+    lastKeywordSyncMessage:
+      patch.lastKeywordSyncMessage !== undefined
+        ? patch.lastKeywordSyncMessage
+        : current.lastKeywordSyncMessage,
   });
   return mapRow(updated as Record<string, unknown>);
 }
@@ -136,6 +156,7 @@ export function getIstanbulNowParts(date = new Date()) {
     day: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
+    weekday: 'short',
     hour12: false,
   });
   const parts = fmt.formatToParts(date);
@@ -146,6 +167,7 @@ export function getIstanbulNowParts(date = new Date()) {
     day: pick('day'),
     hour: Number(pick('hour')),
     minute: Number(pick('minute')),
+    weekdayShort: pick('weekday'),
     dateKey: `${pick('year')}-${pick('month')}-${pick('day')}`,
   };
 }
@@ -175,4 +197,18 @@ export function describeNextRun(schedule: ContentEngineSchedule, now = new Date(
     return `Bugün ${formatScheduleTime(schedule.runHour, schedule.runMinute)}`;
   }
   return `Yarın ${formatScheduleTime(schedule.runHour, schedule.runMinute)}`;
+}
+
+/** Pazartesi 04:00 TR — GSC keyword skor guncelleme */
+export function shouldRunWeeklyKeywordSync(
+  lastSyncAt: string | null | undefined,
+  now = new Date(),
+): boolean {
+  const parts = getIstanbulNowParts(now);
+  if (parts.weekdayShort !== 'Mon') return false;
+  if (parts.hour !== 4 || parts.minute !== 0) return false;
+  if (!lastSyncAt) return true;
+  const last = new Date(lastSyncAt);
+  if (Number.isNaN(last.getTime())) return true;
+  return now.getTime() - last.getTime() >= 6 * 24 * 60 * 60 * 1000;
 }

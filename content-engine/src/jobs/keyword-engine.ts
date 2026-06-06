@@ -1,6 +1,7 @@
 import { cfg, requirePocketBaseAdmin } from '../config.js';
 import { getAdminPb } from '../pb/client.js';
 import { fetchGscQueries } from '../gsc/client.js';
+import { discoverGscKeywords } from '../lib/discover-gsc-keywords.js';
 
 function scoreKeyword(
   row: { anahtar: string; niyet?: string; kategori?: string },
@@ -27,14 +28,24 @@ async function main() {
   const gscByQuery = new Map(gscRows.map((r) => [r.query, r]));
 
   const keywords: Array<Record<string, unknown>> = [];
+  const existingKeys = new Set<string>();
   const pageSize = 100;
   let page = 1;
   while (true) {
     const batch = await pb.collection('seo_keywords').getList(page, pageSize);
     keywords.push(...(batch.items as Array<Record<string, unknown>>));
+    for (const kw of batch.items) {
+      existingKeys.add(String((kw as Record<string, unknown>).anahtar ?? '').toLowerCase().trim());
+    }
     if (batch.items.length < pageSize) break;
     page += 1;
   }
+
+  const discovered = await discoverGscKeywords(pb, gscRows, existingKeys);
+  if (discovered > 0) {
+    console.log(`GSC kesif: ${discovered} yeni keyword kuyruga eklendi.`);
+  }
+
   let updated = 0;
 
   for (const kw of keywords) {

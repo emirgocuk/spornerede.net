@@ -304,6 +304,8 @@ const COLLECTIONS: CollectionDef[] = [
       { name: 'lastRunAt', type: 'date' },
       { name: 'lastRunStatus', type: 'text' },
       { name: 'lastRunMessage', type: 'text' },
+      { name: 'lastKeywordSyncAt', type: 'date' },
+      { name: 'lastKeywordSyncMessage', type: 'text' },
     ],
   },
 ];

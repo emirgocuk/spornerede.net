@@ -20,7 +20,10 @@ type ScheduleData = {
   lastRunAt: string | null;
   lastRunStatus: string | null;
   lastRunMessage: string | null;
+  lastKeywordSyncAt: string | null;
+  lastKeywordSyncMessage: string | null;
   nextRunLabel: string;
+  nextKeywordSyncLabel?: string;
   schedulerDisabled?: boolean;
 };
 
@@ -67,16 +70,27 @@ export function mountContentEngineNews(deps: ApiDeps) {
       schedNext.classList.toggle('is-on', Boolean(data.enabled));
     }
     if (schedLast) {
+      const lines: string[] = [];
       if (data.lastRunAt) {
         const when = new Date(data.lastRunAt).toLocaleString('tr-TR', {
           timeZone: 'Europe/Istanbul',
         });
         const status = data.lastRunStatus ?? '?';
         const msg = data.lastRunMessage ? ` — ${data.lastRunMessage}` : '';
-        schedLast.textContent = `Son çalışma: ${when} (${status})${msg}`;
+        lines.push(`Son haber: ${when} (${status})${msg}`);
       } else {
-        schedLast.textContent = 'Henüz otomatik çalışma yok.';
+        lines.push('Henüz otomatik haber üretimi yok.');
       }
+      if (data.lastKeywordSyncAt) {
+        const when = new Date(data.lastKeywordSyncAt).toLocaleString('tr-TR', {
+          timeZone: 'Europe/Istanbul',
+        });
+        const msg = data.lastKeywordSyncMessage ? ` — ${data.lastKeywordSyncMessage}` : '';
+        lines.push(`Son GSC sync: ${when}${msg}`);
+      } else if (data.nextKeywordSyncLabel) {
+        lines.push(`GSC sync: ${data.nextKeywordSyncLabel}`);
+      }
+      schedLast.textContent = lines.join(' · ');
       if (data.schedulerDisabled) {
         schedLast.textContent += ' · Sunucuda SEO_NEWS_SCHEDULER_DISABLED=true';
       }
