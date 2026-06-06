@@ -63,7 +63,7 @@ export function mountContentEngineNews(deps: ApiDeps) {
     if (schedTime) schedTime.value = `${pad2(data.runHour)}:${pad2(data.runMinute)}`;
     if (schedAutoPub) schedAutoPub.checked = data.autoPublish !== false;
     if (schedNext) {
-      schedNext.textContent = data.enabled ? data.nextRunLabel : 'Kapali';
+      schedNext.textContent = data.enabled ? data.nextRunLabel : 'Kapalı';
       schedNext.classList.toggle('is-on', Boolean(data.enabled));
     }
     if (schedLast) {
@@ -73,9 +73,9 @@ export function mountContentEngineNews(deps: ApiDeps) {
         });
         const status = data.lastRunStatus ?? '?';
         const msg = data.lastRunMessage ? ` — ${data.lastRunMessage}` : '';
-        schedLast.textContent = `Son calisma: ${when} (${status})${msg}`;
+        schedLast.textContent = `Son çalışma: ${when} (${status})${msg}`;
       } else {
-        schedLast.textContent = 'Henuz otomatik calisma yok.';
+        schedLast.textContent = 'Henüz otomatik çalışma yok.';
       }
       if (data.schedulerDisabled) {
         schedLast.textContent += ' · Sunucuda SEO_NEWS_SCHEDULER_DISABLED=true';
@@ -90,14 +90,14 @@ export function mountContentEngineNews(deps: ApiDeps) {
       };
       if (payload?.data) renderSchedule(payload.data);
     } catch {
-      if (schedLast) schedLast.textContent = 'Zamanlayici ayarlari yuklenemedi.';
+      if (schedLast) schedLast.textContent = 'Zamanlayıcı ayarları yüklenemedi.';
     }
   }
 
   async function saveSchedule() {
     if (busy || !schedTime) return;
     setBusy(true);
-    setStatus('Zamanlayici kaydediliyor…', 'busy');
+    setStatus('Zamanlayıcı kaydediliyor…', 'busy');
     try {
       const payload = (await fetch('/api/admin/content-engine/schedule', {
         method: 'PUT',
@@ -110,19 +110,19 @@ export function mountContentEngineNews(deps: ApiDeps) {
       }).then(async (res) => {
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
-          throw new Error((err as { error?: string }).error || 'Kayit basarisiz');
+          throw new Error((err as { error?: string }).error || 'Kayıt başarısız');
         }
         return res.json();
       })) as { data?: ScheduleData };
       if (payload?.data) renderSchedule(payload.data);
       setStatus(
         payload.data?.enabled
-          ? `Zamanlayici aktif — ${payload.data.nextRunLabel}`
-          : 'Zamanlayici kaydedildi (kapali)',
+          ? `Zamanlayıcı aktif — ${payload.data.nextRunLabel}`
+          : 'Zamanlayıcı kaydedildi (kapalı)',
         'ok',
       );
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Kayit hatasi';
+      const msg = e instanceof Error ? e.message : 'Kayıt hatası';
       setStatus(msg, 'warn');
       alert(msg);
     } finally {
@@ -193,7 +193,7 @@ export function mountContentEngineNews(deps: ApiDeps) {
       );
       await deps.onDraftReady(data.id);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Uretim basarisiz';
+      const msg = e instanceof Error ? e.message : 'Üretim başarısız';
       setStatus(msg, msg.includes('429') || msg.includes('kota') ? 'warn' : 'busy');
       if (!msg.includes('429')) alert(msg);
     } finally {

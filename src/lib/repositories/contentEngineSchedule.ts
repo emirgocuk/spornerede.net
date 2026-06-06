@@ -165,14 +165,14 @@ export function shouldRunScheduleNow(schedule: ContentEngineSchedule, now = new 
 }
 
 export function describeNextRun(schedule: ContentEngineSchedule, now = new Date()) {
-  if (!schedule.enabled) return 'Kapali';
+  if (!schedule.enabled) return 'Kapalı';
   const parts = getIstanbulNowParts(now);
   const todayRunPassed =
     parts.hour > schedule.runHour ||
     (parts.hour === schedule.runHour && parts.minute >= schedule.runMinute);
   const ranToday = schedule.lastRunAt ? sameIstanbulDay(schedule.lastRunAt, now) : false;
   if (!todayRunPassed && !ranToday) {
-    return `Bugun ${formatScheduleTime(schedule.runHour, schedule.runMinute)} (TR)`;
+    return `Bugün ${formatScheduleTime(schedule.runHour, schedule.runMinute)}`;
   }
-  return `Yarin ${formatScheduleTime(schedule.runHour, schedule.runMinute)} (TR)`;
+  return `Yarın ${formatScheduleTime(schedule.runHour, schedule.runMinute)}`;
 }

@@ -285,34 +285,34 @@ const adminLocationData = {
           <div class="content-engine-panel">
             <div class="content-engine-intro">
               <h2>Haber & duyuru otopilot</h2>
-              <p>Kuyruktaki anahtar kelimelerden LLM ile haber uretir. Son haberlerle benzerlik kontrolu yapilir.</p>
+              <p>Kuyruktaki anahtar kelimelerden LLM ile haber üretir. Son haberlerle benzerlik kontrolü yapılır.</p>
             </div>
 
             <div class="ce-panel-grid">
               <section class="ce-card">
-                <h3 class="ce-card-title">Manuel uretim</h3>
-                <p class="ce-card-desc">Tek seferlik haber veya taslak olusturmak icin.</p>
-                <div class="ce-card-actions">
-                  <button id="ce-generate-news" class="btn btn-success shadow-sm" type="button">SEO haber yaz</button>
-                  <button id="ce-manual-news" class="btn btn-outline shadow-sm" type="button">Manuel taslak</button>
-                  <button id="add-news-btn" class="btn btn-outline shadow-sm" type="button">Bos haber formu</button>
-                  <button id="load-news" class="btn btn-outline shadow-sm" type="button">Yenile</button>
+                <h3 class="ce-card-title">Manuel üretim</h3>
+                <p class="ce-card-desc">Tek seferlik haber veya taslak oluşturmak için.</p>
+                <div class="admin-toolbar content-engine-toolbar">
+                  <button id="ce-generate-news" class="btn btn-success shadow-sm" type="button">✨ SEO haber yaz</button>
+                  <button id="ce-manual-news" class="btn btn-outline shadow-sm" type="button">📝 Manuel taslak</button>
+                  <button id="add-news-btn" class="btn btn-outline shadow-sm" type="button">➕ Boş haber formu</button>
+                  <button id="load-news" class="btn btn-primary shadow-sm" type="button">🔄 Yenile</button>
+                  <span id="ce-news-status" class="ce-status" role="status"></span>
                 </div>
-                <span id="ce-news-status" class="ce-status" role="status"></span>
               </section>
 
               <section class="ce-card ce-card--schedule" id="ce-scheduler">
                 <div class="ce-card-head-row">
-                  <h3 class="ce-card-title">Gunluk zamanlayici</h3>
+                  <h3 class="ce-card-title">Günlük zamanlayıcı</h3>
                   <span id="ce-scheduler-next" class="ce-scheduler-badge"></span>
                 </div>
-                <p class="ce-card-desc">Her gun belirlediginiz saatte (Turkiye) otomatik haber uretir.</p>
+                <p class="ce-card-desc">Her gün belirlediğiniz saatte (Türkiye) otomatik haber üretir.</p>
 
                 <div class="ce-scheduler-controls">
                   <label class="ce-switch">
                     <input id="ce-sched-enabled" type="checkbox" />
                     <span class="ce-switch-ui" aria-hidden="true"></span>
-                    <span class="ce-switch-label">Zamanlayici acik</span>
+                    <span class="ce-switch-label">Zamanlayıcı açık</span>
                   </label>
                   <label class="ce-time-field">
                     <span class="ce-time-label">Saat</span>
@@ -325,9 +325,9 @@ const adminLocationData = {
                     <input id="ce-sched-autopub" type="checkbox" checked />
                     <span class="ce-switch-ui" aria-hidden="true"></span>
                     <span class="ce-switch-copy">
-                      <span class="ce-switch-label">Otomatik yayinla</span>
+                      <span class="ce-switch-label">Otomatik yayınla</span>
                       <span class="ce-switch-help">
-                        Kalite ve benzerlik testinden gecerse haber sitede yayinlanir; gecmezse taslak olarak kalir, siz onaylarsiniz.
+                        Kalite ve benzerlik testinden geçerse haber sitede yayınlanır; geçmezse taslak olarak kalır, siz onaylarsınız.
                       </span>
                     </span>
                   </label>
@@ -338,7 +338,7 @@ const adminLocationData = {
                   <p id="ce-sched-last" class="ce-scheduler-last"></p>
                 </div>
                 <p class="ce-scheduler-footnote section-help">
-                  Sunucu her dakika kontrol eder. GSC skorlari icin haftada bir <code>job:keywords</code> calistirin.
+                  Sunucu her dakika kontrol eder. GSC skorları için haftada bir <code>job:keywords</code> çalıştırın.
                 </p>
               </section>
             </div>
@@ -358,8 +358,8 @@ const adminLocationData = {
                 <div class="empty-state">
                   <div class="empty-icon">📰</div>
                   <h3>Content Engine — Haber</h3>
-                  <p><strong>SEO haber yaz</strong> ile taslak uretin veya listeden pasif kaydi secip duzenleyin.</p>
-                  <p><strong>Yayinla</strong> butonu haberi aktif eder ve sitede gosterir.</p>
+                  <p><strong>SEO haber yaz</strong> ile taslak üretin veya listeden pasif kaydı seçip düzenleyin.</p>
+                  <p><strong>Yayınla</strong> butonu haberi aktif eder ve sitede gösterir.</p>
                 </div>
               </div>
             </article>
@@ -3393,6 +3393,18 @@ const adminLocationData = {
       display: flex;
       flex-wrap: wrap;
       gap: 0.55rem;
+    }
+
+    .content-engine-toolbar {
+      margin-bottom: 0;
+      margin-top: 0.25rem;
+    }
+
+    .content-engine-toolbar .ce-status {
+      flex: 1;
+      min-width: 180px;
+      margin-top: 0;
+      align-self: center;
     }
 
     .ce-scheduler-badge {
