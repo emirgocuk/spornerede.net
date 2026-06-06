@@ -2335,7 +2335,7 @@ const adminLocationData = {
             <button class="list-item ${activeClass}" data-news-id="${news.id}">
               <div class="item-main">
                 <span class="item-title">${escapeHtml(news.baslik)}</span>
-                <span class="item-meta">${escapeHtml(news.kategori)} • ${formatNewsTarihAdmin(news.tarih, news.created)}${news.draftWordCount ? ` · ${news.draftWordCount} kelime` : ''}</span>
+                <span class="item-meta">${escapeHtml(news.kategori)} • ${formatNewsTarihAdmin(news.tarih, news.created, news.id)}${news.draftWordCount ? ` · ${news.draftWordCount} kelime` : ''}</span>
               </div>
               <div class="item-side">
                 ${incomplete}
@@ -2643,7 +2643,7 @@ const adminLocationData = {
       const tarihInput = document.getElementById('news-tarih')?.value || '';
       const editNews = id ? cachedNews.find((n) => n.id === id) : null;
       const tarihIso = tarihInput
-        ? dateInputToNewsTarihIso(tarihInput, editNews?.tarih)
+        ? dateInputToNewsTarihIso(tarihInput, editNews?.tarih, editNews?.id ?? id)
         : new Date().toISOString();
       const link = document.getElementById('news-link')?.value || '';
       const seoTitleInput = document.getElementById('news-seo-title')?.value || '';

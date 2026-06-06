@@ -140,8 +140,8 @@ export async function getAllNewsAdmin() {
 
   return items
     .sort((a, b) => {
-      const aTime = parseNewsTarihMs(String(a.tarih ?? ''), String(a.created ?? ''));
-      const bTime = parseNewsTarihMs(String(b.tarih ?? ''), String(b.created ?? ''));
+      const aTime = parseNewsTarihMs(String(a.tarih ?? ''), String(a.created ?? ''), Number(a.legacyId ?? 0));
+      const bTime = parseNewsTarihMs(String(b.tarih ?? ''), String(b.created ?? ''), Number(b.legacyId ?? 0));
       return bTime - aTime;
     })
     .map((row) => {
