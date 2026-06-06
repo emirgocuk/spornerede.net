@@ -164,6 +164,7 @@ if [[ -d "${APP_REPO_DIR}/content-engine" ]]; then
   rsync -a --delete \
     --exclude 'node_modules/' \
     --exclude '.env' \
+    --exclude 'secrets/' \
     "${APP_REPO_DIR}/content-engine/" "${NEW_RELEASE}/content-engine/"
   if (cd "${NEW_RELEASE}/content-engine" && npm ci --include=dev); then
     log "Content Engine bagimliliklari kuruldu."
@@ -178,6 +179,9 @@ if [[ -d "${APP_REPO_DIR}/content-engine" ]]; then
   else
     log "UYARI: ${CE_ENV_SRC} yok — admin Content Engine icin: bash deploy/sync-content-engine-env.sh"
   fi
+  # shellcheck disable=SC1091
+  source "${APP_REPO_DIR}/deploy/lib-content-engine-secrets.sh"
+  install_content_engine_secrets "${NEW_RELEASE}/content-engine"
 fi
 
 ln -sfn "${NEW_RELEASE}" "${CURRENT_LINK}"

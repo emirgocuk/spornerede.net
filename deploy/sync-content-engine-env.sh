@@ -8,6 +8,9 @@
 # Hedefler:
 #   1) /opt/spornerede/content-engine.env  (kalici, autoupdate buradan kopyalar)
 #   2) /opt/spornerede/current/content-engine/.env  (aktif release, hemen calisir)
+#
+# GSC OAuth JSON dosyalari icin (ayri, GIT disi):
+#   bash deploy/sync-content-engine-secrets.sh
 
 set -euo pipefail
 

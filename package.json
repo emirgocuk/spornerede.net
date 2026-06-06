@@ -30,6 +30,8 @@
     "content-engine:check": "npm run check:env --prefix content-engine",
     "content-engine:sync-env": "bash deploy/sync-content-engine-env.sh",
     "content-engine:sync-env:win": "powershell -NoProfile -ExecutionPolicy Bypass -File deploy/sync-content-engine-env.ps1",
+    "content-engine:sync-secrets": "bash deploy/sync-content-engine-secrets.sh --install-current",
+    "content-engine:sync-secrets:win": "powershell -NoProfile -ExecutionPolicy Bypass -File deploy/sync-content-engine-secrets.ps1 --install-current",
     "content-engine:setup": "npm run setup:collections --prefix content-engine",
     "content-engine:verify": "npm run verify:seo-keywords --prefix content-engine",
     "content-engine:ensure": "npm run setup:collections --prefix content-engine && npm run seed:keywords --prefix content-engine && npm run verify:seo-keywords --prefix content-engine",

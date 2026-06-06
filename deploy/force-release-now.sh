@@ -36,12 +36,16 @@ if [[ -d "${APP_REPO_DIR}/content-engine" ]]; then
   rsync -a --delete \
     --exclude 'node_modules/' \
     --exclude '.env' \
+    --exclude 'secrets/' \
     "${APP_REPO_DIR}/content-engine/" "${NEW_RELEASE}/content-engine/"
   (cd "${NEW_RELEASE}/content-engine" && npm ci --include=dev)
   if [[ -f "${APP_BASE}/content-engine.env" ]]; then
     cp "${APP_BASE}/content-engine.env" "${NEW_RELEASE}/content-engine/.env"
     chmod 600 "${NEW_RELEASE}/content-engine/.env"
   fi
+  # shellcheck disable=SC1091
+  source "$(dirname "$0")/lib-content-engine-secrets.sh"
+  install_content_engine_secrets "${NEW_RELEASE}/content-engine"
 fi
 
 ln -sfn "${NEW_RELEASE}" "${APP_BASE}/current"

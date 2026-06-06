@@ -100,7 +100,16 @@ Sonra:
 ```powershell
 npm run content-engine:keywords
 npm run content-engine:gsc
+npm run content-engine:news-rewrite -- --dry-run
 ```
+
+**Canlı sunucu:** OAuth JSON dosyalarını repoya koymayın. Lokalden yükleyin:
+
+```powershell
+npm run content-engine:sync-secrets:win
+```
+
+Kalıcı dizin: `/opt/spornerede/content-engine-secrets/` — her deploy bu dizinden aktif release'e kopyalar.
 
 ## Sık hatalar
 
