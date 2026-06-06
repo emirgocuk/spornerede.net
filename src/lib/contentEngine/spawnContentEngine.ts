@@ -1,17 +1,39 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
-import { existsSync } from 'node:fs';
-import { resolve, join } from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { getContentEngineRoot } from './contentEngineRoot.js';
 
-const defaultRoot = () => resolve(process.cwd(), 'content-engine');
+/** content-engine/.env — Astro process.env bos/yanlis degerleri ezmesin diye */
+export function loadContentEngineEnv(cwd: string): NodeJS.ProcessEnv {
+  const envPath = join(cwd, '.env');
+  const merged = { ...process.env, FORCE_COLOR: '0' };
+  if (!existsSync(envPath)) return merged;
 
-/** Windows'ta shell:true → /bin/sh ENOENT; npx+shell yerine node+tsx veya npx.cmd */
+  for (const line of readFileSync(envPath, 'utf8').split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const eq = trimmed.indexOf('=');
+    if (eq === -1) continue;
+    const key = trimmed.slice(0, eq).trim();
+    let value = trimmed.slice(eq + 1).trim();
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+    if (key) merged[key] = value;
+  }
+  return merged;
+}
+
 export function spawnContentEngineCli(
   scriptRelPath: string,
   extraArgs: string[] = [],
   options?: { cwd?: string; env?: NodeJS.ProcessEnv },
 ): ChildProcessWithoutNullStreams {
-  const cwd = options?.cwd ?? defaultRoot();
-  const env = { ...process.env, FORCE_COLOR: '0', ...options?.env };
+  const cwd = options?.cwd ?? getContentEngineRoot();
+  const env = { ...loadContentEngineEnv(cwd), ...options?.env };
 
   const tsxCli = join(cwd, 'node_modules', 'tsx', 'dist', 'cli.mjs');
   if (existsSync(tsxCli)) {

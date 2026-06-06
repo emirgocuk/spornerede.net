@@ -123,6 +123,11 @@ npm run build
 
 if [[ "${RUN_PB_SETUP}" == "1" ]]; then
   npm run pb:setup
+  if [[ -d "${APP_REPO_DIR}/content-engine" ]]; then
+    log "Content Engine koleksiyon + keyword seed..."
+    (cd "${APP_REPO_DIR}" && npm run content-engine:ensure) || \
+      log "UYARI: content-engine:ensure basarisiz; admin SEO haber sekmesi etkilenebilir."
+  fi
 fi
 
 if [[ ! -d dist ]]; then

@@ -1,6 +1,10 @@
 import type { APIRoute } from 'astro';
 import { isAdminAuthorized } from '../../../../lib/adminAuth';
 import { runNewsDraftFromAdmin } from '../../../../lib/contentEngine/runNewsDraftFromAdmin';
+import {
+  ensureSeoKeywordsBeforeDraft,
+  pickKonuForNewsDraft,
+} from '../../../../lib/contentEngine/ensureSeoKeywordsBeforeDraft';
 import { getNewsAdminByLegacyId } from '../../../../lib/repositories/news';
 
 export const prerender = false;
@@ -14,11 +18,36 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   const payload = await request.json().catch(() => ({}));
-  const konu = String((payload as { konu?: string }).konu ?? '').trim();
+  const konuInput = String((payload as { konu?: string }).konu ?? '').trim();
+
+  const pbErr = await ensureSeoKeywordsBeforeDraft();
+  if (pbErr) {
+    return new Response(
+      JSON.stringify({
+        success: false,
+        code: 'error',
+        error: `seo_keywords hazir degil: ${pbErr}`,
+      }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } },
+    );
+  }
+
+  const picked = konuInput ? null : await pickKonuForNewsDraft();
+  const konu = konuInput || picked?.anahtar || '';
+  if (!konu) {
+    return new Response(
+      JSON.stringify({
+        success: false,
+        code: 'no_topic',
+        error: 'Kuyrukta keyword yok. npm run content-engine:ensure calistirin.',
+      }),
+      { status: 400, headers: { 'Content-Type': 'application/json' } },
+    );
+  }
 
   let result: Awaited<ReturnType<typeof runNewsDraftFromAdmin>>;
   try {
-    result = await runNewsDraftFromAdmin(konu || undefined);
+    result = await runNewsDraftFromAdmin(konu, picked?.id);
   } catch (e) {
     return new Response(
       JSON.stringify({

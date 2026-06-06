@@ -261,12 +261,61 @@ const COLLECTIONS: CollectionDef[] = [
       { name: 'aktif', type: 'bool' },
     ],
   },
+  {
+    name: 'seo_keywords',
+    fields: [
+      { name: 'anahtar', type: 'text', required: true, unique: true },
+      { name: 'kategori', type: 'text', required: true },
+      { name: 'gsc_impression', type: 'number' },
+      { name: 'niyet', type: 'text' },
+      { name: 'skor', type: 'number' },
+      { name: 'durum', type: 'text', required: true },
+      { name: 'site_context', type: 'json' },
+    ],
+  },
+  {
+    name: 'rehber_yazilari',
+    fields: [
+      { name: 'baslik', type: 'text', required: true },
+      { name: 'slug', type: 'text', required: true, unique: true },
+      { name: 'meta_title', type: 'text' },
+      { name: 'meta_description', type: 'text' },
+      { name: 'icerik_html', type: 'text' },
+      { name: 'icerik_json', type: 'json' },
+      { name: 'anahtar_kelime_id', type: 'text' },
+      { name: 'ic_linkler', type: 'json' },
+      { name: 'sema_tipi', type: 'text' },
+      { name: 'yayinlanma_tarihi', type: 'date' },
+      { name: 'durum', type: 'text', required: true },
+      { name: 'gsc_tiklama', type: 'number' },
+      { name: 'gsc_gosterim', type: 'number' },
+      { name: 'gsc_konum', type: 'number' },
+      { name: 'kaynak', type: 'text' },
+    ],
+  },
 ];
+
+async function recordsApiWorks(pb: PocketBase, name: string): Promise<boolean> {
+  try {
+    await pb.collection(name).getList(1, 1);
+    return true;
+  } catch (e) {
+    const err = e as { status?: number };
+    return err.status !== 404;
+  }
+}
 
 async function ensureCollection(pb: PocketBase, def: CollectionDef) {
   const existingList = await pb.collections.getList(1, 200, { filter: `name = "${def.name}"` });
-  if (existingList.totalItems > 0) {
-    const existing = existingList.items[0] as { id: string; fields?: Array<SchemaField & { id?: string }> };
+  let existing = existingList.items[0] as { id: string; fields?: Array<SchemaField & { id?: string }> } | undefined;
+
+  if (existing && !(await recordsApiWorks(pb, def.name))) {
+    console.log(`~ ${def.name} kayit API 404 — yeniden olusturuluyor...`);
+    await pb.collections.delete(existing.id);
+    existing = undefined;
+  }
+
+  if (existing) {
     const existingFields = existing.fields ?? [];
     const existingFieldNames = new Set(existingFields.map((field) => field.name));
     const missingFields = def.fields.filter((field) => !existingFieldNames.has(field.name));
@@ -293,9 +342,11 @@ async function ensureCollection(pb: PocketBase, def: CollectionDef) {
     }
     await pb.collections.delete(existing.id);
     console.log(`~ ${def.name} yeniden olusturulacak`);
+    existing = undefined;
   }
 
-  await pb.collections.create({
+  if (!existing) {
+    await pb.collections.create({
     name: def.name,
     type: 'base',
     listRule: '',
@@ -310,8 +361,9 @@ async function ensureCollection(pb: PocketBase, def: CollectionDef) {
       unique: field.unique ?? false,
       options: field.options ?? {},
     })),
-  });
-  console.log(`+ ${def.name} olusturuldu`);
+    });
+    console.log(`+ ${def.name} olusturuldu`);
+  }
 }
 
 async function main() {

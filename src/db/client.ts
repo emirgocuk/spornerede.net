@@ -60,3 +60,8 @@ export async function getDb() {
   return dbInstance;
 }
 
+export function resetDb() {
+  dbInstance = null;
+  authInFlight = null;
+}
+

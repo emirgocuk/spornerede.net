@@ -3,7 +3,7 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-loadEnv({ path: resolve(root, '.env') });
+loadEnv({ path: resolve(root, '.env'), override: true });
 
 function req(name: string): string {
   const v = process.env[name]?.trim();
@@ -12,7 +12,8 @@ function req(name: string): string {
 }
 
 function opt(name: string, fallback = ''): string {
-  return process.env[name]?.trim() ?? fallback;
+  const v = process.env[name]?.trim();
+  return v || fallback;
 }
 
 export const cfg = {

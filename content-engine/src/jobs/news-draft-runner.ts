@@ -1,5 +1,5 @@
 import { cfg, requirePocketBaseAdmin } from '../config.js';
-import { getAdminPb } from '../pb/client.js';
+import { getAdminPb, createFreshAdminPb } from '../pb/client.js';
 import { createNewsDraft } from '../pb/news.js';
 import { generateNewsParsed } from '../llm/generate-news.js';
 import { buildNewsFromTemplate, wrapTemplateOzet } from '../lib/build-template-news.js';
@@ -25,6 +25,7 @@ import {
 import { buildNewsRealData } from '../lib/site-context.js';
 import { loadRecentPublishedBodies } from '../lib/published-topics.js';
 import { maxSimilarity } from '../lib/similarity.js';
+import { ensureContentEngineCollections } from '../lib/ensure-collections.js';
 
 export type NewsDraftRunResult =
   | {
@@ -300,19 +301,32 @@ async function createFromLlmPipeline(
 
 export async function runNewsDraftPipeline(input?: {
   konu?: string;
+  keywordId?: string;
 }): Promise<NewsDraftRunResult> {
   requirePocketBaseAdmin();
-  const pb = await getAdminPb();
+  await ensureContentEngineCollections(undefined, { quiet: true });
+  let pb = await createFreshAdminPb();
 
   const dailyLimit = Math.max(1, cfg.dailyArticleLimit);
   if ((await countTodayNews(pb)) >= dailyLimit) {
     return { ok: false, code: 'daily_limit', message: `Gunluk limit (${dailyLimit}) dolu.` };
   }
 
-  let konu = input?.konu?.trim() ?? '';
+  const envKonu = process.env.SEO_NEWS_KONU?.trim() ?? '';
+  const envKeywordId = process.env.SEO_NEWS_KEYWORD_ID?.trim() ?? '';
+  let konu = input?.konu?.trim() || envKonu;
   let keywordPick: Awaited<ReturnType<typeof pickNewsKeyword>> = null;
 
-  if (!konu) {
+  if (konu && (input?.keywordId || envKeywordId)) {
+    const history = await loadPublishedHistory(pb);
+    keywordPick = {
+      id: input?.keywordId || envKeywordId,
+      anahtar: konu,
+      siteContext: {},
+      gscHint: '',
+      avoidList: buildAvoidListForPrompt(history),
+    };
+  } else if (!konu) {
     keywordPick = await pickNewsKeyword(pb);
     konu = keywordPick?.anahtar ?? '';
   }

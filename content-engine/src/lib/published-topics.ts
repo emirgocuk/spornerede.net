@@ -60,7 +60,7 @@ export function isKonuAlreadyPublished(
 
 /** Son yayinlarin ic-link footer'i cikarilmis ana govdeleri (dedup karsilastirmasi icin) */
 export async function loadRecentPublishedBodies(pb: PocketBase, limit = 20): Promise<string[]> {
-  const rows = await pb.collection('haberler').getFullList({ sort: '-created' });
+  const rows = await pb.collection('haberler').getFullList({ sort: '-tarih' });
   const out: string[] = [];
   for (const row of rows) {
     const { body } = stripCeKonuFromOzet(String(row.ozet ?? ''));

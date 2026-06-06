@@ -2,6 +2,7 @@ import { cfg, requirePocketBaseAdmin } from '../config.js';
 import { getAdminPb } from '../pb/client.js';
 import { generateArticleParsed } from '../llm/generate-article.js';
 import { buildInternalLinks, buildSiteContext } from '../lib/site-context.js';
+import { ensureContentEngineCollections } from '../lib/ensure-collections.js';
 
 export type DraftRunResult =
   | {
@@ -58,6 +59,7 @@ async function ensureUniqueSlug(
 export async function runDraftPipeline(): Promise<DraftRunResult> {
   requirePocketBaseAdmin();
   const pb = await getAdminPb();
+  await ensureContentEngineCollections(pb, { quiet: true });
 
   const todayCount = await countTodayDrafts(pb);
   if (todayCount >= cfg.dailyArticleLimit) {

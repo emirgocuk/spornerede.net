@@ -5,6 +5,7 @@ import {
   isKonuAlreadyPublished,
   loadPublishedHistory,
 } from './published-topics.js';
+import { withCollectionRepair } from './ensure-collections.js';
 
 export type PickedKeyword = {
   id: string;
@@ -18,25 +19,36 @@ export async function pickNewsKeyword(pb: PocketBase): Promise<PickedKeyword | n
   const history = await loadPublishedHistory(pb);
   const avoidList = buildAvoidanceBrief(history);
 
-  const batch = await pb.collection('seo_keywords').getList(1, 40, {
-    filter: 'durum = "kuyrukta"',
-    sort: '-skor',
-  });
+  const pageSize = 40;
+  let page = 1;
+  while (true) {
+    const batch = await withCollectionRepair(pb, (client) =>
+      client.collection('seo_keywords').getList(page, pageSize, {
+        filter: 'durum = "kuyrukta"',
+        sort: '-skor',
+      }),
+    );
 
-  for (const row of batch.items) {
-    const anahtar = String(row.anahtar ?? '').trim();
-    if (!anahtar) continue;
-    if (isKonuAlreadyPublished(anahtar, history, { includePassive: true })) {
-      continue;
+    for (const row of batch.items) {
+      const anahtar = String(row.anahtar ?? '').trim();
+      if (!anahtar) continue;
+      if (isKonuAlreadyPublished(anahtar, history, { includePassive: true })) {
+        continue;
+      }
+      const siteContext = (row.site_context as Record<string, unknown>) ?? {};
+      return {
+        id: String(row.id),
+        anahtar,
+        siteContext,
+        gscHint: buildGscHintText(siteContext, anahtar),
+        avoidList,
+      };
     }
-    const siteContext = (row.site_context as Record<string, unknown>) ?? {};
-    return {
-      id: String(row.id),
-      anahtar,
-      siteContext,
-      gscHint: buildGscHintText(siteContext, anahtar),
-      avoidList,
-    };
+
+    if (page * pageSize >= batch.totalItems || batch.items.length < pageSize) {
+      break;
+    }
+    page += 1;
   }
 
   return null;
