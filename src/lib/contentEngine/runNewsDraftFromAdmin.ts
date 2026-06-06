@@ -124,13 +124,14 @@ async function repairContentEngineSchema(): Promise<string | null> {
 export async function runNewsDraftFromAdmin(
   konu: string,
   keywordId?: string,
+  extraEnv: Record<string, string> = {},
 ): Promise<NewsDraftRunResult> {
   const topic = konu.trim();
   if (!topic) {
     return { ok: false, code: 'no_topic', message: 'Konu/keyword bos.' };
   }
 
-  const spawnEnv: Record<string, string> = { SEO_NEWS_KONU: topic };
+  const spawnEnv: Record<string, string> = { SEO_NEWS_KONU: topic, ...extraEnv };
   if (keywordId?.trim()) {
     spawnEnv.SEO_NEWS_KEYWORD_ID = keywordId.trim();
   }

@@ -11,6 +11,9 @@
  * Not: Detayli rate limiting / CSP icin sonradan genisletilebilir.
  */
 import { defineMiddleware, sequence } from 'astro:middleware';
+import { ensureNewsScheduler } from './lib/contentEngine/newsScheduler';
+
+ensureNewsScheduler();
 
 // Statik, surum versiyonlu varliklar icin uzun cache. Cloudflare bunlar zaten
 // hashli dosya isimlerinden dolayi guvenli sekilde 1y immutable saklayabilir.

@@ -1,4 +1,5 @@
 type ApiDeps = {
+  apiGet: (path: string) => Promise<unknown>;
   apiPost: (path: string, body: Record<string, unknown>) => Promise<unknown>;
   onDraftReady: (legacyId: number) => void | Promise<void>;
 };
@@ -11,11 +12,34 @@ type DraftCreated = {
   modelUsed?: string;
 };
 
+type ScheduleData = {
+  enabled: boolean;
+  runHour: number;
+  runMinute: number;
+  autoPublish: boolean;
+  lastRunAt: string | null;
+  lastRunStatus: string | null;
+  lastRunMessage: string | null;
+  nextRunLabel: string;
+  schedulerDisabled?: boolean;
+};
+
+function pad2(n: number) {
+  return String(n).padStart(2, '0');
+}
+
 export function mountContentEngineNews(deps: ApiDeps) {
   const generateBtn = document.getElementById('ce-generate-news');
   const manualBtn = document.getElementById('ce-manual-news');
   const statusEl = document.getElementById('ce-news-status');
   const loadNewsBtn = document.getElementById('load-news');
+
+  const schedEnabled = document.getElementById('ce-sched-enabled') as HTMLInputElement | null;
+  const schedTime = document.getElementById('ce-sched-time') as HTMLInputElement | null;
+  const schedAutoPub = document.getElementById('ce-sched-autopub') as HTMLInputElement | null;
+  const schedSave = document.getElementById('ce-sched-save');
+  const schedNext = document.getElementById('ce-scheduler-next');
+  const schedLast = document.getElementById('ce-sched-last');
 
   let busy = false;
 
@@ -31,6 +55,80 @@ export function mountContentEngineNews(deps: ApiDeps) {
     generateBtn?.toggleAttribute('disabled', on);
     manualBtn?.toggleAttribute('disabled', on);
     loadNewsBtn?.toggleAttribute('disabled', on);
+    schedSave?.toggleAttribute('disabled', on);
+  }
+
+  function renderSchedule(data: ScheduleData) {
+    if (schedEnabled) schedEnabled.checked = Boolean(data.enabled);
+    if (schedTime) schedTime.value = `${pad2(data.runHour)}:${pad2(data.runMinute)}`;
+    if (schedAutoPub) schedAutoPub.checked = data.autoPublish !== false;
+    if (schedNext) {
+      schedNext.textContent = data.enabled
+        ? `Sonraki: ${data.nextRunLabel}`
+        : 'Zamanlayici kapali';
+    }
+    if (schedLast) {
+      if (data.lastRunAt) {
+        const when = new Date(data.lastRunAt).toLocaleString('tr-TR', {
+          timeZone: 'Europe/Istanbul',
+        });
+        const status = data.lastRunStatus ?? '?';
+        const msg = data.lastRunMessage ? ` — ${data.lastRunMessage}` : '';
+        schedLast.textContent = `Son calisma: ${when} (${status})${msg}`;
+      } else {
+        schedLast.textContent = 'Henuz otomatik calisma yok.';
+      }
+      if (data.schedulerDisabled) {
+        schedLast.textContent += ' · Sunucuda SEO_NEWS_SCHEDULER_DISABLED=true';
+      }
+    }
+  }
+
+  async function loadSchedule() {
+    try {
+      const payload = (await deps.apiGet('/api/admin/content-engine/schedule')) as {
+        data?: ScheduleData;
+      };
+      if (payload?.data) renderSchedule(payload.data);
+    } catch {
+      if (schedLast) schedLast.textContent = 'Zamanlayici ayarlari yuklenemedi.';
+    }
+  }
+
+  async function saveSchedule() {
+    if (busy || !schedTime) return;
+    setBusy(true);
+    setStatus('Zamanlayici kaydediliyor…', 'busy');
+    try {
+      const payload = (await fetch('/api/admin/content-engine/schedule', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          enabled: schedEnabled?.checked ?? false,
+          runTime: schedTime.value || '07:00',
+          autoPublish: schedAutoPub?.checked ?? true,
+        }),
+      }).then(async (res) => {
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error((err as { error?: string }).error || 'Kayit basarisiz');
+        }
+        return res.json();
+      })) as { data?: ScheduleData };
+      if (payload?.data) renderSchedule(payload.data);
+      setStatus(
+        payload.data?.enabled
+          ? `Zamanlayici aktif — ${payload.data.nextRunLabel}`
+          : 'Zamanlayici kaydedildi (kapali)',
+        'ok',
+      );
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Kayit hatasi';
+      setStatus(msg, 'warn');
+      alert(msg);
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function postWithTimeout(
@@ -130,4 +228,6 @@ export function mountContentEngineNews(deps: ApiDeps) {
 
   generateBtn?.addEventListener('click', () => generateNews());
   manualBtn?.addEventListener('click', () => manualNews());
+  schedSave?.addEventListener('click', () => saveSchedule());
+  void loadSchedule();
 }

@@ -293,6 +293,19 @@ const COLLECTIONS: CollectionDef[] = [
       { name: 'kaynak', type: 'text' },
     ],
   },
+  {
+    name: 'content_engine_schedule',
+    fields: [
+      { name: 'legacyId', type: 'number', required: true, unique: true },
+      { name: 'enabled', type: 'bool' },
+      { name: 'runHour', type: 'number' },
+      { name: 'runMinute', type: 'number' },
+      { name: 'autoPublish', type: 'bool' },
+      { name: 'lastRunAt', type: 'date' },
+      { name: 'lastRunStatus', type: 'text' },
+      { name: 'lastRunMessage', type: 'text' },
+    ],
+  },
 ];
 
 async function recordsApiWorks(pb: PocketBase, name: string): Promise<boolean> {
