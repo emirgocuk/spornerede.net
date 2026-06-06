@@ -2340,8 +2340,8 @@ const adminLocationData = {
             !news.aktif && news.draftComplete === false
               ? '<span class="news-perf-pill news-perf-pill--low" title="Taslak eksik">Eksik</span>'
               : '';
-          return `<li>
-            <button class="list-item ${activeClass}" data-news-id="${news.id}">
+          return `<li class="admin-list-row">
+            <button class="list-item ${activeClass}" data-news-id="${news.id}" type="button">
               <div class="item-main">
                 <span class="item-title">${escapeHtml(news.baslik)}</span>
                 <span class="item-meta">${escapeHtml(news.kategori)} • ${formatNewsTarihAdmin(news.tarih, news.created, news.id)}${news.draftWordCount ? ` · ${news.draftWordCount} kelime` : ''}</span>
@@ -2351,9 +2351,31 @@ const adminLocationData = {
                 <span class="status-badge ${badgeClass}">${badgeText}</span>
               </div>
             </button>
+            <button type="button" class="list-item-delete" data-delete-news-id="${news.id}" title="Haberi sil" aria-label="Haberi sil">🗑️</button>
           </li>`;
         })
         .join('');
+    }
+
+    async function deleteNewsItem(id, baslikHint) {
+      const news = cachedNews.find((n) => n.id === id);
+      const title = baslikHint || news?.baslik || `#${id}`;
+      if (!confirm(`"${title}" kalıcı olarak silinsin mi?\n\nBu işlem geri alınamaz.`)) return;
+      try {
+        await apiDelete('/api/admin/news', { id });
+        if (selectedNewsId === id) selectedNewsId = 0;
+        await loadNews();
+        if (!selectedNewsId && newsDetailEl) {
+          newsDetailEl.innerHTML = `
+            <div class="empty-state">
+              <div class="empty-icon">📰</div>
+              <h3>Haber seçin</h3>
+              <p>Sol listeden bir haber seçin veya yeni haber ekleyin.</p>
+            </div>`;
+        }
+      } catch (e) {
+        alert(e instanceof Error ? e.message : 'Silinemedi');
+      }
     }
 
     async function renderNewsDetailLoading() {
@@ -2547,6 +2569,11 @@ const adminLocationData = {
                 <div class="form-actions-row news-editor-actions">
                   <button type="button" id="news-complete-btn" class="btn btn-outline">Metni bastan duzenle (LLM)</button>
                   <button type="button" id="news-suggest-cat-btn" class="btn btn-outline">Kategori: Spor oner</button>
+                  ${
+                    news.id
+                      ? `<button type="button" id="delete-news-btn" class="btn btn-danger" title="Kalici sil">🗑️ Sil</button>`
+                      : ''
+                  }
                 </div>
                 <button id="save-news-btn" class="btn btn-success w-full" type="button">
                   ${news.aktif ? 'Guncelle' : 'Yayinla (siteye al)'}
@@ -2556,7 +2583,7 @@ const adminLocationData = {
                   news.id
                     ? `<div class="admin-danger-zone">
                   <p class="section-help">Bu haber veritabanından kalıcı silinir.</p>
-                  <button id="delete-news-btn" class="btn btn-danger w-full" type="button">🗑️ Haberi Sil</button>
+                  <button id="delete-news-btn-bottom" class="btn btn-danger w-full" type="button">🗑️ Haberi Sil</button>
                 </div>`
                     : ''
                 }
@@ -2632,16 +2659,13 @@ const adminLocationData = {
           if (renk instanceof HTMLSelectElement) renk.value = suggested.kategoriRenk;
         });
 
-        document.getElementById('delete-news-btn')?.addEventListener('click', async () => {
-          if (!confirm('Haberi silmek istediğinize emin misiniz?')) return;
-          try {
-            await apiDelete('/api/admin/news', { id: news.id });
-            selectedNewsId = 0;
-            await loadNews();
-          } catch (e) {
-            alert(e.message);
-          }
-        });
+        const bindDeleteNews = (btnId) => {
+          document.getElementById(btnId)?.addEventListener('click', async () => {
+            await deleteNewsItem(news.id, news.baslik);
+          });
+        };
+        bindDeleteNews('delete-news-btn');
+        bindDeleteNews('delete-news-btn-bottom');
       }
     }
 
@@ -2942,6 +2966,14 @@ const adminLocationData = {
     newsListEl?.addEventListener('click', async (event) => {
       const target = event.target;
       if (!(target instanceof HTMLElement)) return;
+      const deleteBtn = target.closest('button[data-delete-news-id]');
+      if (deleteBtn) {
+        event.preventDefault();
+        event.stopPropagation();
+        const id = Number(deleteBtn.getAttribute('data-delete-news-id'));
+        if (id) await deleteNewsItem(id);
+        return;
+      }
       const button = target.closest('button[data-news-id]');
       if (!button) return;
       const id = Number(button.getAttribute('data-news-id'));
@@ -3817,6 +3849,35 @@ const adminLocationData = {
       display: flex;
       flex-direction: column;
       gap: 0.5rem;
+    }
+
+    .admin-list-row {
+      display: flex;
+      gap: 0.35rem;
+      align-items: stretch;
+    }
+
+    .admin-list-row .list-item {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .list-item-delete {
+      flex-shrink: 0;
+      align-self: stretch;
+      width: 2.75rem;
+      border: 1px solid #fecaca;
+      border-radius: 10px;
+      background: #fff5f5;
+      color: #b91c1c;
+      cursor: pointer;
+      font-size: 1rem;
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+
+    .list-item-delete:hover {
+      background: #fee2e2;
+      border-color: #f87171;
     }
 
     .list-item {

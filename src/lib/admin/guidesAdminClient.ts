@@ -132,6 +132,19 @@ export function mountGuidesAdminTab(deps: ApiDeps) {
       .join('');
   }
 
+  async function deleteGuideItem(id: string, baslikHint?: string) {
+    const guide = cached.find((g) => g.id === id);
+    const title = baslikHint || guide?.baslik || id;
+    if (!confirm(`"${title}" kalıcı olarak silinsin mi?\n\nBu işlem geri alınamaz.`)) return;
+    try {
+      await deps.apiDelete('/api/admin/guides', { id });
+      if (selectedId === id) selectedId = '';
+      await loadGuides();
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Silinemedi');
+    }
+  }
+
   function renderList() {
     const rows = filteredRows();
     if (countEl) countEl.textContent = String(rows.length);
@@ -146,7 +159,7 @@ export function mountGuidesAdminTab(deps: ApiDeps) {
     listEl.innerHTML = rows
       .map((g) => {
         const active = g.id === selectedId ? 'is-active' : '';
-        return `<li>
+        return `<li class="admin-list-row">
           <button type="button" class="list-item ${active}" data-guide-id="${deps.escapeHtml(g.id)}">
             <div class="item-main">
               <span class="item-title">${deps.escapeHtml(g.baslik)}</span>
@@ -155,6 +168,7 @@ export function mountGuidesAdminTab(deps: ApiDeps) {
             </div>
             <div class="item-side">${perfAlert(g)}${statusBadge(g.durum)}</div>
           </button>
+          <button type="button" class="list-item-delete" data-delete-guide-id="${deps.escapeHtml(g.id)}" title="Rehberi sil" aria-label="Rehberi sil">🗑️</button>
         </li>`;
       })
       .join('');
@@ -227,6 +241,7 @@ export function mountGuidesAdminTab(deps: ApiDeps) {
               <button type="button" id="guide-save-btn" class="btn btn-primary">Kaydet</button>
               <button type="button" id="guide-publish-news-btn" class="btn btn-success">Habere yayinla</button>
               <button type="button" id="guide-archive-btn" class="btn btn-outline">Arsivle</button>
+              <button type="button" id="guide-delete-btn" class="btn btn-danger" title="Kalici sil">🗑️ Sil</button>
               ${
                 canRequeue
                   ? '<button type="button" id="guide-requeue-btn" class="btn btn-outline">Anahtar kelimeyi kuyruga al</button>'
@@ -240,7 +255,7 @@ export function mountGuidesAdminTab(deps: ApiDeps) {
             </div>
             <div class="admin-danger-zone">
               <p class="section-help">Kalici silme geri alinamaz.</p>
-              <button type="button" id="guide-delete-btn" class="btn btn-danger w-full">🗑️ Rehberi Sil</button>
+              <button type="button" id="guide-delete-btn-bottom" class="btn btn-danger w-full">🗑️ Rehberi Sil</button>
             </div>
           </div>
         </section>
@@ -273,16 +288,13 @@ export function mountGuidesAdminTab(deps: ApiDeps) {
         alert(e instanceof Error ? e.message : 'Kuyruk basarisiz');
       }
     });
-    document.getElementById('guide-delete-btn')?.addEventListener('click', async () => {
-      if (!confirm(`"${guide.baslik}" kalici olarak silinsin mi?`)) return;
-      try {
-        await deps.apiDelete('/api/admin/guides', { id: guide.id });
-        selectedId = '';
-        await loadGuides();
-      } catch (e) {
-        alert(e instanceof Error ? e.message : 'Silinemedi');
-      }
-    });
+    const bindDeleteGuide = (btnId: string) => {
+      document.getElementById(btnId)?.addEventListener('click', async () => {
+        await deleteGuideItem(guide.id, guide.baslik);
+      });
+    };
+    bindDeleteGuide('guide-delete-btn');
+    bindDeleteGuide('guide-delete-btn-bottom');
   }
 
   async function saveGuide(id: string, durum: string) {
@@ -352,6 +364,14 @@ export function mountGuidesAdminTab(deps: ApiDeps) {
   listEl.addEventListener('click', async (event) => {
     const target = event.target;
     if (!(target instanceof HTMLElement)) return;
+    const deleteBtn = target.closest('button[data-delete-guide-id]');
+    if (deleteBtn) {
+      event.preventDefault();
+      event.stopPropagation();
+      const id = deleteBtn.getAttribute('data-delete-guide-id') || '';
+      if (id) await deleteGuideItem(id);
+      return;
+    }
     const button = target.closest('button[data-guide-id]');
     if (!button) return;
     const id = button.getAttribute('data-guide-id') || '';
