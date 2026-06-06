@@ -22,8 +22,11 @@ type ScheduleData = {
   lastRunMessage: string | null;
   lastKeywordSyncAt: string | null;
   lastKeywordSyncMessage: string | null;
+  lastNewsRewriteAt: string | null;
+  lastNewsRewriteMessage: string | null;
   nextRunLabel: string;
   nextKeywordSyncLabel?: string;
+  nextNewsRewriteLabel?: string;
   schedulerDisabled?: boolean;
 };
 
@@ -89,6 +92,15 @@ export function mountContentEngineNews(deps: ApiDeps) {
         lines.push(`Son GSC sync: ${when}${msg}`);
       } else if (data.nextKeywordSyncLabel) {
         lines.push(`GSC sync: ${data.nextKeywordSyncLabel}`);
+      }
+      if (data.lastNewsRewriteAt) {
+        const when = new Date(data.lastNewsRewriteAt).toLocaleString('tr-TR', {
+          timeZone: 'Europe/Istanbul',
+        });
+        const msg = data.lastNewsRewriteMessage ? ` — ${data.lastNewsRewriteMessage}` : '';
+        lines.push(`Son CTR rewrite: ${when}${msg}`);
+      } else if (data.nextNewsRewriteLabel) {
+        lines.push(`CTR rewrite: ${data.nextNewsRewriteLabel}`);
       }
       schedLast.textContent = lines.join(' · ');
       if (data.schedulerDisabled) {

@@ -70,6 +70,22 @@ export const cfg = {
     1,
     Math.max(0, Number(opt('SEO_NEWS_DEDUP_MAX', '0.45')) || 0.45),
   ),
+  /** GSC dusuk CTR haberlerinde haftalik otomatik rewrite */
+  newsRewriteEnabled: opt('SEO_NEWS_REWRITE_ENABLED', 'true') !== 'false',
+  newsRewriteMaxPerWeek: Math.max(
+    0,
+    Number(opt('SEO_NEWS_REWRITE_MAX_PER_WEEK', '2')) || 2,
+  ),
+  /** Ayni habere tekrar rewrite icin min hafta */
+  newsRewriteMinWeeks: Math.max(
+    1,
+    Number(opt('SEO_NEWS_REWRITE_MIN_WEEKS', '2')) || 2,
+  ),
+  /** Yayindan sonra rewrite icin min bekleme (hafta) */
+  newsRewriteMinPublishWeeks: Math.max(
+    1,
+    Number(opt('SEO_NEWS_REWRITE_MIN_PUBLISH_WEEKS', '2')) || 2,
+  ),
   gscSiteUrl: opt('SEO_GSC_SITE_URL', 'https://spornerede.net'),
   gscAuthMode: opt('SEO_GSC_AUTH_MODE', 'service_account') as 'service_account' | 'oauth',
   gscServiceAccountPath: opt('SEO_GSC_SERVICE_ACCOUNT_PATH'),

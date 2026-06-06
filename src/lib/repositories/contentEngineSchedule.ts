@@ -11,6 +11,8 @@ export type ContentEngineSchedule = {
   lastRunMessage: string | null;
   lastKeywordSyncAt: string | null;
   lastKeywordSyncMessage: string | null;
+  lastNewsRewriteAt: string | null;
+  lastNewsRewriteMessage: string | null;
 };
 
 const DEFAULT_SCHEDULE: Omit<ContentEngineSchedule, 'legacyId'> = {
@@ -23,6 +25,8 @@ const DEFAULT_SCHEDULE: Omit<ContentEngineSchedule, 'legacyId'> = {
   lastRunMessage: null,
   lastKeywordSyncAt: null,
   lastKeywordSyncMessage: null,
+  lastNewsRewriteAt: null,
+  lastNewsRewriteMessage: null,
 };
 
 const LEGACY_ID = 1;
@@ -51,6 +55,8 @@ function mapRow(row: Record<string, unknown>): ContentEngineSchedule {
     lastRunMessage: row.lastRunMessage ? String(row.lastRunMessage) : null,
     lastKeywordSyncAt: row.lastKeywordSyncAt ? String(row.lastKeywordSyncAt) : null,
     lastKeywordSyncMessage: row.lastKeywordSyncMessage ? String(row.lastKeywordSyncMessage) : null,
+    lastNewsRewriteAt: row.lastNewsRewriteAt ? String(row.lastNewsRewriteAt) : null,
+    lastNewsRewriteMessage: row.lastNewsRewriteMessage ? String(row.lastNewsRewriteMessage) : null,
   };
 }
 
@@ -104,6 +110,8 @@ export async function updateContentEngineSchedule(
       | 'lastRunMessage'
       | 'lastKeywordSyncAt'
       | 'lastKeywordSyncMessage'
+      | 'lastNewsRewriteAt'
+      | 'lastNewsRewriteMessage'
     >
   >,
 ): Promise<ContentEngineSchedule> {
@@ -140,6 +148,12 @@ export async function updateContentEngineSchedule(
       patch.lastKeywordSyncMessage !== undefined
         ? patch.lastKeywordSyncMessage
         : current.lastKeywordSyncMessage,
+    lastNewsRewriteAt:
+      patch.lastNewsRewriteAt !== undefined ? patch.lastNewsRewriteAt : current.lastNewsRewriteAt,
+    lastNewsRewriteMessage:
+      patch.lastNewsRewriteMessage !== undefined
+        ? patch.lastNewsRewriteMessage
+        : current.lastNewsRewriteMessage,
   });
   return mapRow(updated as Record<string, unknown>);
 }
@@ -209,6 +223,20 @@ export function shouldRunWeeklyKeywordSync(
   if (parts.hour !== 4 || parts.minute !== 0) return false;
   if (!lastSyncAt) return true;
   const last = new Date(lastSyncAt);
+  if (Number.isNaN(last.getTime())) return true;
+  return now.getTime() - last.getTime() >= 6 * 24 * 60 * 60 * 1000;
+}
+
+/** Pazartesi 04:10 TR — GSC dusuk CTR haber rewrite (haftada max 2) */
+export function shouldRunWeeklyNewsRewrite(
+  lastRewriteAt: string | null | undefined,
+  now = new Date(),
+): boolean {
+  const parts = getIstanbulNowParts(now);
+  if (parts.weekdayShort !== 'Mon') return false;
+  if (parts.hour !== 4 || parts.minute !== 10) return false;
+  if (!lastRewriteAt) return true;
+  const last = new Date(lastRewriteAt);
   if (Number.isNaN(last.getTime())) return true;
   return now.getTime() - last.getTime() >= 6 * 24 * 60 * 60 * 1000;
 }

@@ -259,6 +259,9 @@ const COLLECTIONS: CollectionDef[] = [
       { name: 'seoTitle', type: 'text' },
       { name: 'seoDescription', type: 'text' },
       { name: 'aktif', type: 'bool' },
+      { name: 'gsc_tiklama', type: 'number' },
+      { name: 'gsc_gosterim', type: 'number' },
+      { name: 'gsc_konum', type: 'number' },
     ],
   },
   {
@@ -306,6 +309,8 @@ const COLLECTIONS: CollectionDef[] = [
       { name: 'lastRunMessage', type: 'text' },
       { name: 'lastKeywordSyncAt', type: 'date' },
       { name: 'lastKeywordSyncMessage', type: 'text' },
+      { name: 'lastNewsRewriteAt', type: 'date' },
+      { name: 'lastNewsRewriteMessage', type: 'text' },
     ],
   },
 ];

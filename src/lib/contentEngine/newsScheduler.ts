@@ -3,6 +3,7 @@ import {
   getOrCreateContentEngineSchedule,
   shouldRunScheduleNow,
   shouldRunWeeklyKeywordSync,
+  shouldRunWeeklyNewsRewrite,
   updateContentEngineSchedule,
 } from '../repositories/contentEngineSchedule';
 import { runScheduledNewsDraft } from './runScheduledNewsDraft';
@@ -15,6 +16,7 @@ let started = false;
 let ticking = false;
 let runningJob = false;
 let runningKeywordSync = false;
+let runningNewsRewrite = false;
 
 async function recordRun(status: 'ok' | 'error' | 'skipped', message: string) {
   await updateContentEngineSchedule({
@@ -31,8 +33,15 @@ async function recordKeywordSync(message: string) {
   });
 }
 
+async function recordNewsRewrite(message: string) {
+  await updateContentEngineSchedule({
+    lastNewsRewriteAt: new Date().toISOString(),
+    lastNewsRewriteMessage: message.slice(0, 500),
+  });
+}
+
 async function executeKeywordSync() {
-  if (runningKeywordSync || runningJob) return;
+  if (runningKeywordSync || runningJob || runningNewsRewrite) return;
   runningKeywordSync = true;
   try {
     const result = await runContentEngineScript('src/jobs/keyword-engine.ts', [], 240_000);
@@ -53,8 +62,30 @@ async function executeKeywordSync() {
   }
 }
 
+async function executeNewsRewrite() {
+  if (runningNewsRewrite || runningJob || runningKeywordSync) return;
+  runningNewsRewrite = true;
+  try {
+    const result = await runContentEngineScript('src/jobs/news-gsc-rewrite.ts', [], 360_000);
+    const tail = result.output.trim().split('\n').slice(-3).join(' · ');
+    if (result.ok) {
+      await recordNewsRewrite(tail || 'GSC rewrite tamamlandi');
+      console.log('[news-scheduler] GSC rewrite OK');
+      return;
+    }
+    await recordNewsRewrite(tail || 'GSC rewrite basarisiz');
+    console.warn('[news-scheduler] GSC rewrite fail:', tail);
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    await recordNewsRewrite(message).catch(() => undefined);
+    console.error('[news-scheduler] GSC rewrite:', message);
+  } finally {
+    runningNewsRewrite = false;
+  }
+}
+
 async function executeScheduledRun() {
-  if (runningJob || runningKeywordSync) return;
+  if (runningJob || runningKeywordSync || runningNewsRewrite) return;
   runningJob = true;
   try {
     const schedule = await getOrCreateContentEngineSchedule();
@@ -95,6 +126,10 @@ async function tick() {
       await executeKeywordSync();
     }
 
+    if (shouldRunWeeklyNewsRewrite(schedule.lastNewsRewriteAt)) {
+      await executeNewsRewrite();
+    }
+
     if (shouldRunScheduleNow(schedule)) {
       await executeScheduledRun();
     }
@@ -125,6 +160,7 @@ export async function getSchedulerStatusForAdmin() {
     nextRunLabel: describeNextRun(schedule),
     schedulerDisabled: SCHEDULER_DISABLED,
     nextKeywordSyncLabel: 'Pazartesi 04:00 (TR)',
+    nextNewsRewriteLabel: 'Pazartesi 04:10 (TR)',
   };
 }
 

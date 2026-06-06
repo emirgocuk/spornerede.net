@@ -473,6 +473,14 @@ Tam `[ ]` checklist: `memory-bank/faz-gelistirme-checklist-tr.md`. Strateji ve t
 - **Onay/inceleme mekanizması:** Auto-publish toggle (`SEO_AUTO_PUBLISH`/`SEO_NEWS_TEMPLATE_AUTO_PUBLISH`) + dedup "incelemeye düşürme" + admin haber taslağı düzenle/yayınla zaten editör onay akışını sağlıyor.
 - **İçerik motoru paketi dışı kalan (bilinçli):** Pillar+cluster **/rehber/** sayfaları ana sitenin **Faz 20** işidir (Astro sayfaları + admin SEO İçerik sekmesi); content-engine yalnızca PB'ye taslak yazar. GSC tabanlı gerçek "People Also Ask" başlık üretimi, daha fazla GSC veri toplama gerektirir (Faz 21); şu an GSC hint'i prompt'a giriyor.
 
+**Durum (2026-05-31): GSC seçici haber rewrite otomasyonu uygulandı (Faz Ö4).**
+- **Strateji:** Günde 1 yeni haber (`SEO_DAILY_ARTICLE_LIMIT=1`); haftada en fazla 2 düşük CTR rewrite — hacim yerine ölçülen iyileştirme.
+- **Job:** `content-engine/src/jobs/news-gsc-rewrite.ts` — yayında haberlerde ≥50 gösterim + CTR <%3 → `rewriteNewsFull` (başlık/meta/gövde) + dedup + kalite kapısı.
+- **Zamanlayıcı:** Pazartesi 04:10 TR (`newsScheduler.ts`); keyword sync (04:00) ile aynı haftalık bakım penceresi.
+- **İzleme:** `content_engine_schedule.lastNewsRewriteAt/Message`; admin zamanlayıcı kartında "Son CTR rewrite" satırı.
+- **Env:** `SEO_NEWS_REWRITE_ENABLED`, `SEO_NEWS_REWRITE_MAX_PER_WEEK=2`, `SEO_NEWS_REWRITE_MIN_WEEKS=2`, `SEO_NEWS_REWRITE_MIN_PUBLISH_WEEKS=2`.
+- **Manuel test:** `npm run content-engine:news-rewrite -- --dry-run` (content-engine dizininde).
+
 ## Bir Sonraki Konuşmada Yapılacaklar
 
 1. **Faz 13 — Reklam yayını ve ölçüm** (`progress.md`, `faz-gelistirme-checklist-tr.md`):

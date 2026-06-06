@@ -30,6 +30,7 @@
     "purge:news": "tsx src/cli/purge-news.ts",
     "job:keywords": "tsx src/jobs/keyword-engine.ts",
     "job:gsc": "tsx src/jobs/gsc-reporter.ts",
+    "job:news-rewrite": "tsx src/jobs/news-gsc-rewrite.ts",
     "job:draft": "tsx src/jobs/content-pipeline.ts"
   },
   "dependencies": {

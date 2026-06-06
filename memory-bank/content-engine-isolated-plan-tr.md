@@ -21,9 +21,9 @@ spornerede.net/
 |------------|-----------|-----------------|
 | `seo_keywords` | content-engine | (ileride admin) |
 | `rehber_yazilari` | content-engine | `/rehber/[slug]` (Faz 20) |
-| `haberler` | Mevcut admin | `/haberler` — **otopilot dokunmaz** |
+| `haberler` | Mevcut admin + content-engine (rewrite) | `/haberler` — **günde 1 otomatik taslak + haftalık CTR rewrite** |
 
-Haber akışı ayrı kalır. Onaylanan rehber ileride manuel veya script ile `haberler`’e aktarılabilir (opsiyonel, MVP dışı).
+Haber akışı: günlük otomatik üretim + GSC tabanlı seçici rewrite (haftada max 2). Onaylanan rehber ileride manuel veya script ile `haberler`'e aktarılabilir (opsiyonel).
 
 ## Sizin hazırlık sırası
 
@@ -90,6 +90,16 @@ npm run content-engine:check
 - ✅ **Tip temizliği:** content-engine `tsc --noEmit` temiz (exit 0).
 - ⏭️ **Ana site Faz 20'ye ait (content-engine dışı):** Pillar + cluster `/rehber/` Astro sayfaları + admin "SEO İçerik" sekmesi.
 - ⏭️ **Faz 21'e ait:** GSC tabanlı gerçek "People Also Ask" başlık/H2 (daha fazla GSC veri toplama gerekir).
+
+### Faz Ö4 — GSC seçici haber rewrite — ✅ uygulandı (2026-05-31)
+
+> Strateji: günde **1 yeni haber** + haftada **en fazla 2** düşük CTR rewrite (hacim değil kalite).
+
+- **`job:news-rewrite`** (`content-engine/src/jobs/news-gsc-rewrite.ts`): Yayında (`aktif`) haberlerin GSC sayfa metriklerini okur; ≥50 gösterim + CTR <%3 (`SEO_GSC_LOW_CTR_*`) adayları gösterime göre sıralar; haftalık limit (`SEO_NEWS_REWRITE_MAX_PER_WEEK=2`), min yayın yaşı (`SEO_NEWS_REWRITE_MIN_PUBLISH_WEEKS=2`) ve aynı habere tekrar rewrite aralığı (`SEO_NEWS_REWRITE_MIN_WEEKS=2`, `<!-- ce-rewrite:ISO -->` yorumu) uygular.
+- **Rewrite:** `rewriteNewsFull` → başlık/meta/gövde; data-grounding (`buildNewsRealData`); dedup gate (`SEO_NEWS_DEDUP_MAX`); kalite kapısı (`assessNewsDraft`).
+- **Zamanlayıcı:** Astro `newsScheduler.ts` — **Pazartesi 04:10 TR** (keyword sync 04:00 sonrası); `content_engine_schedule.lastNewsRewriteAt/Message`; admin zamanlayıcı kartında durum satırı.
+- **Komutlar:** `npm run content-engine:news-rewrite` (canlı); `--dry-run` aday listesi.
+- **PB:** `haberler` koleksiyonuna opsiyonel `gsc_*` alanları (`pb-setup`); schedule kaydına `lastNewsRewrite*` alanları.
 
 ### Önerilen uygulama sırası
 Ö1.2 (dolgu kaldır) → Ö1.1 (data-grounding) → Ö2.2 (dedup gate, ölçüm) → Ö1.3 (iskelet gevşet) → Ö2.1 + Ö2.3 (çeşitlilik + model).

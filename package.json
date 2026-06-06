@@ -41,6 +41,7 @@
     "content-engine:publish": "npm run publish:draft --prefix content-engine",
     "content-engine:keywords": "npm run job:keywords --prefix content-engine",
     "content-engine:gsc": "npm run job:gsc --prefix content-engine",
+    "content-engine:news-rewrite": "npm run job:news-rewrite --prefix content-engine",
     "content-engine:gsc-check": "npm run gsc:check --prefix content-engine",
     "content-engine:gsc-oauth": "npm run gsc:oauth --prefix content-engine",
     "content-engine:smoke": "npm run smoke --prefix content-engine",

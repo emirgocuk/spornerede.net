@@ -38,6 +38,10 @@ export function guidePagePath(slug: string): string {
   return `/rehber/${String(slug).trim().replace(/^\/+/, '')}`.toLowerCase();
 }
 
+export function newsPagePath(slug: string): string {
+  return `/haberler/${String(slug).trim().replace(/^\/+/, '')}`.toLowerCase();
+}
+
 export function weeksSincePublish(
   yayinlanmaTarihi?: string,
   created?: string,
