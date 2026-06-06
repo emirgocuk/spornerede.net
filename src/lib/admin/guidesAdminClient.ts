@@ -373,5 +373,113 @@ export function mountGuidesAdminTab(deps: ApiDeps) {
 
   loadBtn?.addEventListener('click', () => loadGuides());
 
+  const generateLlmBtn = document.getElementById('guide-generate-llm');
+  const manualBtn = document.getElementById('guide-manual-draft');
+  const statusEl = document.getElementById('guide-generate-status');
+  let busy = false;
+
+  function setStatus(text: string, tone: '' | 'busy' | 'ok' | 'warn' = '') {
+    if (!statusEl) return;
+    statusEl.textContent = text;
+    statusEl.classList.remove('is-busy', 'is-ok', 'is-warn');
+    if (tone) statusEl.classList.add(`is-${tone}`);
+  }
+
+  function setBusy(on: boolean) {
+    busy = on;
+    generateLlmBtn?.toggleAttribute('disabled', on);
+    manualBtn?.toggleAttribute('disabled', on);
+    loadBtn?.toggleAttribute('disabled', on);
+  }
+
+  async function postWithTimeout(
+    path: string,
+    body: Record<string, unknown>,
+    timeoutMs = 300_000,
+  ) {
+    const ac = new AbortController();
+    const timer = setTimeout(() => ac.abort(), timeoutMs);
+    try {
+      const response = await fetch(path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        signal: ac.signal,
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        const p = payload as { error?: string; message?: string };
+        throw new Error(p.error || p.message || `Istek basarisiz (${response.status})`);
+      }
+      return (payload as { data?: unknown }).data;
+    } catch (e) {
+      if (e instanceof Error && e.name === 'AbortError') {
+        throw new Error('Istek zaman asimi (5 dk). Model kotasi veya yavas API.');
+      }
+      throw e;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  async function generateGuideLlm() {
+    if (busy) return;
+    setBusy(true);
+    setStatus('Keyword kuyrugundan LLM rehber uretiliyor (1-3 dk)…', 'busy');
+    try {
+      const data = (await postWithTimeout('/api/admin/content-engine/generate-draft', {})) as {
+        id?: string;
+        baslik?: string;
+        slug?: string;
+        modelUsed?: string;
+        previewUrl?: string;
+      };
+      if (!data?.id) throw new Error('Rehber uretilemedi');
+      setStatus(
+        `Rehber taslak${data.modelUsed ? ` (${data.modelUsed})` : ''} — ${data.baslik ?? ''}`,
+        'ok',
+      );
+      selectedId = data.id;
+      await loadGuides();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Uretim basarisiz';
+      setStatus(msg, msg.includes('429') || msg.includes('limit') ? 'warn' : 'busy');
+      if (!msg.includes('429')) alert(msg);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function manualGuideDraft() {
+    if (busy) return;
+    const anahtar = prompt(
+      'Rehber konusu / anahtar kelime (bos = sadece sablon):\n\nOrnek: istanbul voleybol kursu rehberi',
+    );
+    if (anahtar === null) return;
+
+    setBusy(true);
+    setStatus('Manuel rehber sablonu…', 'busy');
+    try {
+      const body = anahtar.trim() ? { anahtar: anahtar.trim() } : { anahtar: 'spor kursu rehberi' };
+      const data = (await deps.apiPost('/api/admin/content-engine/manual-draft', body)) as {
+        id?: string;
+        baslik?: string;
+      };
+      if (!data?.id) throw new Error('Sablon olusturulamadi');
+      setStatus(`Manuel taslak: ${data.baslik ?? anahtar}`, 'ok');
+      selectedId = data.id;
+      await loadGuides();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Hata';
+      setStatus(msg, 'warn');
+      alert(msg);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  generateLlmBtn?.addEventListener('click', () => generateGuideLlm());
+  manualBtn?.addEventListener('click', () => manualGuideDraft());
+
   return { loadGuides };
 }

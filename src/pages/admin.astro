@@ -367,10 +367,19 @@ const adminLocationData = {
         </section>
 
         <section class="admin-shell is-hidden" data-tab-panel="guides">
-          <div class="admin-toolbar">
-            <button id="load-guides" class="btn btn-primary shadow-sm" type="button">🔄 Yenile</button>
-            <p class="section-help" style="margin:0">SEO taslaklari — <strong>Habere yayinla</strong> ile <code>/haberler/[slug]</code></p>
+          <div class="admin-toolbar admin-toolbar--wrap">
+            <div class="admin-toolbar-actions">
+              <button id="guide-generate-llm" class="btn btn-success shadow-sm" type="button">✨ SEO rehber yaz</button>
+              <button id="guide-manual-draft" class="btn btn-secondary shadow-sm" type="button">📝 Manuel şablon</button>
+              <button id="load-guides" class="btn btn-primary shadow-sm" type="button">🔄 Yenile</button>
+            </div>
+            <span id="guide-generate-status" class="ce-status" role="status"></span>
           </div>
+          <p class="section-help guides-tab-help">
+            Uzun SEO makalesi (<code>/rehber/[slug]</code>) — keyword kuyruğundan LLM üretir veya şablon açar.
+            Onayladıktan sonra <strong>Habere yayınla</strong> ile <code>/haberler/[slug]</code> olur.
+            <strong>Otomatik değil</strong>; günlük haber üretimi Content Engine sekmesindedir.
+          </p>
           <div class="admin-columns">
             <aside class="admin-list-container">
               <div class="list-header">
@@ -3289,6 +3298,23 @@ const adminLocationData = {
       padding: 1rem;
       border-radius: 12px;
       border: 1px solid var(--admin-border);
+    }
+
+    .admin-toolbar--wrap {
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .admin-toolbar-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .guides-tab-help {
+      margin: -0.5rem 0 1.25rem;
+      max-width: 52rem;
     }
 
     .form-actions-row {
