@@ -3,7 +3,14 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { getContentEngineRoot, resolveContentEngineTsx } from './contentEngineRoot.js';
 
-/** content-engine/.env — Astro process.env bos/yanlis degerleri ezmesin diye */
+/** Ana uygulama (systemd .env) PocketBase degerleri content-engine/.env ile ezilmesin */
+const POCKETBASE_KEYS = new Set([
+  'POCKETBASE_URL',
+  'POCKETBASE_ADMIN_EMAIL',
+  'POCKETBASE_ADMIN_PASSWORD',
+]);
+
+/** content-engine/.env — OpenRouter vb.; PB kimligi ana process.env'den gelir */
 export function loadContentEngineEnv(cwd: string): NodeJS.ProcessEnv {
   const envPath = join(cwd, '.env');
   const merged = { ...process.env, FORCE_COLOR: '0' };
@@ -22,7 +29,11 @@ export function loadContentEngineEnv(cwd: string): NodeJS.ProcessEnv {
     ) {
       value = value.slice(1, -1);
     }
-    if (key) merged[key] = value;
+    if (!key) continue;
+    if (POCKETBASE_KEYS.has(key) && process.env[key]?.trim()) {
+      continue;
+    }
+    merged[key] = value;
   }
   return merged;
 }

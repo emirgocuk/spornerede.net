@@ -3,7 +3,7 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-loadEnv({ path: resolve(root, '.env'), override: true });
+loadEnv({ path: resolve(root, '.env'), override: false });
 
 function req(name: string): string {
   const v = process.env[name]?.trim();
