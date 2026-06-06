@@ -444,6 +444,11 @@ const adminLocationData = {
     import { mountGuidesAdminTab } from '../lib/admin/guidesAdminClient';
     import { mountContentEngineNews } from '../lib/admin/contentEngineNewsAdminClient';
     import {
+      dateInputToNewsTarihIso,
+      formatNewsTarihAdmin,
+      newsTarihToDateInput,
+    } from '../lib/newsTarih';
+    import {
       assessNewsDraft,
       renderDraftChecklistHtml,
       wrapOzetWithKonu,
@@ -2330,7 +2335,7 @@ const adminLocationData = {
             <button class="list-item ${activeClass}" data-news-id="${news.id}">
               <div class="item-main">
                 <span class="item-title">${escapeHtml(news.baslik)}</span>
-                <span class="item-meta">${escapeHtml(news.kategori)} • ${formatDate(news.tarih)}${news.draftWordCount ? ` · ${news.draftWordCount} kelime` : ''}</span>
+                <span class="item-meta">${escapeHtml(news.kategori)} • ${formatNewsTarihAdmin(news.tarih, news.created)}${news.draftWordCount ? ` · ${news.draftWordCount} kelime` : ''}</span>
               </div>
               <div class="item-side">
                 ${incomplete}
@@ -2499,7 +2504,7 @@ const adminLocationData = {
                   </div>
                   <div class="form-group">
                     <label>Tarih Metni</label>
-                    <input id="news-tarih" class="modern-input" type="date" value="${news.tarih ? new Date(news.tarih).toISOString().split('T')[0] : ''}" />
+                    <input id="news-tarih" class="modern-input" type="date" value="${newsTarihToDateInput(news.tarih)}" />
                   </div>
                 </div>
                 <div class="form-group">
@@ -2636,16 +2641,15 @@ const adminLocationData = {
       const kategori = document.getElementById('news-kategori')?.value || '';
       const kategoriRenk = document.getElementById('news-kategoriRenk')?.value || 'gray';
       const tarihInput = document.getElementById('news-tarih')?.value || '';
-      let tarihIso = new Date().toISOString();
-      if (tarihInput) {
-         tarihIso = new Date(tarihInput).toISOString();
-      }
+      const editNews = id ? cachedNews.find((n) => n.id === id) : null;
+      const tarihIso = tarihInput
+        ? dateInputToNewsTarihIso(tarihInput, editNews?.tarih)
+        : new Date().toISOString();
       const link = document.getElementById('news-link')?.value || '';
       const seoTitleInput = document.getElementById('news-seo-title')?.value || '';
       const seoDescriptionInput = document.getElementById('news-seo-description')?.value || '';
       const slugInputValue = document.getElementById('news-slug')?.value || '';
       let bodyHtml = stripCeKonuComment(getRichTextContent('news-editor'));
-      const editNews = id ? cachedNews.find((n) => n.id === id) : null;
       const parsedKonu = editNews ? parseNewsOzetMeta(editNews.ozet || '').konu : '';
       const storedKonu =
         id > 0 ? sessionStorage.getItem(`ce-konu-${id}`) || '' : '';

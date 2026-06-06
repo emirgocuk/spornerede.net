@@ -1,4 +1,4 @@
-import { getDb, hasDatabaseUrl } from '../../db/client';
+import { parseNewsTarihMs } from '../newsTarih';
 import { sanitizeArticleHtml } from '../html/sanitizeArticleHtml';
 import {
   assessNewsDraft,
@@ -140,11 +140,8 @@ export async function getAllNewsAdmin() {
 
   return items
     .sort((a, b) => {
-      const aTime = new Date(String(a.tarih ?? a.created ?? '')).getTime();
-      const bTime = new Date(String(b.tarih ?? b.created ?? '')).getTime();
-      if (Number.isNaN(aTime) && Number.isNaN(bTime)) return 0;
-      if (Number.isNaN(aTime)) return 1;
-      if (Number.isNaN(bTime)) return -1;
+      const aTime = parseNewsTarihMs(String(a.tarih ?? ''), String(a.created ?? ''));
+      const bTime = parseNewsTarihMs(String(b.tarih ?? ''), String(b.created ?? ''));
       return bTime - aTime;
     })
     .map((row) => {
@@ -162,6 +159,7 @@ export async function getAllNewsAdmin() {
         kategori: String(row.kategori ?? 'Genel'),
         kategoriRenk: String(row.kategoriRenk ?? 'gray'),
         tarih: String(row.tarih ?? ''),
+        created: String(row.created ?? ''),
         baslik,
         ozet: rawSummary,
         link: String(row.link ?? '#'),

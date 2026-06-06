@@ -49,7 +49,7 @@ export async function createNewsDraft(pb: PocketBase, input: NewsDraftInput) {
   const ozet = metaPrefix ? `${metaPrefix}\n${body}` : wrapOzetWithKonu(konu, body);
   const suggested = suggestNewsCategory(konu);
   const slug = buildNewsSlug(baslik, legacyId);
-  const tarih = input.tarih || new Date().toISOString().slice(0, 10);
+  const tarih = input.tarih || new Date().toISOString();
 
   const record = await pb.collection('haberler').create({
     legacyId,
