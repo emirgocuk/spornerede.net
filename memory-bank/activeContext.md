@@ -481,6 +481,11 @@ Tam `[ ]` checklist: `memory-bank/faz-gelistirme-checklist-tr.md`. Strateji ve t
 - **Env:** `SEO_NEWS_REWRITE_ENABLED`, `SEO_NEWS_REWRITE_MAX_PER_WEEK=2`, `SEO_NEWS_REWRITE_MIN_WEEKS=2`, `SEO_NEWS_REWRITE_MIN_PUBLISH_WEEKS=2`.
 - **Manuel test:** `npm run content-engine:news-rewrite -- --dry-run` (content-engine dizininde).
 
+**Durum (2026-06-06): GSC secrets canlıda kalıcı hale getirildi.**
+- OAuth token yenilendi (`npm run gsc:oauth` lokal); `npm run content-engine:sync-secrets:win` ile `/opt/spornerede/content-engine-secrets/` yüklendi.
+- Deploy: `deploy/lib-content-engine-secrets.sh` + `sync-content-engine-secrets.*` — her release secrets dizinini kalıcı konumdan kopyalar.
+- Canlı `gsc:check` OK; rewrite dry-run: 6 yayın tarandı, henüz CTR adayı yok (normal — eşik ≥50 gösterim + <%3 CTR).
+
 ## Bir Sonraki Konuşmada Yapılacaklar
 
 1. **Faz 13 — Reklam yayını ve ölçüm** (`progress.md`, `faz-gelistirme-checklist-tr.md`):
