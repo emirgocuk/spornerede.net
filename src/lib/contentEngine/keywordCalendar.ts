@@ -1,4 +1,4 @@
-import { getDb } from '../../../db/client.js';
+import { getDb } from '../../db/client.js';
 
 const TZ = 'Europe/Istanbul';
 
