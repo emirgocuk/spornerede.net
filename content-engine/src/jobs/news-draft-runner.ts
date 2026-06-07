@@ -16,6 +16,8 @@ import {
   injectNewsInternalLinks,
   stripAllInternalLinksFooters,
 } from '../lib/news-draft-quality.js';
+import { injectNewsLinksWithPb } from '../lib/news-body-links.js';
+import { buildCtaHint } from '../lib/news-cta-hint.js';
 import { repairNewsHtml } from '../lib/repair-news-html.js';
 import {
   pickNewsWritingAngle,
@@ -77,7 +79,7 @@ function wrapLlmOzet(konu: string, bodyHtml: string, keywordId?: string) {
 async function createFromTemplatePipeline(
   pb: Awaited<ReturnType<typeof getAdminPb>>,
   konu: string,
-  keyword?: { id: string; gscHint: string; avoidList: string },
+  keyword?: { id: string; gscHint: string; avoidList: string; niyet?: string },
 ): Promise<NewsDraftRunResult> {
   const history = await loadPublishedHistory(pb);
   if (isKonuAlreadyPublished(konu, history, { includePassive: true })) {
@@ -107,7 +109,8 @@ async function createFromTemplatePipeline(
         baslik: polished.baslik,
         seoTitle: polished.seoTitle,
         seoDescription: polished.seoDescription,
-        ozetHtml: injectNewsInternalLinks(
+        ozetHtml: await injectNewsLinksWithPb(
+          pb,
           ensureMinNewsWords(repairNewsHtml(polished.ozetHtml).html, konu),
           konu,
           cfg.siteUrl,
@@ -131,6 +134,9 @@ async function createFromTemplatePipeline(
       message: `Sablon kalite: ${built.issues.join('; ')}`,
     };
   }
+
+  built.ozetHtml = await injectNewsLinksWithPb(pb, built.ozetHtml, konu, cfg.siteUrl);
+  built.ozetWrapped = wrapTemplateOzet(konu, built.templateId, built.ozetHtml, keyword?.id);
 
   const shouldPublish = shouldAutoPublishNews();
 
@@ -171,7 +177,7 @@ async function createFromTemplatePipeline(
 async function createFromLlmPipeline(
   pb: Awaited<ReturnType<typeof getAdminPb>>,
   konu: string,
-  keyword: { id: string; gscHint: string; avoidList: string },
+  keyword: { id: string; gscHint: string; avoidList: string; niyet?: string },
 ): Promise<NewsDraftRunResult> {
   const history = await loadPublishedHistory(pb);
   if (isKonuAlreadyPublished(konu, history, { includePassive: true })) {
@@ -191,6 +197,8 @@ async function createFromLlmPipeline(
   }
   const recentBodies = await loadRecentPublishedBodies(pb, 20);
 
+  const ctaHint = buildCtaHint(keyword.niyet, konu);
+
   type GenOk = {
     parsed: Awaited<ReturnType<typeof generateNewsParsed>>['parsed'];
     modelUsed: string;
@@ -209,6 +217,7 @@ async function createFromLlmPipeline(
         avoidList,
         angle: angleArg,
         realData,
+        ctaHint,
       });
       parsed = result.parsed;
       modelUsed = result.modelUsed;
@@ -220,7 +229,8 @@ async function createFromLlmPipeline(
       return { error: { ok: false, code: 'error', message: msg } };
     }
 
-    const bodyHtml = injectNewsInternalLinks(repairNewsHtml(parsed.ozetHtml).html, konu, cfg.siteUrl);
+    const repaired = repairNewsHtml(parsed.ozetHtml).html;
+    const bodyHtml = await injectNewsLinksWithPb(pb, repaired, konu, cfg.siteUrl);
     const check = assessNewsDraft(bodyHtml, konu, { template: false });
     if (!check.complete) {
       return {
@@ -322,6 +332,7 @@ export async function runNewsDraftPipeline(input?: {
     keywordPick = {
       id: input?.keywordId || envKeywordId,
       anahtar: konu,
+      niyet: '',
       siteContext: {},
       gscHint: '',
       avoidList: buildAvoidListForPrompt(history),
@@ -348,6 +359,7 @@ export async function runNewsDraftPipeline(input?: {
     id: keywordPick.id,
     gscHint: keywordPick.gscHint,
     avoidList: keywordPick.avoidList || buildAvoidListForPrompt(await loadPublishedHistory(pb)),
+    niyet: keywordPick.niyet,
   };
 
   if (cfg.newsMode === 'llm') {

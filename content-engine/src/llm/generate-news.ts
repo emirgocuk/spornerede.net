@@ -28,6 +28,7 @@ export type NewsGenerationContext = {
   avoidList?: string;
   angle?: string;
   realData?: string;
+  ctaHint?: string;
 };
 
 const DEFAULT_ANGLE =
@@ -42,7 +43,12 @@ export function buildNewsPrompt(konu: string, ctx?: NewsGenerationContext): Chat
     .replace(/\{\{GSC_HINT\}\}/g, ctx?.gscHint?.trim() || `Anahtar: ${konu}`)
     .replace(/\{\{AVOID_LIST\}\}/g, ctx?.avoidList?.trim() || '(henuz yayin yok)')
     .replace(/\{\{REAL_DATA\}\}/g, ctx?.realData?.trim() || NO_REAL_DATA)
-    .replace(/\{\{ANGLE\}\}/g, ctx?.angle?.trim() || DEFAULT_ANGLE);
+    .replace(/\{\{ANGLE\}\}/g, ctx?.angle?.trim() || DEFAULT_ANGLE)
+    .replace(
+      /\{\{CTA_HINT\}\}/g,
+      ctx?.ctaHint?.trim() ||
+        'Son paragraf SporNerede CTA — yakinindaki kurslari aramak icin platform.',
+    );
   return [
     {
       role: 'system',

@@ -274,6 +274,7 @@ const COLLECTIONS: CollectionDef[] = [
       { name: 'skor', type: 'number' },
       { name: 'durum', type: 'text', required: true },
       { name: 'site_context', type: 'json' },
+      { name: 'planlanan_tarih', type: 'date' },
     ],
   },
   {

@@ -5,6 +5,10 @@ export const MIN_NEWS_WORDS_TEMPLATE = 200;
 
 const INTERNAL_LINKS_FOOTER_RE =
   /<p[^>]*>\s*(?:<strong>\s*)?(?:I|İ|i)lgili\s+sayfalar[\s\S]*?<\/p>/gi;
+const RELATED_HABER_BLOCK_RE =
+  /<p[^>]*>\s*(?:<strong>\s*)?(?:I|İ|i)lgili\s+haber(?:ler)?:[\s\S]*?<\/p>/gi;
+const CLUB_LINKS_BLOCK_RE =
+  /<p[^>]*>\s*(?:<strong>\s*)?(?:Platformda|Öne\s+çıkan)[\s\S]*?<\/p>/gi;
 export const MIN_NEWS_H2 = 3;
 
 const BRANSLAR = [
@@ -58,10 +62,13 @@ export function countH2(html: string): number {
 
 export function stripAllInternalLinksFooters(html: string): string {
   let out = String(html ?? '');
-  let prev = '';
-  while (prev !== out) {
-    prev = out;
-    out = out.replace(INTERNAL_LINKS_FOOTER_RE, '');
+  const patterns = [INTERNAL_LINKS_FOOTER_RE, RELATED_HABER_BLOCK_RE, CLUB_LINKS_BLOCK_RE];
+  for (const re of patterns) {
+    let prev = '';
+    while (prev !== out) {
+      prev = out;
+      out = out.replace(re, '');
+    }
   }
   return out
     .replace(/<div[^>]*class="[^"]*ql-tooltip[^"]*"[\s\S]*?<\/div>/gi, '')
@@ -199,10 +206,19 @@ export function ensureMinNewsWords(bodyHtml: string, konu: string, min = MIN_NEW
   return `${body}\n${supplement}`.trim();
 }
 
-export function injectNewsInternalLinks(bodyHtml: string, konu: string, siteUrl: string): string {
+export function injectNewsInternalLinks(
+  bodyHtml: string,
+  konu: string,
+  siteUrl: string,
+  extraBlocks?: string,
+): string {
   let body = stripAllInternalLinksFooters(bodyHtml);
-  if (!body) return buildNewsInternalLinksHtml(konu, siteUrl).trim();
-  return `${body}\n${buildNewsInternalLinksHtml(konu, siteUrl)}`;
+  const middle = String(extraBlocks ?? '').trim();
+  const footer = buildNewsInternalLinksHtml(konu, siteUrl);
+  if (!body && !middle) return footer.trim();
+  if (!body) return `${middle}\n${footer}`.trim();
+  if (!middle) return `${body}\n${footer}`;
+  return `${body}\n${middle}\n${footer}`;
 }
 
 export function mergeCompletedNewsHtml(existing: string, addition: string): string {

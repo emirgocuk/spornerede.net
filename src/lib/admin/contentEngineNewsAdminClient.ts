@@ -260,8 +260,128 @@ export function mountContentEngineNews(deps: ApiDeps) {
       schedNext.classList.toggle('is-on', schedEnabled.checked);
     }
   });
+
+  const loadingEl = document.getElementById('ce-cal-loading');
+  const wrapEl = document.getElementById('ce-cal-table-wrap');
+  const bodyEl = document.getElementById('ce-cal-body');
+  const queueEl = document.getElementById('ce-cal-queue');
+  const todayPickEl = document.getElementById('ce-cal-today-pick');
+
+  type CalendarKeyword = {
+    id: string;
+    anahtar: string;
+    skor: number;
+    planlanan_tarih: string | null;
+  };
+
+  function formatTrDate(iso: string) {
+    const [y, m, d] = iso.split('-').map(Number);
+    return new Date(y!, m! - 1, d!).toLocaleDateString('tr-TR', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+    });
+  }
+
+  async function saveKeywordPlan(id: string, planlanan_tarih: string | null) {
+    const res = await fetch('/api/admin/content-engine/keyword-calendar', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, planlanan_tarih }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error((err as { error?: string }).error || 'Kayit basarisiz');
+    }
+  }
+
+  function renderCalendar(data: {
+    today: string;
+    pickedToday: CalendarKeyword | null;
+    preview14: Array<{
+      date: string;
+      source: string;
+      keyword: CalendarKeyword | null;
+    }>;
+    queue: CalendarKeyword[];
+  }) {
+    if (todayPickEl) {
+      todayPickEl.textContent = data.pickedToday
+        ? `Bugün: ${data.pickedToday.anahtar.slice(0, 48)}`
+        : 'Bugün: kuyruk bos';
+      todayPickEl.classList.add('is-on');
+    }
+
+    if (bodyEl) {
+      bodyEl.innerHTML = '';
+      for (const day of data.preview14) {
+        const tr = document.createElement('tr');
+        if (day.date === data.today) tr.classList.add('is-today');
+        if (day.source === 'planlanan') tr.classList.add('is-planned');
+
+        const kw = day.keyword;
+        const sourceLabel =
+          day.source === 'planlanan' ? 'planli' : day.source === 'tahmini' ? 'tahmini' : '—';
+
+        tr.innerHTML = `
+          <td>${formatTrDate(day.date)}${day.date === data.today ? ' · bugun' : ''}
+            <span class="ce-cal-source ${day.source === 'planlanan' ? 'is-planned' : ''}">${sourceLabel}</span>
+          </td>
+          <td>${kw ? kw.anahtar.replace(/</g, '') : '—'}</td>
+          <td>${kw ? kw.skor : '—'}</td>
+          <td></td>
+        `;
+
+        const planCell = tr.querySelector('td:last-child');
+        if (planCell && kw) {
+          const input = document.createElement('input');
+          input.type = 'date';
+          input.className = 'ce-cal-date-input';
+          input.value = kw.planlanan_tarih ?? '';
+          input.addEventListener('change', () => {
+            const val = input.value.trim();
+            void saveKeywordPlan(kw.id, val || null)
+              .then(() => loadKeywordCalendar())
+              .catch((e) => alert(e instanceof Error ? e.message : 'Hata'));
+          });
+          planCell.appendChild(input);
+        }
+
+        bodyEl.appendChild(tr);
+      }
+    }
+
+    if (queueEl) {
+      queueEl.innerHTML = data.queue
+        .map(
+          (k) =>
+            `<li><strong>${k.skor}</strong> — ${k.anahtar.replace(/</g, '')}${k.planlanan_tarih ? ` · plan: ${k.planlanan_tarih}` : ''}</li>`,
+        )
+        .join('');
+    }
+
+    loadingEl?.classList.add('is-hidden');
+    wrapEl?.classList.remove('is-hidden');
+  }
+
+  async function loadKeywordCalendar() {
+    try {
+      loadingEl?.classList.remove('is-hidden');
+      const payload = (await deps.apiGet('/api/admin/content-engine/keyword-calendar')) as {
+        data?: Parameters<typeof renderCalendar>[0];
+      };
+      if (payload?.data) renderCalendar(payload.data);
+    } catch {
+      if (loadingEl) loadingEl.textContent = 'Takvim yuklenemedi.';
+    }
+  }
+
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') void loadSchedule();
+    if (document.visibilityState === 'visible') {
+      void loadSchedule();
+      void loadKeywordCalendar();
+    }
   });
   void loadSchedule();
+  void loadKeywordCalendar();
 }

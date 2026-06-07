@@ -342,6 +342,34 @@ const adminLocationData = {
                 </p>
               </section>
             </div>
+
+            <section class="ce-card ce-card--calendar" id="ce-keyword-calendar">
+              <div class="ce-card-head-row">
+                <h3 class="ce-card-title">İçerik takvimi (14 gün)</h3>
+                <span id="ce-cal-today-pick" class="ce-scheduler-badge"></span>
+              </div>
+              <p class="ce-card-desc">
+                Kuyruktaki anahtar kelimeler — planlanan tarih atayabilir veya otomatik sırayı görebilirsiniz.
+              </p>
+              <div id="ce-cal-loading" class="ce-cal-loading">Yükleniyor…</div>
+              <div id="ce-cal-table-wrap" class="ce-cal-table-wrap is-hidden">
+                <table class="ce-cal-table" aria-label="14 günlük haber takvimi">
+                  <thead>
+                    <tr>
+                      <th>Tarih</th>
+                      <th>Konu</th>
+                      <th>Skor</th>
+                      <th>Plan</th>
+                    </tr>
+                  </thead>
+                  <tbody id="ce-cal-body"></tbody>
+                </table>
+              </div>
+              <details class="ce-cal-queue-details">
+                <summary>Kuyruk (ilk 30)</summary>
+                <ul id="ce-cal-queue" class="ce-cal-queue"></ul>
+              </details>
+            </section>
           </div>
 
           <div class="admin-columns">
@@ -3426,6 +3454,85 @@ const adminLocationData = {
 
     .ce-card--schedule {
       background: linear-gradient(180deg, #fafbff 0%, #fff 100%);
+    }
+
+    .ce-card--calendar {
+      margin-top: 1rem;
+      background: #fff;
+    }
+
+    .ce-cal-loading {
+      font-size: 0.88rem;
+      color: var(--admin-text-muted);
+    }
+
+    .ce-cal-table-wrap {
+      overflow-x: auto;
+      margin-bottom: 0.75rem;
+    }
+
+    .ce-cal-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.84rem;
+    }
+
+    .ce-cal-table th,
+    .ce-cal-table td {
+      padding: 0.45rem 0.5rem;
+      border-bottom: 1px solid var(--admin-border);
+      text-align: left;
+      vertical-align: middle;
+    }
+
+    .ce-cal-table tr.is-today td {
+      background: rgba(34, 197, 94, 0.06);
+    }
+
+    .ce-cal-table tr.is-planned td:first-child {
+      font-weight: 600;
+    }
+
+    .ce-cal-source {
+      display: inline-block;
+      font-size: 0.72rem;
+      padding: 0.1rem 0.35rem;
+      border-radius: 0.25rem;
+      background: #f1f5f9;
+      color: #64748b;
+      margin-left: 0.35rem;
+    }
+
+    .ce-cal-source.is-planned {
+      background: #dbeafe;
+      color: #1d4ed8;
+    }
+
+    .ce-cal-date-input {
+      font-size: 0.82rem;
+      padding: 0.2rem 0.35rem;
+      border: 1px solid var(--admin-border);
+      border-radius: 0.35rem;
+    }
+
+    .ce-cal-queue-details {
+      margin-top: 0.5rem;
+      font-size: 0.84rem;
+    }
+
+    .ce-cal-queue {
+      margin: 0.5rem 0 0;
+      padding-left: 1.1rem;
+      max-height: 12rem;
+      overflow-y: auto;
+    }
+
+    .ce-cal-queue li {
+      margin-bottom: 0.35rem;
+    }
+
+    .is-hidden {
+      display: none !important;
     }
 
     .ce-card-title {

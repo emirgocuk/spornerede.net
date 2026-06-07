@@ -4,7 +4,9 @@
 **Referans:** Faz 18 → 19 → 20 → 21 (`progress.md`, `faz-gelistirme-checklist-tr.md`)  
 **İzole kod:** `content-engine/` — ana `src/` dosyalarına dokunulmaz (`memory-bank/content-engine-isolated-plan-tr.md`)  
 **Profil:** `SEO_USE_PAID_APIS=false` · **LLM:** OpenRouter `:free` (varsayılan) — Google AI Studio / ücretli Gemini **yok** (fatura sızıntısı riski). GSC + PocketBase/Astro.  
-**Hedef:** Günde en fazla **1** taslak; admin onayı; `/rehber/` altında yayın. Taslak kalitesi “mükemmel AI” değil, **iş akışı + insan düzeltmesi** ile yeterli.
+**Hedef:** Günde en fazla **1** haber (`haberler`); admin onay veya auto-publish. Taslak kalitesi “mükemmel AI” değil, **iş akışı + insan düzeltmesi** ile yeterli.
+
+> **Kapsam güncellemesi (2026-05-31):** Otomasyon **yalnızca `haberler`**. Rehber otomasyonu (Faz 20) ve görsel/video üretimi **ertelendi**. Sıradaki geliştirme: **CE-5 → CE-8** (`content-engine-isolated-plan-tr.md`).
 
 ---
 

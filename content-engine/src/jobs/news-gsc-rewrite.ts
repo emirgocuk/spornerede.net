@@ -12,10 +12,10 @@ import { getAdminPb } from '../pb/client.js';
 import { rewriteNewsFull } from '../llm/generate-news-rewrite.js';
 import {
   assessNewsDraft,
-  injectNewsInternalLinks,
   stripAllInternalLinksFooters,
   stripCeKonuFromOzet,
 } from '../lib/news-draft-quality.js';
+import { injectNewsLinksWithPb } from '../lib/news-body-links.js';
 import { repairNewsHtml } from '../lib/repair-news-html.js';
 import { buildNewsRealData } from '../lib/site-context.js';
 import { loadRecentPublishedBodies } from '../lib/published-topics.js';
@@ -186,7 +186,9 @@ export async function runNewsGscRewriteJob(
 
       const parsed = result.meta;
       const repaired = repairNewsHtml(parsed?.ozetHtml ?? result.html);
-      const bodyHtml = injectNewsInternalLinks(repaired.html, topic, cfg.siteUrl);
+      const bodyHtml = await injectNewsLinksWithPb(pb, repaired.html, topic, cfg.siteUrl, {
+        excludeHaberSlug: slug,
+      });
       const assessment = assessNewsDraft(bodyHtml, topic);
       if (!assessment.complete) {
         skipped += 1;

@@ -2,7 +2,9 @@
 
 ## Şimdiki Çalışma Odağı
 
-**Faz 12 (SEO + reklam altyapısı) canlıda + PageSpeed-feedback iyileştirmeleri uygulandı + Consent banner Türkçe karakter düzeltmesi.**
+**Content Engine — haber otopilotu genişletmesi (CE-5 → CE-8).** Tek içerik kanalı: **`haberler`** (günde 1, GSC + keyword kuyruğu). Soro benzeri yetkinlikler bu pipeline’a ekleniyor; **rehber otomasyonu**, **AI/stock görsel** ve **video embed** bu turda **kapsam dışı**. Detay: `memory-bank/content-engine-isolated-plan-tr.md` → **Faz CE-5–CE-8**.
+
+**Önceki odak (tamamlandı / canlı):** Faz 12 SEO + reklam altyapısı; content-engine Ö1–Ö4 (özgünlük + GSC CTR rewrite); scheduler `enabled` kapanma düzeltmesi (`ebf29da`); GSC secrets kalıcı deploy.
 
 Mevcut durum: Faz 12 kodu `main` üzerinde; production'da `spornerede-autoupdate` ile release alındı (son release: `20260513T185315Z`). ConsentBanner'da ASCII Türkçe yazılan tüm metinler doğru karakterlere çevrildi: "Çerez Tercihleri", "Yönet", "Tümünü Kabul Et", "Gerekli" (Zorunlu yerine), "devre dışı bırakılamaz", "kullanım verileri", "kampanyalarını", "Çerez/Gizlilik Politikamızı". PageSpeed Lab raporundan gelen bulgular (Lighthouse 13 / Performance 100, A11y 91, BP 96, SEO 92) tek tek giderildi:
 
@@ -471,7 +473,7 @@ Tam `[ ]` checklist: `memory-bank/faz-gelistirme-checklist-tr.md`. Strateji ve t
 - **Rewrite/tamamla yolu grounding:** `complete-news-runner.ts` → `buildNewsRealData` hesaplayıp `completeNewsBody → polishNewsHtml → rewriteNewsFull` zinciri boyunca `{{REAL_DATA}}` olarak `news-rewrite.txt`'e geçiriyor. Böylece "Tamamla" aksiyonu da gerçek veriyle çalışıyor.
 - **Tip temizliği:** Önceden var olan 2 `tsc` hatası giderildi (`oauth-gsc.ts` null→undefined, `keyword-engine.ts` `String(kw.id)`). `tsc --noEmit` artık temiz (exit 0).
 - **Onay/inceleme mekanizması:** Auto-publish toggle (`SEO_AUTO_PUBLISH`/`SEO_NEWS_TEMPLATE_AUTO_PUBLISH`) + dedup "incelemeye düşürme" + admin haber taslağı düzenle/yayınla zaten editör onay akışını sağlıyor.
-- **İçerik motoru paketi dışı kalan (bilinçli):** Pillar+cluster **/rehber/** sayfaları ana sitenin **Faz 20** işidir (Astro sayfaları + admin SEO İçerik sekmesi); content-engine yalnızca PB'ye taslak yazar. GSC tabanlı gerçek "People Also Ask" başlık üretimi, daha fazla GSC veri toplama gerektirir (Faz 21); şu an GSC hint'i prompt'a giriyor.
+- **İçerik motoru paketi dışı / ertelenen:** Pillar+cluster **/rehber/** (Faz 20 — otomasyon yok, manuel admin); AI görsel/video; GSC tabanlı gerçek PAA (Faz 21+). CE-5–CE-8 yalnızca **haber** pipeline.
 
 **Durum (2026-05-31): GSC seçici haber rewrite otomasyonu uygulandı (Faz Ö4).**
 - **Strateji:** Günde 1 yeni haber (`SEO_DAILY_ARTICLE_LIMIT=1`); haftada en fazla 2 düşük CTR rewrite — hacim yerine ölçülen iyileştirme.
@@ -486,9 +488,19 @@ Tam `[ ]` checklist: `memory-bank/faz-gelistirme-checklist-tr.md`. Strateji ve t
 - Deploy: `deploy/lib-content-engine-secrets.sh` + `sync-content-engine-secrets.*` — her release secrets dizinini kalıcı konumdan kopyalar.
 - Canlı `gsc:check` OK; rewrite dry-run: 6 yayın tarandı, henüz CTR adayı yok (normal — eşik ≥50 gösterim + <%3 CTR).
 
+**Durum (2026-05-31): CE-5 → CE-8 uygulandı (haber otopilotu genişletmesi).**
+- **CE-5 takvim:** `seo_keywords.planlanan_tarih`; `pickNewsKeyword` bugün planlı öncelik; admin 14 gün önizleme + PATCH `/api/admin/content-engine/keyword-calendar`; sezon skor boost (`season-boost.ts`).
+- **CE-6 linkler:** Gövde — `Platformda örnek kulüpler` (1–2 gerçek slug) + `İlgili haber` bloğu; footer hub linkleri aynı (`news-body-links.ts`).
+- **CE-7 research:** GSC sorgu varyantları `site_context.gsc_query_variants`; güçlendirilmiş `avoidList` (başlık tekrarı uyarısı).
+- **CE-8 CTA:** `buildCtaHint(niyet)` → prompt `{{CTA_HINT}}`.
+- **Deploy notu:** Canlıda `npm run pb:setup` (veya content-engine ilk çalışma) ile `planlanan_tarih` alanı eklenir.
+
 ## Bir Sonraki Konuşmada Yapılacaklar
 
-1. **Faz 13 — Reklam yayını ve ölçüm** (`progress.md`, `faz-gelistirme-checklist-tr.md`):
+1. **CE-5 — İçerik takvimi (haber):** Admin’de 14 günlük keyword önizleme; opsiyonel `seo_keywords.planlanan_tarih`; sezon skor boost (yaz kursu / okula dönüş). Spec: `content-engine-isolated-plan-tr.md`.
+2. **CE-6 — Auto linking derinliği:** Gövde içi 1–2 gerçek kulüp slug + ilgili önceki haber (PB + `parseKonu`; LLM serbest URL yok).
+3. **Canlı scheduler:** Admin’de zamanlayıcı açık + Kaydet (fix sonrası bir kez); ertesi gün otomatik haber doğrulama.
+4. **Faz 13 — Reklam yayını ve ölçüm** (paralel / sonra) (`progress.md`, `faz-gelistirme-checklist-tr.md`):
    - Production’da `PUBLIC_GTM_ID` / `PUBLIC_GA4_ID` netleştir; GA4 DebugView ile temel event’leri doğrula (`view_listing`, `view_club`, formlar, lead tıkları).
    - Google Ads hesabı + GA4 dönüşüm içe aktarma; ilk kampanya taslağı (şehir+branş arama → landing, PMax veya Search → `/basvuru`, remarketing kitleleri).
    - AdSense için içerik hacmi / `ads.txt` / `PUBLIC_AD_PROVIDER` hazırlığını checklist ile hizala (içerik yeterliyse başvuru).

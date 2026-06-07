@@ -77,7 +77,7 @@ Tekrarlayan manuel işi, destek talebini ve yoğun sorgu maliyetini düşürmeye
 
 ### Gelir ve trafik (strateji öneri havuzu)
 
-Satılabilir B2B/B2C paketler, pazar yeri fikirleri ve SEO ile siteye çekme taktikleri: `memory-bank/growth-revenue-traffic-tr.md`. Uygulama fazları ve sırası: **Faz 13 → 14 → 18–21 (SEO otopilot ücretsiz) → 15 → 16 → 17** (+ Faz 4 epik); detaylı maddeler `memory-bank/faz-gelistirme-checklist-tr.md`. **Organik sıra ve SERP CTR:** `memory-bank/seo-ctr-organic-plan-tr.md`. **Otopilot rehber (0 TL):** `memory-bank/seo-autopilot-plan-tr.md`.
+Satılabilir B2B/B2C paketler, pazar yeri fikirleri ve SEO ile siteye çekme taktikleri: `memory-bank/growth-revenue-traffic-tr.md`. Uygulama fazları ve sırası: **Faz 13 → 14 → 18–21 (SEO otopilot ücretsiz, haber-only CE-5–8) → 15 → 16 → 17** (+ Faz 4 epik); detaylı maddeler `memory-bank/faz-gelistirme-checklist-tr.md`. **Organik sıra ve SERP CTR:** `memory-bank/seo-ctr-organic-plan-tr.md`. **Otopilot (0 TL):** `memory-bank/seo-autopilot-plan-tr.md` + `content-engine-isolated-plan-tr.md`.
 
 ---
 
@@ -88,7 +88,7 @@ Satılabilir B2B/B2C paketler, pazar yeri fikirleri ve SEO ile siteye çekme tak
 | ------------------------------------------ | ---------------- | ------------------------------------- |
 | Nginx yönlendirme sorunlarının geçmişi var | ✅ Çözüldü        | Cloudflare SSL modu düzenlendi        |
 | Astro image sharp pixel limiti             | ✅ Geçici çözüldü | CTA görselleri `img` olarak sunuluyor |
-| Content-engine LLM metinleri basma kalıp   | ✅ Ö1+Ö2+Ö3+Ö4 | Data-grounding + dedup + açı çeşitliliği + **GSC seçici CTR rewrite** (haftada max 2). Plan: `content-engine-isolated-plan-tr.md` |
+| Content-engine LLM metinleri basma kalıp   | ✅ Ö1–Ö4; 🚧 CE-5–8 | Özgünlük + GSC rewrite canlı. Sırada: takvim, gövde link, research, CTA. Plan: `content-engine-isolated-plan-tr.md` |
 
 
 ---
@@ -345,9 +345,11 @@ Detaylı plan: `memory-bank/seo-ads-plan.md`. Tüm altyapı turu tek seferde tam
 
 > Teknik plan: `memory-bank/seo-autopilot-plan-tr.md` · İzole uygulama: `content-engine/` · `memory-bank/content-engine-isolated-plan-tr.md`
 
-**Profil:** `SEO_USE_PAID_APIS=false` — LLM: **OpenRouter `:free` sabit model** (Gemini/Google AI Studio yok; fatura sızıntısı riski). GSC + PocketBase/Astro. Günde **1** taslak → admin düzenler → yayın. **Haftalık:** Pazartesi 04:00 GSC keyword sync + 04:10 düşük CTR haber rewrite (max 2).
+**Profil:** `SEO_USE_PAID_APIS=false` — LLM: **OpenRouter `:free` sabit model**. GSC + PocketBase/Astro. **Tek otomatik kanal: `haberler`** — günde **1** haber (scheduler + admin onay/auto-publish). **Haftalık:** Pazartesi 04:00 keyword sync + 04:10 düşük CTR rewrite (max 2).
 
-> **İçerik özgünlüğü (basma kalıp) iyileştirmesi:** Üretilen metinlerin birbirine benzemesi sorununun kök neden analizi ve MVP planı (Faz Ö1 data-grounding + dolgu paragrafı kaldırma + iskelet gevşetme → Ö2 dedup gate + çeşitlilik → Ö3) `memory-bank/content-engine-isolated-plan-tr.md` içinde. Aktif odak: `activeContext.md`.
+**Aktif geliştirme sırası (CE-5 → CE-8):** takvim (keyword kuyruğu görünürlüğü) → gövde içi linkler → GSC research zenginleştirme → niyet bazlı CTA. **Kapsam dışı (şimdilik):** rehber otomasyonu, AI/stock görsel, video embed. Detay: `content-engine-isolated-plan-tr.md`.
+
+> **Tamamlanan özgünlük paketi (Ö1–Ö4):** data-grounding, dedup gate, açı çeşitliliği, GSC seçici CTR rewrite, scheduler `enabled` fix, GSC secrets kalıcı deploy. Aktif odak: `activeContext.md`.
 
 ### Faz 18 — Keyword kuyruğu (ücretsiz)
 
@@ -364,75 +366,45 @@ Detaylı plan: `memory-bank/seo-ads-plan.md`. Tüm altyapı turu tek seferde tam
 
 ---
 
-### Faz 19 — İçerik pipeline (OpenRouter `:free`)
+### Faz 19 — Haber içerik pipeline (OpenRouter `:free`) — ✅ kısmen canlı
 
-**Amaç:** Günde 1 Türkçe SEO **taslağı** (kalite admin + site verisi ile tamamlanır).
+**Amaç:** Günde 1 Türkçe SEO **haber** taslağı/yayını (`haberler`).
 
-**Adımlar:**
-1. En yüksek skorlu keyword
-2. Site bağlamı (kulüp/program sayısı — PB)
-3. İç link listesi
-4. OpenRouter sabit `:free` model → `rehber_yazilari` (`incelemede`)
-5. Parse fail → 1 retry; `429` → ertesi gün
+**Canlı:** `news-draft-runner`, günlük scheduler, data-grounding, dedup, footer iç linkler, auto-publish toggle.
 
-**`.env`:** `OPENROUTER_API_KEY`, `SEO_OPENROUTER_MODEL=…:free`, `SEO_LLM_PROVIDER=openrouter`, `SEO_GSC_*` — **`SEO_GEMINI_API_KEY` yok**
+**Sırada (CE-5 → CE-8):** takvim alanları, gövde linkleri, GSC research hint, niyet CTA — bkz. `content-engine-isolated-plan-tr.md`.
 
-**Dosyalar:** `content-pipeline.ts`, `llm-openrouter.ts`, `prompts/*.txt`, `seo-content-daily.timer`
+**Not:** `draft-runner` → `rehber_yazilari` manuel kalır; otomasyon **haber-only**.
 
----
+**`.env`:** `OPENROUTER_API_KEY`, `SEO_OPENROUTER_MODEL=…:free`, `SEO_GSC_*`, `SEO_DAILY_ARTICLE_LIMIT=1`
 
-### Faz 20 — Yayın ve teknik SEO
-
-**Amaç:** Onaylanan taslakları sitenin `/rehber/` bölümünde yayınlamak; tam teknik SEO otomasyonu.
-
-**Yeni Sayfalar:**
-- `src/pages/rehber/index.astro` — Hub sayfası (kategori bazlı liste, SEO açıklaması)
-- `src/pages/rehber/[slug].astro` — Tek makale (JSON-LD, CTA, ilgili makaleler, E-E-A-T)
-- `src/pages/rehber/[kategori]/index.astro` (opsiyonel, Faz 21'de eklenebilir)
-
-**Her Makale Sayfasında:**
-- `Article` + `FAQPage` / `HowTo` JSON-LD (schema_tipi'ne göre dinamik)
-- Breadcrumb: Ana Sayfa → Rehber → Kategori → Başlık
-- CTA bloku: "Bu branşta yakınındaki kulüpleri bul →" (→ `/ara?brans=X&il=Y`)
-- İlgili makaleler: aynı kategoriden 3 öneri
-- Yazar: "spornerede.net Editörü" + yayınlanma tarihi (E-E-A-T)
-- OG image: `/api/og.png?title=&kicker=Rehber&badge=` (zaten mevcut endpoint)
-- Sitemap'e otomatik dahil (mevcut sitemap altyapısı ile)
-
-**Admin Paneli:**
-- Yeni "SEO İçerik" sekmesi (taslak/yayında/arşiv listesi)
-- TipTap editörle düzenleme
-- "Yayınla" / "Arşivle" akışı
-- Onay bekleyen taslak sayısı dashboard widget'ı
-
-**Dosyalar:**
-- `src/pages/rehber/` (yeni)
-- `src/lib/repositories/seoArticles.ts`
-- Admin paneli SEO İçerik sekmesi (`admin.astro` genişletmesi)
+**Dosyalar:** `content-engine/src/jobs/news-draft-runner.ts`, `newsScheduler.ts`, `prompts/news-*.txt`
 
 ---
 
-### Faz 21 — SEO Otopilot: Ölçüm, Geri Bildirim ve Öğrenen Döngü
+### Faz 20 — Rehber yayını ve teknik SEO — ⏸ ertelendi (haber otopilotu öncelik)
 
-**Amaç:** Yayınlanan makalelerin Google performansını takip edip sistemi kendi kendine iyileştiren geri bildirim döngüsü.
+**Amaç (orijinal):** Onaylanan taslakları `/rehber/` altında yayınlamak.
 
-**Haftalık GSC Sync:**
-- Her Pazartesi çalışır, tüm `/rehber/*` sayfaları için tıklama/gösterim/konum çeker
-- `rehber_yazilari.gsc_*` alanlarına günceller
-- Admin dashboardunda haftalık özet
+**Durum:** Admin manuel butonlar mevcut; **otomasyon ve CE-5–8 kapsamına alınmadı**. Aşağıdaki sayfa/admin maddeleri backlog — ihtiyaç halinde ayrı sprint.
 
-**Akıllı Kararlar (Otomatik):**
-- **Yüksek gösterim + düşük CTR:** Başlık / meta açıklama varyantı öner
-- **>50 tıklama/hafta:** Aynı kategoriden 2 yeni keyword öner (genişletme)
-- **4 hafta + <10 gösterim:** `dusuk_performans` işaretle, yeniden yazma kuyruğuna al
+<details>
+<summary>Backlog (Faz 20 orijinal spec)</summary>
 
-**Raporlama:**
-- `scripts/seo-autopilot/gsc-reporter.ts`
-- Admin dashboard: toplam makale, bu hafta tıklama/gösterim, top 5 makale, bekleyen onay
+- `src/pages/rehber/index.astro`, `[slug].astro`, JSON-LD, admin SEO İçerik sekmesi
+- OG: `/api/og.png?title=&kicker=Rehber&badge=`
 
-**Dosyalar:**
-- `scripts/seo-autopilot/gsc-reporter.ts`
-- `systemd/seo-gsc-weekly.service` + `.timer`
+</details>
+
+---
+
+### Faz 21 — Ölçüm ve geri bildirim — ✅ kısmen canlı (haber)
+
+**Canlı:** GSC keyword sync (Pazartesi 04:00); **haber** CTR rewrite (04:10, max 2/hafta); `haberler.gsc_*`; admin zamanlayıcı durumu.
+
+**Ertelenen:** `/rehber/*` GSC sync, rehber yeniden yaz kuyruğu — rehber epik açılınca.
+
+**CE-7/CE-8 ile örtüşen:** GSC varyant hint, niyet bazlı CTA (`content-engine-isolated-plan-tr.md`).
 
 ---
 

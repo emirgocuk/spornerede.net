@@ -24,6 +24,7 @@ const collections: Array<{ name: string; fields: FieldDef[] }> = [
       { name: 'skor', type: 'number' },
       { name: 'durum', type: 'text', required: true },
       { name: 'site_context', type: 'json' },
+      { name: 'planlanan_tarih', type: 'date' },
     ],
   },
   {
@@ -74,7 +75,27 @@ async function ensureCollection(
   const existing = list.items[0] as { id: string } | undefined;
 
   if (existing && (await recordsApiWorks(pb, def.name))) {
-    if (!quiet) console.log(`- ${def.name} OK`);
+    const existingFields = (existing as { fields?: FieldDef[] }).fields ?? [];
+    const existingFieldNames = new Set(existingFields.map((f) => f.name));
+    const missingFields = def.fields.filter((f) => !existingFieldNames.has(f.name));
+    if (missingFields.length > 0) {
+      await pb.collections.update(existing.id, {
+        fields: [
+          ...existingFields,
+          ...missingFields.map((f) => ({
+            name: f.name,
+            type: f.type,
+            required: f.required ?? false,
+            unique: f.unique ?? false,
+          })),
+        ],
+      });
+      if (!quiet) {
+        console.log(`~ ${def.name} alan eklendi: ${missingFields.map((f) => f.name).join(', ')}`);
+      }
+    } else if (!quiet) {
+      console.log(`- ${def.name} OK`);
+    }
     return false;
   }
 

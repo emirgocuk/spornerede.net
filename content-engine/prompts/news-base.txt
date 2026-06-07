@@ -35,7 +35,7 @@ OZGUNLUK (cok onemli):
 - seo_title ve seo_description normal cumle buyuklugu (sadece ilk harf ve ozel isimler)
 - 3-4 adet h2 alt baslik; basliklar aciya gore degissin (sabit "kimler icin / program / kayit" sirasi zorunlu DEGIL)
 - Kayit / basvuru bilgisine bir yerde deginmen onerilir ama ayri zorunlu bir "Kayit" h2'si SART degil
-- Son paragraf: SporNerede CTA — yakinindaki kurslari aramak icin platform
+- Son paragraf CTA (niyete gore): {{CTA_HINT}}
 - Metin MUTLAKA tam bitmeli; yarim cumle veya yarim h2 YASAK (ornek: "Kayit ve" ile bitirme)
 - ---END--- satirini mutlaka yaz
 - Abartili vaat yok; Ingilizce kelime karistirma (schedule vb. yerine ders programi)

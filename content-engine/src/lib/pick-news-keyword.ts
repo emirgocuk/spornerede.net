@@ -6,52 +6,84 @@ import {
   loadPublishedHistory,
 } from './published-topics.js';
 import { withCollectionRepair } from './ensure-collections.js';
+import {
+  loadKeywordQueueRows,
+  pickKeywordFromRows,
+  type KeywordQueueRow,
+} from './keyword-calendar.js';
+import { todayTrIso } from './tr-date.js';
 
 export type PickedKeyword = {
   id: string;
   anahtar: string;
+  niyet: string;
   siteContext: Record<string, unknown>;
   gscHint: string;
   avoidList: string;
 };
 
+function toPicked(row: KeywordQueueRow, avoidList: string): PickedKeyword {
+  return {
+    id: row.id,
+    anahtar: row.anahtar,
+    niyet: row.niyet,
+    siteContext: {},
+    gscHint: buildGscHintText(undefined, row.anahtar),
+    avoidList,
+  };
+}
+
+async function loadQueueWithContext(pb: PocketBase): Promise<KeywordQueueRow[]> {
+  const rows = await loadKeywordQueueRows(pb);
+  return rows;
+}
+
 export async function pickNewsKeyword(pb: PocketBase): Promise<PickedKeyword | null> {
   const history = await loadPublishedHistory(pb);
   const avoidList = buildAvoidanceBrief(history);
+  const today = todayTrIso();
 
-  const pageSize = 40;
-  let page = 1;
-  while (true) {
-    const batch = await withCollectionRepair(pb, (client) =>
-      client.collection('seo_keywords').getList(page, pageSize, {
-        filter: 'durum = "kuyrukta"',
-        sort: '-skor',
-      }),
-    );
+  const planned = await withCollectionRepair(pb, (client) =>
+    client.collection('seo_keywords').getList(1, 20, {
+      filter: `durum = "kuyrukta" && planlanan_tarih = "${today}"`,
+      sort: '-skor',
+    }),
+  ).catch(() => null);
 
-    for (const row of batch.items) {
+  if (planned?.items.length) {
+    for (const row of planned.items) {
       const anahtar = String(row.anahtar ?? '').trim();
-      if (!anahtar) continue;
-      if (isKonuAlreadyPublished(anahtar, history, { includePassive: true })) {
-        continue;
-      }
+      if (!anahtar || isKonuAlreadyPublished(anahtar, history, { includePassive: true })) continue;
       const siteContext = (row.site_context as Record<string, unknown>) ?? {};
       return {
         id: String(row.id),
         anahtar,
+        niyet: String(row.niyet ?? ''),
         siteContext,
         gscHint: buildGscHintText(siteContext, anahtar),
         avoidList,
       };
     }
-
-    if (page * pageSize >= batch.totalItems || batch.items.length < pageSize) {
-      break;
-    }
-    page += 1;
   }
 
-  return null;
+  const allRows = await loadQueueWithContext(pb);
+  const picked = pickKeywordFromRows(allRows, history, today);
+  if (!picked) return null;
+
+  try {
+    const full = await pb.collection('seo_keywords').getOne(picked.id);
+    const siteContext = (full.site_context as Record<string, unknown>) ?? {};
+    return {
+      id: picked.id,
+      anahtar: picked.anahtar,
+      niyet: picked.niyet,
+      siteContext,
+      gscHint: buildGscHintText(siteContext, picked.anahtar),
+      avoidList,
+    };
+  } catch {
+    return toPicked(picked, avoidList);
+  }
 }
 
 export async function enrichKeywordForKonu(
@@ -73,6 +105,7 @@ export async function enrichKeywordForKonu(
       return {
         id: String(row.id),
         anahtar: konu,
+        niyet: String(row.niyet ?? ''),
         siteContext,
         gscHint: buildGscHintText(siteContext, konu),
         avoidList,
@@ -85,6 +118,7 @@ export async function enrichKeywordForKonu(
   return {
     id: '',
     anahtar: konu,
+    niyet: '',
     siteContext: {},
     gscHint: buildGscHintText(undefined, konu),
     avoidList,

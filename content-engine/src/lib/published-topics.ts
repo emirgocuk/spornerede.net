@@ -81,9 +81,19 @@ export function recentTemplateIds(history: PublishedEntry[], limit = 8): string[
 export function buildAvoidanceBrief(history: PublishedEntry[], limit = 12): string {
   const lines = history.slice(0, limit).map((h) => {
     const st = h.aktif ? 'yayinda' : 'pasif';
-    return `- [${st}] ${h.konu} (${h.templateId || 'sablon?'}) — ${h.baslik}`;
+    return `- [${st}] ${h.konu} — baslik: "${h.baslik}" (${h.templateId || 'llm'})`;
   });
-  return lines.length ? lines.join('\n') : '(henuz yayin yok)';
+  const titleNote =
+    history.length > 0
+      ? '\nBu baslik cumlelerini ve ayni h2 kalibini TEKRARLAMA.'
+      : '';
+  return lines.length ? lines.join('\n') + titleNote : '(henuz yayin yok)';
+}
+
+function gscQueryVariants(ctx: Record<string, unknown>): string[] {
+  const raw = ctx.gsc_query_variants;
+  if (!Array.isArray(raw)) return [];
+  return raw.map((v) => String(v).trim()).filter(Boolean).slice(0, 3);
 }
 
 export function buildGscHintText(ctx: Record<string, unknown> | undefined, anahtar: string): string {
@@ -94,8 +104,12 @@ export function buildGscHintText(ctx: Record<string, unknown> | undefined, anaht
   const ctr = Number(ctx.gsc_ctr ?? 0);
   const pos = Number(ctx.gsc_position ?? 0);
   const oneri = String(ctx.oneri ?? '').trim();
+  const variants = gscQueryVariants(ctx);
   const parts = [`Anahtar: ${anahtar}`];
   if (imp > 0) parts.push(`GSC: ${imp} gosterim, CTR %${(ctr * 100).toFixed(1)}, ort. konum ${pos.toFixed(1)}`);
+  if (variants.length) {
+    parts.push(`GSC arama varyantlari (dogal gecir): ${variants.join(' | ')}`);
+  }
   if (oneri === 'ctr_iyilestir') {
     parts.push('Oneri: meta baslik/aciklamayi guclendir; ilk paragrafta anahtar.');
   }

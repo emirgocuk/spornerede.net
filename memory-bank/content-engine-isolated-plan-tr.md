@@ -20,10 +20,10 @@ spornerede.net/
 | Koleksiyon | Kim yazar | Kim okur (site) |
 |------------|-----------|-----------------|
 | `seo_keywords` | content-engine | (ileride admin) |
-| `rehber_yazilari` | content-engine | `/rehber/[slug]` (Faz 20) |
-| `haberler` | Mevcut admin + content-engine (rewrite) | `/haberler` — **günde 1 otomatik taslak + haftalık CTR rewrite** |
+| `rehber_yazilari` | content-engine (manuel) | `/rehber/[slug]` (Faz 20 — **otomasyon ertelendi**) |
+| `haberler` | admin + content-engine (günlük otopilot) | `/haberler` — **günde 1 otomatik + haftalık CTR rewrite** |
 
-Haber akışı: günlük otomatik üretim + GSC tabanlı seçici rewrite (haftada max 2). Onaylanan rehber ileride manuel veya script ile `haberler`'e aktarılabilir (opsiyonel).
+Haber akışı: günlük otomatik üretim + GSC tabanlı seçici rewrite (haftada max 2). **CE-5–CE-8** bu kanalı genişletir. Rehber otomasyonu **ertelendi**; onaylanan rehber ileride manuel aktarılabilir (opsiyonel).
 
 ## Sizin hazırlık sırası
 
@@ -101,8 +101,146 @@ npm run content-engine:check
 - **Komutlar:** `npm run content-engine:news-rewrite` (canlı); `--dry-run` aday listesi.
 - **PB:** `haberler` koleksiyonuna opsiyonel `gsc_*` alanları (`pb-setup`); schedule kaydına `lastNewsRewrite*` alanları.
 
-### Önerilen uygulama sırası
-Ö1.2 (dolgu kaldır) → Ö1.1 (data-grounding) → Ö2.2 (dedup gate, ölçüm) → Ö1.3 (iskelet gevşet) → Ö2.1 + Ö2.3 (çeşitlilik + model).
+### Önerilen uygulama sırası (Ö1–Ö4 — tamamlandı)
+Ö1.2 (dolgu kaldır) → Ö1.1 (data-grounding) → Ö2.2 (dedup gate, ölçüm) → Ö1.3 (iskelet gevşet) → Ö2.1 + Ö2.3 (çeşitlilik + model) → Ö4 (GSC CTR rewrite).
+
+---
+
+## Faz CE-5 → CE-8 — Haber otopilotu genişletmesi (Soro benzeri, 0 TL öncelik)
+
+> **Karar (2026-05-31):** Tek otomatik kanal **`haberler`**. Rehber (`rehber_yazilari`, `/rehber/`, `draft-runner`) ve görsel/video otomasyonu **bu plandan çıkarıldı** — ileride ayrı epik. Ana site Faz 20 rehber sayfaları content-engine ile karıştırılmaz.
+
+### Strateji (tek cümle)
+Günde 1 haber; konu **GSC + keyword kuyruğu** ile seçilsin; metin **gerçek site verisi + iç link + CTA** ile güçlensin; kalite **dedup + (opsiyonel) admin onay** ile korunsun.
+
+### Kapsam tablosu
+
+| Yetkinlik | Mevcut | CE fazı | Not |
+|-----------|--------|---------|-----|
+| Content calendar | `seo_keywords` + scheduler | **CE-5** | Takvim = kuyruk görünürlüğü + opsiyonel tarih |
+| Auto linking | Footer hub linkleri | **CE-6** | Gövde: kulüp + ilgili haber |
+| Auto research | GSC + `buildNewsRealData` + dedup | **CE-7** | SERP yok; GSC varyant + avoidList |
+| Auto promotion | CTA + kalite kapısı | **CE-8** | Niyet → CTA şablonu |
+| Görsel / video | CSS placeholder (site) | — | **Kapsam dışı** |
+| Rehber / uzun form | Manuel admin | — | **Kapsam dışı** |
+
+### Günlük akış (sadece haber)
+
+```
+Pazartesi 04:00  → keyword-engine (GSC skor)
+Pazartesi 04:10  → news-gsc-rewrite (max 2/hafta)
+Her gün HH:MM   → news-draft-runner
+    → pickNewsKeyword / planlanan_tarih (CE-5)
+    → research bundle: GSC + realData + avoidList + angle (CE-7)
+    → LLM → kalite + dedup
+    → inject links: footer + gövde kuralları (CE-6)
+    → auto-publish veya taslak
+```
+
+**Sabit kurallar:** `SEO_DAILY_ARTICLE_LIMIT=1` · ücretsiz OpenRouter · rehber scheduler’a bağlanmaz.
+
+### Faz CE-5 — Content calendar (içerik takvimi) — ✅ uygulandı (2026-05-31)
+
+| Alt | Durum |
+|-----|--------|
+| CE-5a | Admin 14 gün tablo + kuyruk listesi |
+| CE-5b | `seo_keywords.planlanan_tarih` + PATCH API |
+| CE-5c | `seasonScoreBoost` keyword-engine'de |
+
+### Faz CE-6 — Auto linking — ✅ uygulandı (2026-05-31)
+
+| Alt | Durum |
+|-----|--------|
+| CE-6a | `Platformda örnek kulüpler` paragrafı (1–2 gerçek slug) |
+| CE-6b | `İlgili haber:` bloğu (footer öncesi, tek link) |
+| Footer | Mevcut `İlgili sayfalar` hub linkleri |
+
+### Faz CE-7 — Auto research — ✅ uygulandı (2026-05-31)
+
+| Alt | Durum |
+|-----|--------|
+| CE-7a | `gsc_query_variants` → `buildGscHintText` |
+| CE-7b | `buildAvoidanceBrief` başlık tekrarı uyarısı |
+
+### Faz CE-8 — Auto promotion — ✅ uygulandı (2026-05-31)
+
+| Alt | Durum |
+|-----|--------|
+| CE-8 | `buildCtaHint(niyet)` → `{{CTA_HINT}}` prompt |
+
+### Faz CE-5 — Content calendar (içerik takvimi) — spec (referans)
+
+Takvim ayrı ürün değil; **`seo_keywords` kuyruğunun planlanmış sırası**.
+
+| Alt | İş | PB / UI |
+|-----|-----|---------|
+| CE-5a | Admin: önümüzdeki 14 gün sıradaki N keyword (skor DESC) | Salt okunur liste |
+| CE-5b | Opsiyonel `planlanan_tarih` — o gün sabit konu | `seo_keywords` alan |
+| CE-5c | Sezon skor boost (Mayıs yaz, Ağustos okula dönüş) | `keyword-engine` iş kuralı |
+
+**Seçim kuralı:** `planlanan_tarih = bugün` varsa o kayıt; yoksa en yüksek `skor`, `durum=kuyrukta`.
+
+### Faz CE-6 — Auto linking (gövde derinliği)
+
+Linkler **LLM’den değil, PB + `parseKonu` kurallarından**.
+
+| Alt | İş |
+|-----|-----|
+| CE-6a | Gövde: 1–2 gerçek kulüp slug (`buildNewsRealData` kaynağı) |
+| CE-6b | İlgili önceki haber (aynı branş/şehir, son 30 gün, max 1) |
+| — | Footer hub linkleri mevcut; tekrar etme |
+| — | Rehber çapraz link, dış federasyon URL — **ertelendi** |
+
+### Faz CE-7 — Auto research (0 TL katman)
+
+| Kaynak | Kullanım |
+|--------|----------|
+| GSC metrikleri | `gscHint`, skor, rewrite adayları |
+| `buildNewsRealData` | Outline somutluğu |
+| `avoidList` / son 20 yayın | Başlık/H2 tekrarı engeli |
+| `news-angles` | 18 açı çeşitliliği |
+
+| Alt | İş |
+|-----|-----|
+| CE-7a | Keyword için GSC top sorgu varyantlarını prompt’a 2–3 madde |
+| CE-7b | Son yayın başlıklarından otomatik avoid trigram listesi |
+
+**Ertelenen:** Serper / DataForSEO — trafik kanıtı sonrası ayrı karar (`SEO_USE_PAID_APIS`).
+
+### Faz CE-8 — Auto promotion (CTA ince ayar)
+
+| `niyet` | CTA |
+|---------|-----|
+| `islem` / `yonlendirme` | `/ara?…` (şehir/branş filtreli) |
+| `bilgi` | Genel `/ara` |
+| Her zaman | Son paragraf SporNerede; `assessNewsDraft` `hasCta` |
+
+### Uygulama sırası ve efor
+
+```
+Temel (Ö1–Ö4) ✅ → CE-5 → CE-6 → CE-7 → CE-8
+```
+
+| Faz | Tahmini efor | Maliyet |
+|-----|--------------|---------|
+| CE-5 | 1–2 gün | 0 TL |
+| CE-6 | 1–2 gün | 0 TL |
+| CE-7 | ~1 gün | 0 TL |
+| CE-8 | ~0.5 gün | 0 TL |
+
+### Başarı ölçütleri (haber-only)
+
+- Scheduler açıkken her gün 1 üretim; `enabled` kapanmıyor.
+- Son 20 haber trigram benzerliği ort. **< 0.25** (mevcut hedef).
+- CE-6 sonrası: yayınların **%80+** gövde içi kulüp veya ilgili haber linki.
+- Auto-publish açıkken taslak düşme oranı **< %20** (dedup/kalite).
+
+### Bilinçli yapılmayacaklar (bu epik)
+
+- Günde birden fazla uzun makale veya rehber slotu.
+- LLM’e serbest dış link.
+- AI görsel, video embed, OG otomasyonu (ayrı epik).
+- Soro SaaS entegrasyonu — mevcut `content-engine/` genişletilir.
 
 ### Riskler / açık sorular
 - **PB şeması:** `kulupler`/`programlar` alan adları ve yayına uygun (PII'siz) alanlar netleşmeli; koleksiyonlar boşsa data-grounding etkisiz → Faz Ö2 önceliklenir.

@@ -2,6 +2,27 @@ import { cfg, requirePocketBaseAdmin } from '../config.js';
 import { getAdminPb } from '../pb/client.js';
 import { fetchGscQueries } from '../gsc/client.js';
 import { discoverGscKeywords } from '../lib/discover-gsc-keywords.js';
+import { seasonScoreBoost } from '../lib/season-boost.js';
+
+function normalizeQuery(q: string): string {
+  return q.toLowerCase().trim().replace(/\s+/g, ' ');
+}
+
+function findGscVariants(anahtar: string, gscRows: Array<{ query: string; impressions: number }>): string[] {
+  const key = normalizeQuery(anahtar);
+  const words = key.split(' ').filter((w) => w.length > 2);
+  const matches = gscRows
+    .filter((r) => {
+      const q = normalizeQuery(r.query);
+      if (q === key) return false;
+      if (q.includes(key) || key.includes(q)) return true;
+      return words.length >= 2 && words.every((w) => q.includes(w));
+    })
+    .sort((a, b) => b.impressions - a.impressions)
+    .slice(0, 3)
+    .map((r) => r.query);
+  return [...new Set(matches)];
+}
 
 function scoreKeyword(
   row: { anahtar: string; niyet?: string; kategori?: string },
@@ -17,6 +38,7 @@ function scoreKeyword(
   else if (niyet === 'yonlendirme') skor += 3;
   else skor += 1;
   if (row.kategori === 'sehir_brans') skor += 2;
+  skor += seasonScoreBoost(row.anahtar, String(row.kategori ?? ''));
   return skor;
 }
 
@@ -51,19 +73,25 @@ async function main() {
   for (const kw of keywords) {
     const anahtar = String(kw.anahtar ?? '').toLowerCase().trim();
     const gsc = gscByQuery.get(anahtar);
+    const prevCtx = (kw.site_context as Record<string, unknown>) ?? {};
     const skor = scoreKeyword(
       { anahtar, niyet: String(kw.niyet), kategori: String(kw.kategori) },
       gsc,
     );
+    const variants = findGscVariants(anahtar, gscRows);
     const patch: Record<string, unknown> = { skor };
+    const siteContext: Record<string, unknown> = { ...prevCtx };
     if (gsc) {
+      siteContext.gsc_clicks = gsc.clicks;
+      siteContext.gsc_ctr = gsc.ctr;
+      siteContext.gsc_position = gsc.position;
+      siteContext.gsc_impressions = gsc.impressions;
       patch.gsc_impression = gsc.impressions;
-      patch.site_context = {
-        gsc_clicks: gsc.clicks,
-        gsc_ctr: gsc.ctr,
-        gsc_position: gsc.position,
-      };
     }
+    if (variants.length) {
+      siteContext.gsc_query_variants = variants;
+    }
+    patch.site_context = siteContext;
     await pb.collection('seo_keywords').update(String(kw.id), patch);
     updated++;
   }
