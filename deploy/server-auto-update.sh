@@ -187,6 +187,10 @@ fi
 ln -sfn "${NEW_RELEASE}" "${CURRENT_LINK}"
 log "Release aktif: ${NEW_RELEASE}"
 
+if [[ -f "${APP_REPO_DIR}/deploy/prune-releases.sh" ]]; then
+  bash "${APP_REPO_DIR}/deploy/prune-releases.sh" || log "UYARI: prune-releases basarisiz"
+fi
+
 # .env icinden yanlis SYSTEMD_UNIT gelmesin diye normalize et
 SYSTEMD_UNIT="${SYSTEMD_UNIT:-spornerede}"
 SYSTEMD_UNIT="${SYSTEMD_UNIT%.service}"

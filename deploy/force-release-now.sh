@@ -50,6 +50,8 @@ fi
 
 ln -sfn "${NEW_RELEASE}" "${APP_BASE}/current"
 echo "==> release: ${NEW_RELEASE}"
+bash "$(dirname "$0")/prune-releases.sh"
+
 systemctl restart spornerede.service
 sleep 3
 systemctl is-active spornerede.service
