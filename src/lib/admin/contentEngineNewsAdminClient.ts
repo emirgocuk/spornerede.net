@@ -111,10 +111,8 @@ export function mountContentEngineNews(deps: ApiDeps) {
 
   async function loadSchedule() {
     try {
-      const payload = (await deps.apiGet('/api/admin/content-engine/schedule')) as {
-        data?: ScheduleData;
-      };
-      if (payload?.data) renderSchedule(payload.data);
+      const data = (await deps.apiGet('/api/admin/content-engine/schedule')) as ScheduleData | undefined;
+      if (data) renderSchedule(data);
     } catch {
       if (schedLast) schedLast.textContent = 'Zamanlayıcı ayarları yüklenemedi.';
     }
@@ -366,13 +364,23 @@ export function mountContentEngineNews(deps: ApiDeps) {
 
   async function loadKeywordCalendar() {
     try {
-      loadingEl?.classList.remove('is-hidden');
-      const payload = (await deps.apiGet('/api/admin/content-engine/keyword-calendar')) as {
-        data?: Parameters<typeof renderCalendar>[0];
-      };
-      if (payload?.data) renderCalendar(payload.data);
-    } catch {
-      if (loadingEl) loadingEl.textContent = 'Takvim yuklenemedi.';
+      if (loadingEl) {
+        loadingEl.classList.remove('is-hidden');
+        loadingEl.textContent = 'Yükleniyor…';
+      }
+      const data = (await deps.apiGet('/api/admin/content-engine/keyword-calendar')) as
+        | Parameters<typeof renderCalendar>[0]
+        | undefined;
+      if (data) {
+        renderCalendar(data);
+      } else if (loadingEl) {
+        loadingEl.textContent = 'Takvim verisi bos.';
+      }
+    } catch (e) {
+      if (loadingEl) {
+        loadingEl.textContent =
+          e instanceof Error ? e.message : 'Takvim yuklenemedi.';
+      }
     }
   }
 
