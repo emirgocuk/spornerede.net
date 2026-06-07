@@ -1,19 +1,35 @@
 ---
 /**
  * GoogleTagManager.astro
- * Conditional GTM yukleyici (env-driven, consent-aware).
+ * Conditional GTM + GA4 yukleyici (env-driven, consent-aware).
  *
- * - PUBLIC_GTM_ID set degilse hicbir sey enjekte etmez.
- * - GTM tag'i her zaman yuklenir; consent state'i ConsentBanner tarafindan
- *   set edildigi icin GA4/Ads tag'leri otomatik buna uyar.
- * - GTM su anda BaseLayout <head> bolumunde calistirilir, <noscript> fallback
- *   <body> hemen ardindan eklenir.
+ * - PUBLIC_GA4_ID set ise gtag.js dogrudan yuklenir (GA4 kurulum dogrulayicisi bunu arar).
+ * - PUBLIC_GTM_ID set ise GTM de yuklenir (ileride Ads / ek tag'ler icin).
+ * - GTM kullanirken konteyner icine ayri GA4 Configuration tag EKLEMEYIN — cift sayim olur.
+ * - Consent default ConsentModeHead'de GTM/GA4 oncesi set edilir.
  */
 const gtmId = (import.meta.env.PUBLIC_GTM_ID ?? '').trim();
 const ga4Id = (import.meta.env.PUBLIC_GA4_ID ?? '').trim();
 const hasGtm = /^GTM-[A-Z0-9]+$/.test(gtmId);
 const hasGa4 = /^G-[A-Z0-9]+$/.test(ga4Id);
 ---
+
+{hasGa4 && (
+  <Fragment>
+    {/* GA4 — dogrudan (Consent Mode ConsentModeHead ile uyumlu) */}
+    <script is:inline async src={`https://www.googletagmanager.com/gtag/js?id=${ga4Id}`}></script>
+    <script is:inline define:vars={{ ga4Id }}>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){ window.dataLayer.push(arguments); }
+      window.gtag = window.gtag || gtag;
+      gtag('js', new Date());
+      gtag('config', ga4Id, {
+        anonymize_ip: true,
+        send_page_view: true,
+      });
+    </script>
+  </Fragment>
+)}
 
 {hasGtm && (
   <Fragment>
@@ -29,23 +45,6 @@ const hasGa4 = /^G-[A-Z0-9]+$/.test(ga4Id);
         j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;
         f.parentNode.insertBefore(j,f);
       })(window,document,'script','dataLayer', gtmId);
-    </script>
-  </Fragment>
-)}
-
-{!hasGtm && hasGa4 && (
-  <Fragment>
-    {/* GA4 (GTM yoksa dogrudan) */}
-    <script is:inline async src={`https://www.googletagmanager.com/gtag/js?id=${ga4Id}`}></script>
-    <script is:inline define:vars={{ ga4Id }}>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){ window.dataLayer.push(arguments); }
-      window.gtag = window.gtag || gtag;
-      gtag('js', new Date());
-      gtag('config', ga4Id, {
-        anonymize_ip: true,
-        send_page_view: true,
-      });
     </script>
   </Fragment>
 )}
