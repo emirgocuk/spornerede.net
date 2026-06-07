@@ -43,10 +43,14 @@ function clampMinute(value: unknown) {
   return Math.min(59, Math.max(0, Math.floor(n)));
 }
 
+function readBoolField(value: unknown): boolean {
+  return value === true || value === 1 || value === '1' || value === 'true';
+}
+
 function mapRow(row: Record<string, unknown>): ContentEngineSchedule {
   return {
     legacyId: Number(row.legacyId ?? LEGACY_ID),
-    enabled: Boolean(row.enabled),
+    enabled: readBoolField(row.enabled),
     runHour: clampHour(row.runHour),
     runMinute: clampMinute(row.runMinute),
     autoPublish: row.autoPublish !== false,
@@ -115,17 +119,45 @@ export async function updateContentEngineSchedule(
     >
   >,
 ): Promise<ContentEngineSchedule> {
-  const current = await getOrCreateContentEngineSchedule();
+  if (!hasDatabaseUrl()) {
+    return {
+      legacyId: LEGACY_ID,
+      ...DEFAULT_SCHEDULE,
+      ...patch,
+      runHour: patch.runHour !== undefined ? clampHour(patch.runHour) : DEFAULT_SCHEDULE.runHour,
+      runMinute:
+        patch.runMinute !== undefined ? clampMinute(patch.runMinute) : DEFAULT_SCHEDULE.runMinute,
+    };
+  }
+
   const db = await getDb();
   const rows = await db.collection('content_engine_schedule').getFullList({
     filter: `legacyId = ${LEGACY_ID}`,
   });
-  const row = rows[0] as { id: string } | undefined;
+  const row = rows[0] as ({ id: string } & Record<string, unknown>) | undefined;
+
+  const payload: Record<string, unknown> = {};
+  if (patch.enabled !== undefined) payload.enabled = patch.enabled;
+  if (patch.runHour !== undefined) payload.runHour = clampHour(patch.runHour);
+  if (patch.runMinute !== undefined) payload.runMinute = clampMinute(patch.runMinute);
+  if (patch.autoPublish !== undefined) payload.autoPublish = patch.autoPublish;
+  if (patch.lastRunAt !== undefined) payload.lastRunAt = patch.lastRunAt;
+  if (patch.lastRunStatus !== undefined) payload.lastRunStatus = patch.lastRunStatus;
+  if (patch.lastRunMessage !== undefined) payload.lastRunMessage = patch.lastRunMessage;
+  if (patch.lastKeywordSyncAt !== undefined) payload.lastKeywordSyncAt = patch.lastKeywordSyncAt;
+  if (patch.lastKeywordSyncMessage !== undefined) {
+    payload.lastKeywordSyncMessage = patch.lastKeywordSyncMessage;
+  }
+  if (patch.lastNewsRewriteAt !== undefined) payload.lastNewsRewriteAt = patch.lastNewsRewriteAt;
+  if (patch.lastNewsRewriteMessage !== undefined) {
+    payload.lastNewsRewriteMessage = patch.lastNewsRewriteMessage;
+  }
+
   if (!row) {
     const created = await db.collection('content_engine_schedule').create({
       legacyId: LEGACY_ID,
       ...DEFAULT_SCHEDULE,
-      ...patch,
+      ...payload,
       runHour: patch.runHour !== undefined ? clampHour(patch.runHour) : DEFAULT_SCHEDULE.runHour,
       runMinute:
         patch.runMinute !== undefined ? clampMinute(patch.runMinute) : DEFAULT_SCHEDULE.runMinute,
@@ -133,28 +165,11 @@ export async function updateContentEngineSchedule(
     return mapRow(created as Record<string, unknown>);
   }
 
-  const updated = await db.collection('content_engine_schedule').update(row.id, {
-    enabled: patch.enabled !== undefined ? patch.enabled : current.enabled,
-    runHour: patch.runHour !== undefined ? clampHour(patch.runHour) : current.runHour,
-    runMinute: patch.runMinute !== undefined ? clampMinute(patch.runMinute) : current.runMinute,
-    autoPublish: patch.autoPublish !== undefined ? patch.autoPublish : current.autoPublish,
-    lastRunAt: patch.lastRunAt !== undefined ? patch.lastRunAt : current.lastRunAt,
-    lastRunStatus: patch.lastRunStatus !== undefined ? patch.lastRunStatus : current.lastRunStatus,
-    lastRunMessage:
-      patch.lastRunMessage !== undefined ? patch.lastRunMessage : current.lastRunMessage,
-    lastKeywordSyncAt:
-      patch.lastKeywordSyncAt !== undefined ? patch.lastKeywordSyncAt : current.lastKeywordSyncAt,
-    lastKeywordSyncMessage:
-      patch.lastKeywordSyncMessage !== undefined
-        ? patch.lastKeywordSyncMessage
-        : current.lastKeywordSyncMessage,
-    lastNewsRewriteAt:
-      patch.lastNewsRewriteAt !== undefined ? patch.lastNewsRewriteAt : current.lastNewsRewriteAt,
-    lastNewsRewriteMessage:
-      patch.lastNewsRewriteMessage !== undefined
-        ? patch.lastNewsRewriteMessage
-        : current.lastNewsRewriteMessage,
-  });
+  if (Object.keys(payload).length === 0) {
+    return mapRow(row);
+  }
+
+  const updated = await db.collection('content_engine_schedule').update(row.id, payload);
   return mapRow(updated as Record<string, unknown>);
 }
 

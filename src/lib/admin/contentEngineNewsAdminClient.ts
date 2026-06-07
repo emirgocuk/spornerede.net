@@ -254,5 +254,14 @@ export function mountContentEngineNews(deps: ApiDeps) {
   generateBtn?.addEventListener('click', () => generateNews());
   manualBtn?.addEventListener('click', () => manualNews());
   schedSave?.addEventListener('click', () => saveSchedule());
+  schedEnabled?.addEventListener('change', () => {
+    if (schedNext) {
+      schedNext.textContent = schedEnabled.checked ? 'Kaydedilmedi' : 'Kapalı';
+      schedNext.classList.toggle('is-on', schedEnabled.checked);
+    }
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') void loadSchedule();
+  });
   void loadSchedule();
 }
