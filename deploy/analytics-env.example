@@ -1,0 +1,12 @@
+# Analytics env — /opt/spornerede/.env dosyasina EKLEYIN (GIT'e koymayin)
+#
+# Doldurduktan sonra sunucuda yeniden build gerekir:
+#   bash /opt/spornerede/repo/deploy/force-release-now.sh
+#
+# Dogrulama:
+#   curl -s https://spornerede.net/ | grep -o 'GTM-[A-Z0-9]*' | head -1
+#   GA4 → Admin → DebugView → sitede "Tumunu kabul" → kulup sayfasi ac
+
+PUBLIC_GTM_ID=GTM-XXXXXXXX
+PUBLIC_GA4_ID=
+PUBLIC_AD_PROVIDER=

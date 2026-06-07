@@ -12,6 +12,19 @@
 
 <script is:inline>
 (function () {
+  const CONSENT_STORAGE_KEY = 'spornerede-consent-v1';
+
+  function hasAnalyticsConsent() {
+    try {
+      const raw = window.localStorage.getItem(CONSENT_STORAGE_KEY);
+      if (!raw) return false;
+      const parsed = JSON.parse(raw);
+      return !!(parsed && parsed.analytics);
+    } catch {
+      return false;
+    }
+  }
+
   // ===== UTM yakalama =====
   // 30 gun boyunca cookie'de tut, form gizli alanlariyla server'a iletmek mumkun.
   try {
@@ -38,6 +51,7 @@
       window.dataLayer = window.dataLayer || [];
       window.dataLayer.push({ event: event, ...(params || {}) });
     } catch {}
+    if (!hasAnalyticsConsent()) return;
     try {
       const body = JSON.stringify({
         event: event,

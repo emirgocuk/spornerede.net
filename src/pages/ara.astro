@@ -4,6 +4,7 @@
  * Arama Sayfası — /ara
  * URL parametrelerine göre kulüp/kurs listesi gösterir.
  */
+import AnalyticsPageEvent from '../components/AnalyticsPageEvent.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { getAllBranches, getAllCities, getAllDistricts, searchClubs } from '../lib/repositories/catalog';
 import { itemListSchema, SITE_URL } from '../lib/seo/jsonld';
@@ -279,6 +280,18 @@ const breadcrumbsAra = [
       </div>
     </div>
   </main>
+
+  {isFilteredSearch && (
+    <AnalyticsPageEvent
+      event="search_performed"
+      params={{
+        il: seciliIl,
+        ilce: seciliIlce,
+        brans: secilinBrans,
+        result_count: sonucSayisi,
+      }}
+    />
+  )}
 </BaseLayout>
 
 <script>

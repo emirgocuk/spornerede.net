@@ -448,6 +448,11 @@ const { iban, accountName, bankName, branch } = getBankTransferDisplay();
     document.getElementById('basvuru-form')?.addEventListener('submit', saveFormDraft);
     if (new URLSearchParams(window.location.search).get('success') === '1') {
       window.localStorage.removeItem(formDraftKey);
+      window.addEventListener('load', function () {
+        if (typeof window.spornereedeTrack === 'function') {
+          window.spornereedeTrack('application_success');
+        }
+      }, { once: true });
     }
     updatePaymentInfo();
   </script>

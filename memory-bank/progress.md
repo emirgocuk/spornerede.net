@@ -288,14 +288,24 @@ Detaylı plan: `memory-bank/seo-ads-plan.md`. Tüm altyapı turu tek seferde tam
 - [x] `ads.txt` placeholder erişilebilir
 - [x] UTM cookie + auto track listener çalışıyor (`/api/internal/track` log basıyor)
 
-### Faz 13 — Reklam yayını ve ölçüm (sıradaki)
+### Faz 13 — Ölçüm (başladı; AdSense sonra)
 
-- Google Ads hesabı + GA4 conversion import
-- AdSense başvurusu (içerik hacmi yeterli olduğunda)
-- İlk kampanyalar:
-  - Search: "[şehir] [branş] kursu" → ilgili landing
-  - Performance Max: kulüp başvuru CTA → `/basvuru`
-  - Remarketing: `view_listing` + `view_club` görmüş dönüşmemiş kullanıcılar
+**Kod (2026-06-07):**
+- [x] Sayfa event'leri: `view_club`, `view_listing`, `search_performed`, `application_success` (`AnalyticsPageEvent.astro`)
+- [x] Sunucu beacon yalnızca analitik onayı varsa (`TrackingAutoListeners`)
+- [x] `deploy/analytics-env.example` + `.env.example` GTM kurulum notları
+
+**Sizin yapmanız gereken (Google hesabı):**
+- [ ] GA4 mülk + GTM konteyner oluştur
+- [ ] `/opt/spornerede/.env` → `PUBLIC_GTM_ID=GTM-...` + `force-release-now.sh`
+- [ ] GTM'de GA4 tag + 10 custom event tag; DebugView doğrula
+- [ ] Reddet → GA4 istek yok; Kabul → event'ler görünür
+
+**Sonra (ücretli trafik — AdSense değil):**
+- Google Ads + GA4 conversion import
+- İlk kampanyalar: şehir+branş Search, `/basvuru` PMax, remarketing
+
+**AdSense:** içerik hacmi yeterli olunca (`PUBLIC_AD_PROVIDER=adsense`)
 
 ### Faz 14 — SEO: indeks, içerik, programatik sayfalar
 

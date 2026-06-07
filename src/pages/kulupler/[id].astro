@@ -1,4 +1,5 @@
 ---
+import AnalyticsPageEvent from '../../components/AnalyticsPageEvent.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import Breadcrumb from '../../components/Breadcrumb.astro';
 import { getClubById, getClubProgramsByClubId } from '../../lib/repositories/catalog';
@@ -200,6 +201,11 @@ function getBodySections(bodyJson: unknown) {
       <img class="image-viewer-img" src="" alt="Büyütülmüş ilan görseli" />
     </div>
   </div>
+
+  <AnalyticsPageEvent
+    event="view_club"
+    params={{ club_id: club.id, branch: club.bransSlug || club.brans || '', city: club.il || '' }}
+  />
 </BaseLayout>
 
 <script is:inline>

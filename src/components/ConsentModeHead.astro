@@ -1,0 +1,44 @@
+---
+/**
+ * ConsentModeHead.astro
+ * Google Consent Mode v2 — GTM/GA4 yuklenmeden ONCE calismali (<head> en ustte).
+ * Kayitli tercih varsa guncelleme de burada yapilir (GTM acilmadan once).
+ */
+const CONSENT_VERSION = '1';
+---
+
+<script is:inline define:vars={{ CONSENT_VERSION }}>
+(function () {
+  const STORAGE_KEY = 'spornerede-consent-v' + CONSENT_VERSION;
+  const MAX_AGE_MS = 365 * 24 * 60 * 60 * 1000;
+
+  window.dataLayer = window.dataLayer || [];
+  function gtag() { window.dataLayer.push(arguments); }
+  window.gtag = window.gtag || gtag;
+
+  gtag('consent', 'default', {
+    ad_storage: 'denied',
+    ad_user_data: 'denied',
+    ad_personalization: 'denied',
+    analytics_storage: 'denied',
+    functionality_storage: 'granted',
+    security_storage: 'granted',
+    wait_for_update: 500,
+  });
+
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed.timestamp !== 'number') return;
+    if (Date.now() - parsed.timestamp > MAX_AGE_MS) return;
+
+    gtag('consent', 'update', {
+      ad_storage: parsed.marketing ? 'granted' : 'denied',
+      ad_user_data: parsed.marketing ? 'granted' : 'denied',
+      ad_personalization: parsed.marketing ? 'granted' : 'denied',
+      analytics_storage: parsed.analytics ? 'granted' : 'denied',
+    });
+  } catch {}
+})();
+</script>

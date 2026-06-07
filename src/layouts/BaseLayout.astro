@@ -9,6 +9,7 @@ import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import PanelFeedback from '../components/PanelFeedback.astro';
 import ConsentBanner from '../components/ConsentBanner.astro';
+import ConsentModeHead from '../components/ConsentModeHead.astro';
 import GoogleTagManager from '../components/GoogleTagManager.astro';
 import GoogleTagManagerNoscript from '../components/GoogleTagManagerNoscript.astro';
 import TrackingAutoListeners from '../components/TrackingAutoListeners.astro';
@@ -167,7 +168,8 @@ const combinedJsonLd = jsonLdScript([...globalJsonLd, ...pageJsonLd]);
   <!-- ===== JSON-LD: Organization + WebSite + (sayfa bazli ek schema) ===== -->
   <script type="application/ld+json" set:html={combinedJsonLd} is:inline></script>
 
-  <!-- ===== ANALYTICS: GTM / GA4 (consent-aware) ===== -->
+  <!-- ===== ANALYTICS: consent default GTM'den once; sonra GTM / GA4 ===== -->
+  <ConsentModeHead />
   <GoogleTagManager />
 </head>
 

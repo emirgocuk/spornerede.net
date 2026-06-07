@@ -1,0 +1,26 @@
+---
+/**
+ * AnalyticsPageEvent.astro
+ * Sayfa yuklendiginde tek bir analytics event'i tetikler.
+ * TrackingAutoListeners yuklendikten sonra calisir (window load).
+ */
+interface Props {
+  event: string;
+  params?: Record<string, string | number | boolean | null | undefined>;
+}
+
+const { event, params = {} } = Astro.props;
+---
+
+<script is:inline define:vars={{ event, params }}>
+  window.addEventListener('load', function () {
+    try {
+      if (typeof window.spornereedeTrack === 'function') {
+        window.spornereedeTrack(event, params || {});
+        return;
+      }
+      window.dataLayer = window.dataLayer || [];
+      window.dataLayer.push({ event: event, ...(params || {}) });
+    } catch {}
+  }, { once: true });
+</script>

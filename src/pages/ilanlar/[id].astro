@@ -1,4 +1,5 @@
 ---
+import AnalyticsPageEvent from '../../components/AnalyticsPageEvent.astro';
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import { getProgramListingById } from '../../lib/repositories/catalog';
 import { courseSchema, SITE_URL } from '../../lib/seo/jsonld';
@@ -251,6 +252,16 @@ const ogImage = `${SITE_URL}/api/og.png?${ogParams.toString()}`;
       </div>
     </div>
   </section>
+
+  <AnalyticsPageEvent
+    event="view_listing"
+    params={{
+      listing_id: listing.id,
+      club_id: listing.club.id,
+      branch: listing.club.bransSlug || listing.club.brans || '',
+      city: listing.club.il || '',
+    }}
+  />
 </BaseLayout>
 
 <style>

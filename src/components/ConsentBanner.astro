@@ -70,21 +70,12 @@ const CONSENT_VERSION = '1';
   const STORAGE_KEY = 'spornerede-consent-v' + CONSENT_VERSION;
   const MAX_AGE_MS = 365 * 24 * 60 * 60 * 1000; // 12 ay
 
-  // Google Consent Mode v2 — varsayilan: tum reklam/analiz izleme kapali
-  // (Tag'lar sonra eklendiginde otomatik bu state'e uyacak)
-  window.dataLayer = window.dataLayer || [];
-  function gtag() { window.dataLayer.push(arguments); }
+  // Consent default + kayitli tercih: ConsentModeHead (<head>, GTM oncesi)
+  function gtag() {
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push(arguments);
+  }
   window.gtag = window.gtag || gtag;
-
-  gtag('consent', 'default', {
-    ad_storage: 'denied',
-    ad_user_data: 'denied',
-    ad_personalization: 'denied',
-    analytics_storage: 'denied',
-    functionality_storage: 'granted',
-    security_storage: 'granted',
-    wait_for_update: 500,
-  });
 
   function applyConsent(state) {
     gtag('consent', 'update', {
@@ -135,8 +126,7 @@ const CONSENT_VERSION = '1';
 
   const existing = readState();
   if (existing) {
-    applyConsent(existing);
-    return; // banner gosterme
+    return; // tercih ConsentModeHead'de uygulandi; banner gosterme
   }
 
   banner.hidden = false;

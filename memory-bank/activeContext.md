@@ -318,10 +318,12 @@ Sonraki adımlar: geliştirme sırası **Faz 13 → 14 → 15 → 16 → 17**, *
 
 Tam `[ ]` checklist: `memory-bank/faz-gelistirme-checklist-tr.md`. Strateji ve taktik detay: `memory-bank/growth-revenue-traffic-tr.md`.
 
-**Faz 13 — Reklam yayını (önkoşul: GA4/GTM production’da stabil):**
+**Faz 13 — Ölçüm (başladı; AdSense ertelendi):**
 
-- `PUBLIC_GA4_ID` / `PUBLIC_GTM_ID` production; AdSense yolunda içerik birikimi ve `ads.txt`.
-- Google Ads / dönüşüm içe aktarma; ilk kampanya seti (`progress.md`).
+- Kod: `AnalyticsPageEvent.astro` + sayfa event'leri; beacon consent gate.
+- Sırada: GA4 mülk + GTM → `PUBLIC_GTM_ID` sunucu `.env` → deploy → DebugView.
+- GTM tag listesi: `view_club`, `view_listing`, `search_performed`, lead_* , application_* , contact_form_submit.
+- Google Ads / AdSense: ölçüm stabil olduktan sonra (`deploy/analytics-env.example`).
 
 **Faz 14 — SEO (içerik + indeks):**
 

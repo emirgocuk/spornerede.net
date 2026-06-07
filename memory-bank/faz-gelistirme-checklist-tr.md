@@ -65,12 +65,13 @@ Bu dosya, proje ilerlemesini tek yerden takip etmek için faz bazlı ana checkli
 - [x] Teknik SEO temeli (robots, sitemap, slug, JSON-LD, middleware cache, self-hosted font, consent, GTM/GA hazırlığı) — ayrıntı: `seo-ads-plan.md`, `activeContext.md`
 - [x] Performans ve Lighthouse geri bildirim turu (üretimde doğrulama operasyonu devam eder)
 
-## Faz 13 — Reklam Yayını ve Ölçüm (Ücretli Trafik)
+## Faz 13 — Ölçüm (GA4/GTM; AdSense sonra)
 
-- [ ] Production `PUBLIC_GA4_ID` / `PUBLIC_GTM_ID` netleştirme + DebugView doğrulama
-- [ ] Google Ads / dönüşüm içe aktarma (Faz 13 ürün planı: `progress.md`, `growth-revenue-traffic-tr.md` §1 ile uyumlu kampanya hedefleri)
-- [ ] AdSense önkoşulları: içerik hacmi, `ads.txt` satırları, `PUBLIC_AD_PROVIDER=adsense`
-- [ ] İlk kampanya seti (şehir+branş landing, `/basvuru`, remarketing) canlı + haftalık rapor
+- [x] Sayfa event wiring (`AnalyticsPageEvent`: kulüp, ilan, arama, başvuru success)
+- [x] Beacon consent gate (analitik onayı yoksa `/api/internal/track` atlanır)
+- [ ] Production `PUBLIC_GTM_ID` + GTM container tag'leri + DebugView doğrulama
+- [ ] Google Ads / dönüşüm içe aktarma (ölçüm stabil olduktan sonra)
+- [ ] AdSense önkoşulları: içerik hacmi, `ads.txt`, `PUBLIC_AD_PROVIDER=adsense` (ertelendi)
 
 ## Faz 14 — SEO: İndeks, İçerik, Programatik Sayfalar
 
