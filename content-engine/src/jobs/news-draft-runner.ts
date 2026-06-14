@@ -9,7 +9,7 @@ import {
   recentTemplateIds,
   isKonuAlreadyPublished,
 } from '../lib/published-topics.js';
-import { pickNewsKeyword, markKeywordUsed, enrichKeywordForKonu } from '../lib/pick-news-keyword.js';
+import { pickNewsKeyword, markKeywordUsed, markKeywordUsedByAnahtar, enrichKeywordForKonu } from '../lib/pick-news-keyword.js';
 import {
   assessNewsDraft,
   ensureMinNewsWords,
@@ -163,6 +163,12 @@ async function createFromTemplatePipeline(
       template_id: built.templateId,
       model: modelUsed,
     });
+  } else {
+    await markKeywordUsedByAnahtar(pb, konu, {
+      haber_slug: slug,
+      template_id: built.templateId,
+      model: modelUsed,
+    });
   }
 
   return {
@@ -296,6 +302,13 @@ async function createFromLlmPipeline(
 
   if (keyword.id) {
     await markKeywordUsed(pb, keyword.id, {
+      haber_slug: slug,
+      model: chosen.modelUsed,
+      angle: usedAngle,
+      similarity: Number(sim.toFixed(3)),
+    });
+  } else {
+    await markKeywordUsedByAnahtar(pb, konu, {
       haber_slug: slug,
       model: chosen.modelUsed,
       angle: usedAngle,

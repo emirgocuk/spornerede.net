@@ -216,6 +216,7 @@ export function mountContentEngineNews(deps: ApiDeps) {
         'ok',
       );
       await deps.onDraftReady(data.id);
+      await loadKeywordCalendar();
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Üretim başarısız';
       setStatus(msg, msg.includes('429') || msg.includes('kota') ? 'warn' : 'busy');

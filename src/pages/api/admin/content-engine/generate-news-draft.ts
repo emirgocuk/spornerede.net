@@ -1,10 +1,11 @@
 import type { APIRoute } from 'astro';
 import { isAdminAuthorized } from '../../../../lib/adminAuth';
-import { runNewsDraftFromAdmin } from '../../../../lib/contentEngine/runNewsDraftFromAdmin';
+import { runNewsDraftFromAdmin, runNewsDraftAutoPick } from '../../../../lib/contentEngine/runNewsDraftFromAdmin';
 import {
   ensureSeoKeywordsBeforeDraft,
   pickKonuForNewsDraft,
 } from '../../../../lib/contentEngine/ensureSeoKeywordsBeforeDraft';
+import { markKeywordWritten } from '../../../../lib/contentEngine/keywordCalendar';
 import { getNewsAdminByLegacyId } from '../../../../lib/repositories/news';
 
 export const prerender = false;
@@ -33,8 +34,7 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   const picked = konuInput ? null : await pickKonuForNewsDraft();
-  const konu = konuInput || picked?.anahtar || '';
-  if (!konu) {
+  if (!konuInput && !picked?.anahtar) {
     return new Response(
       JSON.stringify({
         success: false,
@@ -47,7 +47,11 @@ export const POST: APIRoute = async ({ request }) => {
 
   let result: Awaited<ReturnType<typeof runNewsDraftFromAdmin>>;
   try {
-    result = await runNewsDraftFromAdmin(konu, picked?.id);
+    if (konuInput) {
+      result = await runNewsDraftFromAdmin(konuInput);
+    } else {
+      result = await runNewsDraftAutoPick();
+    }
   } catch (e) {
     return new Response(
       JSON.stringify({
@@ -74,6 +78,11 @@ export const POST: APIRoute = async ({ request }) => {
 
   const row = await getNewsAdminByLegacyId(result.legacyId);
   const isTemplate = String(result.modelUsed).startsWith('template:');
+
+  await markKeywordWritten({
+    id: picked?.id,
+    anahtar: result.konu || konuInput || picked?.anahtar,
+  });
 
   return new Response(
     JSON.stringify({

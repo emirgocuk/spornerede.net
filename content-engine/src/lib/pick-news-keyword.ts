@@ -141,3 +141,25 @@ export async function markKeywordUsed(pb: PocketBase, keywordId: string, extra?:
     /* */
   }
 }
+
+/** Konu metni ile eslesen kuyruk kaydini yazildi yap (manuel uretimde id gelmeyebilir). */
+export async function markKeywordUsedByAnahtar(
+  pb: PocketBase,
+  anahtar: string,
+  extra?: Record<string, unknown>,
+) {
+  const trimmed = anahtar.trim();
+  if (!trimmed) return;
+  try {
+    const escaped = trimmed.replace(/'/g, "\\'");
+    const batch = await pb.collection('seo_keywords').getList(1, 3, {
+      filter: `anahtar = '${escaped}'`,
+    });
+    const row = batch.items[0];
+    if (row) {
+      await markKeywordUsed(pb, String(row.id), extra);
+    }
+  } catch {
+    /* */
+  }
+}

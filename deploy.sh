@@ -447,6 +447,19 @@ PY
   SSL_INCLUDES="$(b64_decode "${SSL_INCLUDES_B64:-}")"
 
   LOCATION_PROXY="$(cat <<EOF
+  location /api/admin/content-engine/ {
+    proxy_pass http://${UPSTREAM_HOST}:${UPSTREAM_PORT};
+    proxy_http_version 1.1;
+
+    proxy_set_header Host \$host;
+    proxy_set_header X-Real-IP \$remote_addr;
+    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto \$http_x_forwarded_proto;
+
+    proxy_read_timeout 360s;
+    proxy_send_timeout 360s;
+  }
+
   location / {
     proxy_pass http://${UPSTREAM_HOST}:${UPSTREAM_PORT};
     proxy_http_version 1.1;

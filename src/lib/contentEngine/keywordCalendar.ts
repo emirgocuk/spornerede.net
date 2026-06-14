@@ -111,3 +111,31 @@ export async function updateKeywordPlanDate(id: string, planlanan_tarih: string 
     planlanan_tarih: planlanan_tarih || '',
   });
 }
+
+/** Haber uretildikten sonra kuyruktan dusur (id veya anahtar ile). */
+export async function markKeywordWritten(opts: { id?: string; anahtar?: string }): Promise<void> {
+  const pb = await getDb();
+  const patch = { durum: 'yazildi' };
+  if (opts.id) {
+    try {
+      await pb.collection('seo_keywords').update(opts.id, patch);
+    } catch {
+      /* */
+    }
+    return;
+  }
+  const anahtar = opts.anahtar?.trim();
+  if (!anahtar) return;
+  try {
+    const escaped = anahtar.replace(/'/g, "\\'");
+    const batch = await pb.collection('seo_keywords').getList(1, 1, {
+      filter: `anahtar = '${escaped}'`,
+    });
+    const row = batch.items[0];
+    if (row) {
+      await pb.collection('seo_keywords').update(String(row.id), patch);
+    }
+  } catch {
+    /* */
+  }
+}
