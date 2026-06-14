@@ -2,6 +2,9 @@ import { getDb } from '../../db/client.js';
 
 const TZ = 'Europe/Istanbul';
 
+/** Otomatik haber takviminde gosterilmez / secilmez */
+const NEWS_EXCLUDED_CATEGORIES = new Set(['sehir_brans']);
+
 export function todayTrIso(): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date());
 }
@@ -60,7 +63,9 @@ export async function loadKeywordCalendarData(): Promise<{
       sort: '-skor',
     });
     for (const item of batch.items) {
-      queue.push(rowFrom(item as Record<string, unknown>));
+      const row = rowFrom(item as Record<string, unknown>);
+      if (NEWS_EXCLUDED_CATEGORIES.has(row.kategori)) continue;
+      queue.push(row);
     }
     if (batch.items.length < pageSize) break;
     page += 1;

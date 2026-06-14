@@ -25,12 +25,14 @@ export type NewsDraftRunResult =
       message: string;
     };
 
-function spawnNewsDraft(
-  konu: string,
+function spawnNewsDraftJson(
   extraEnv: Record<string, string> = {},
+  topic?: string,
 ): Promise<{ result: NewsDraftRunResult; raw: string }> {
-  const topic = konu.trim();
-  const extraArgs = ['--', topic];
+  const extraArgs = topic?.trim() ? ['--', topic.trim()] : [];
+  const env = topic?.trim()
+    ? { ...extraEnv, SEO_NEWS_KONU: topic.trim() }
+    : { ...extraEnv };
 
   return new Promise((resolvePromise) => {
     let settled = false;
@@ -43,7 +45,7 @@ function spawnNewsDraft(
 
     const child = spawnContentEngineCli('src/cli/run-news-draft-json.ts', extraArgs, {
       cwd: contentEngineRoot,
-      env: { ...extraEnv, SEO_NEWS_KONU: topic },
+      env,
     });
 
     let out = '';
@@ -121,6 +123,34 @@ async function repairContentEngineSchema(): Promise<string | null> {
   return null;
 }
 
+export async function runNewsDraftAutoPick(
+  extraEnv: Record<string, string> = {},
+): Promise<NewsDraftRunResult> {
+  try {
+    let attempt = await spawnNewsDraftJson(extraEnv);
+    if (attempt.result.ok || !needsCollectionRepair(attempt.raw)) {
+      return attempt.result;
+    }
+
+    const repairErr = await repairContentEngineSchema();
+    if (repairErr) {
+      return {
+        ok: false,
+        code: 'error',
+        message: `seo_keywords onarilamadi: ${repairErr}`,
+      };
+    }
+
+    attempt = await spawnNewsDraftJson(extraEnv);
+    return attempt.result;
+  } catch (e) {
+    if (e instanceof ContentEngineSpawnError) {
+      return { ok: false, code: 'error', message: e.message };
+    }
+    throw e;
+  }
+}
+
 export async function runNewsDraftFromAdmin(
   konu: string,
   keywordId?: string,
@@ -137,7 +167,7 @@ export async function runNewsDraftFromAdmin(
   }
 
   try {
-    let attempt = await spawnNewsDraft(topic, spawnEnv);
+    let attempt = await spawnNewsDraftJson(spawnEnv, topic);
     if (attempt.result.ok || !needsCollectionRepair(attempt.raw)) {
       return attempt.result;
     }
@@ -151,7 +181,7 @@ export async function runNewsDraftFromAdmin(
       };
     }
 
-    attempt = await spawnNewsDraft(topic, spawnEnv);
+    attempt = await spawnNewsDraftJson(spawnEnv, topic);
     return attempt.result;
   } catch (e) {
     if (e instanceof ContentEngineSpawnError) {

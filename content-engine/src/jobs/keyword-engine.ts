@@ -3,6 +3,7 @@ import { getAdminPb } from '../pb/client.js';
 import { fetchGscQueries } from '../gsc/client.js';
 import { discoverGscKeywords } from '../lib/discover-gsc-keywords.js';
 import { seasonScoreBoost } from '../lib/season-boost.js';
+import { isKonuAlreadyPublished, loadPublishedHistory } from '../lib/published-topics.js';
 
 function normalizeQuery(q: string): string {
   return q.toLowerCase().trim().replace(/\s+/g, ' ');
@@ -37,8 +38,10 @@ function scoreKeyword(
   if (niyet === 'islem') skor += 5;
   else if (niyet === 'yonlendirme') skor += 3;
   else skor += 1;
-  if (row.kategori === 'sehir_brans') skor += 2;
-  skor += seasonScoreBoost(row.anahtar, String(row.kategori ?? ''));
+  const kategori = String(row.kategori ?? '');
+  if (kategori === 'sehir_brans') skor -= 25;
+  else if (kategori === 'ebeveyn' || kategori === 'sezonsal') skor += 4;
+  skor += seasonScoreBoost(row.anahtar, kategori);
   return skor;
 }
 
@@ -66,6 +69,21 @@ async function main() {
   const discovered = await discoverGscKeywords(pb, gscRows, existingKeys);
   if (discovered > 0) {
     console.log(`GSC kesif: ${discovered} yeni keyword kuyruga eklendi.`);
+  }
+
+  const history = await loadPublishedHistory(pb);
+  let synced = 0;
+  for (const kw of keywords) {
+    if (String(kw.durum ?? '') !== 'kuyrukta') continue;
+    const anahtar = String(kw.anahtar ?? '').trim();
+    if (!anahtar) continue;
+    if (isKonuAlreadyPublished(anahtar, history, { includePassive: true })) {
+      await pb.collection('seo_keywords').update(String(kw.id), { durum: 'yazildi' });
+      synced += 1;
+    }
+  }
+  if (synced > 0) {
+    console.log(`Kuyruk senkron: ${synced} keyword zaten yayinda — yazildi olarak isaretlendi.`);
   }
 
   let updated = 0;

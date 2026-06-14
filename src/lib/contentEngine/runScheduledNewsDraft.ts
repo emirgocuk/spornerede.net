@@ -1,29 +1,17 @@
-import {
-  ensureSeoKeywordsBeforeDraft,
-  pickKonuForNewsDraft,
-} from './ensureSeoKeywordsBeforeDraft';
-import { runNewsDraftFromAdmin } from './runNewsDraftFromAdmin';
+import { ensureSeoKeywordsBeforeDraft } from './ensureSeoKeywordsBeforeDraft';
+import { runNewsDraftAutoPick } from './runNewsDraftFromAdmin';
 
 export type ScheduledNewsResult =
   | { ok: true; legacyId: number; baslik: string; konu: string; autoPublished?: boolean }
   | { ok: false; code: string; message: string };
 
-/** Zamanlayici — admin oturumu gerektirmez */
+/** Zamanlayici — admin oturumu gerektirmez; konu secimi content-engine icinde yapilir */
 export async function runScheduledNewsDraft(options?: {
   autoPublish?: boolean;
 }): Promise<ScheduledNewsResult> {
   const pbErr = await ensureSeoKeywordsBeforeDraft();
   if (pbErr) {
     return { ok: false, code: 'error', message: `seo_keywords hazir degil: ${pbErr}` };
-  }
-
-  const picked = await pickKonuForNewsDraft();
-  if (!picked?.anahtar) {
-    return {
-      ok: false,
-      code: 'no_topic',
-      message: 'Kuyrukta keyword yok.',
-    };
   }
 
   const extraEnv: Record<string, string> = {};
@@ -33,7 +21,7 @@ export async function runScheduledNewsDraft(options?: {
   }
 
   try {
-    const result = await runNewsDraftFromAdmin(picked.anahtar, picked.id, extraEnv);
+    const result = await runNewsDraftAutoPick(extraEnv);
     if (!result.ok) {
       return { ok: false, code: result.code, message: result.message };
     }

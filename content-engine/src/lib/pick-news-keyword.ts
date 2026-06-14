@@ -11,6 +11,7 @@ import {
   pickKeywordFromRows,
   type KeywordQueueRow,
 } from './keyword-calendar.js';
+import { isKeywordEligibleForNews } from './news-keyword-policy.js';
 import { todayTrIso } from './tr-date.js';
 
 export type PickedKeyword = {
@@ -53,7 +54,9 @@ export async function pickNewsKeyword(pb: PocketBase): Promise<PickedKeyword | n
   if (planned?.items.length) {
     for (const row of planned.items) {
       const anahtar = String(row.anahtar ?? '').trim();
-      if (!anahtar || isKonuAlreadyPublished(anahtar, history, { includePassive: true })) continue;
+      const kategori = String(row.kategori ?? '');
+      if (!anahtar || !isKeywordEligibleForNews(kategori)) continue;
+      if (isKonuAlreadyPublished(anahtar, history, { includePassive: true })) continue;
       const siteContext = (row.site_context as Record<string, unknown>) ?? {};
       return {
         id: String(row.id),

@@ -83,6 +83,9 @@ async function createFromTemplatePipeline(
 ): Promise<NewsDraftRunResult> {
   const history = await loadPublishedHistory(pb);
   if (isKonuAlreadyPublished(konu, history, { includePassive: true })) {
+    if (keyword?.id) {
+      await markKeywordUsed(pb, keyword.id, { skip_reason: 'duplicate' });
+    }
     return {
       ok: false,
       code: 'duplicate',
@@ -181,6 +184,9 @@ async function createFromLlmPipeline(
 ): Promise<NewsDraftRunResult> {
   const history = await loadPublishedHistory(pb);
   if (isKonuAlreadyPublished(konu, history, { includePassive: true })) {
+    if (keyword.id) {
+      await markKeywordUsed(pb, keyword.id, { skip_reason: 'duplicate' });
+    }
     return {
       ok: false,
       code: 'duplicate',
@@ -324,56 +330,70 @@ export async function runNewsDraftPipeline(input?: {
 
   const envKonu = process.env.SEO_NEWS_KONU?.trim() ?? '';
   const envKeywordId = process.env.SEO_NEWS_KEYWORD_ID?.trim() ?? '';
-  let konu = input?.konu?.trim() || envKonu;
-  let keywordPick: Awaited<ReturnType<typeof pickNewsKeyword>> = null;
+  const forcedKonu = input?.konu?.trim() || envKonu;
+  const forcedKeywordId = input?.keywordId || envKeywordId;
+  const maxAttempts = forcedKonu && forcedKeywordId ? 1 : 5;
 
-  if (konu && (input?.keywordId || envKeywordId)) {
-    const history = await loadPublishedHistory(pb);
-    keywordPick = {
-      id: input?.keywordId || envKeywordId,
-      anahtar: konu,
-      niyet: '',
-      siteContext: {},
-      gscHint: '',
-      avoidList: buildAvoidListForPrompt(history),
-    };
-  } else if (!konu) {
-    keywordPick = await pickNewsKeyword(pb);
-    konu = keywordPick?.anahtar ?? '';
-  }
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    let konu = attempt === 0 ? forcedKonu : '';
+    let keywordPick: Awaited<ReturnType<typeof pickNewsKeyword>> = null;
 
-  if (!konu) {
-    return {
-      ok: false,
-      code: 'no_topic',
-      message:
-        'Uygun keyword yok (hepsi yayinlandi veya kuyruk bos). npm run job:keywords sonra tekrar deneyin.',
-    };
-  }
-
-  if (!keywordPick) {
-    keywordPick = await enrichKeywordForKonu(pb, konu);
-  }
-
-  const keywordCtx = {
-    id: keywordPick.id,
-    gscHint: keywordPick.gscHint,
-    avoidList: keywordPick.avoidList || buildAvoidListForPrompt(await loadPublishedHistory(pb)),
-    niyet: keywordPick.niyet,
-  };
-
-  if (cfg.newsMode === 'llm') {
-    return createFromLlmPipeline(pb, konu, keywordCtx);
-  }
-
-  if (useTemplatePipeline()) {
-    const fromTemplate = await createFromTemplatePipeline(pb, konu, keywordCtx);
-    if (fromTemplate.ok) return fromTemplate;
-    if (cfg.newsMode === 'template' || cfg.newsMode === 'template_llm') {
-      return fromTemplate;
+    if (konu && forcedKeywordId && attempt === 0) {
+      const history = await loadPublishedHistory(pb);
+      keywordPick = {
+        id: forcedKeywordId,
+        anahtar: konu,
+        niyet: '',
+        siteContext: {},
+        gscHint: '',
+        avoidList: buildAvoidListForPrompt(history),
+      };
+    } else if (!konu) {
+      keywordPick = await pickNewsKeyword(pb);
+      konu = keywordPick?.anahtar ?? '';
     }
-    console.warn('[news] sablon basarisiz, LLM yedegi:', fromTemplate.message);
+
+    if (!konu) {
+      return {
+        ok: false,
+        code: 'no_topic',
+        message:
+          'Uygun keyword yok (hepsi yayinlandi veya kuyruk bos). npm run job:keywords sonra tekrar deneyin.',
+      };
+    }
+
+    if (!keywordPick) {
+      keywordPick = await enrichKeywordForKonu(pb, konu);
+    }
+
+    const keywordCtx = {
+      id: keywordPick.id,
+      gscHint: keywordPick.gscHint,
+      avoidList: keywordPick.avoidList || buildAvoidListForPrompt(await loadPublishedHistory(pb)),
+      niyet: keywordPick.niyet,
+    };
+
+    let result: NewsDraftRunResult;
+    if (cfg.newsMode === 'llm') {
+      result = await createFromLlmPipeline(pb, konu, keywordCtx);
+    } else if (useTemplatePipeline()) {
+      result = await createFromTemplatePipeline(pb, konu, keywordCtx);
+      if (!result.ok && cfg.newsMode !== 'template' && cfg.newsMode !== 'template_llm') {
+        console.warn('[news] sablon basarisiz, LLM yedegi:', result.message);
+        result = await createFromLlmPipeline(pb, konu, keywordCtx);
+      }
+    } else {
+      result = await createFromLlmPipeline(pb, konu, keywordCtx);
+    }
+
+    if (result.ok) return result;
+    if (result.code === 'duplicate' && !forcedKonu) continue;
+    return result;
   }
 
-  return createFromLlmPipeline(pb, konu, keywordCtx);
+  return {
+    ok: false,
+    code: 'duplicate',
+    message: 'Uygun yeni konu bulunamadi (tekrarlayan keywordler atlandi).',
+  };
 }

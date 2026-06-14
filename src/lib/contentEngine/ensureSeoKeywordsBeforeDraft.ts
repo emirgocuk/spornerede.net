@@ -48,36 +48,22 @@ export async function ensureSeoKeywordsBeforeDraft(): Promise<string | null> {
   return repairSeoKeywords();
 }
 
-/** Keyword secimini Astro tarafinda yap — child seo_keywords kuyruk sorgusunu atlar */
+/** Keyword secimi — content-engine pickNewsKeyword (CE-5 + yayin kontrolu) */
 export async function pickKonuForNewsDraft(): Promise<PickedKonu | null> {
-  resetDb();
-  const pageSize = 40;
-  let page = 1;
-  while (true) {
-    let batch;
-    try {
-      batch = await queryKeywords(page, pageSize);
-    } catch (e) {
-      const err = e as { status?: number };
-      if (err.status === 404) {
-        const repairErr = await repairSeoKeywords();
-        if (repairErr) throw new Error(repairErr);
-        batch = await queryKeywords(page, pageSize);
-      } else {
-        throw e;
-      }
-    }
-
-    for (const row of batch.items) {
-      const anahtar = String(row.anahtar ?? '').trim();
-      if (anahtar) {
-        return { id: String(row.id), anahtar };
-      }
-    }
-    if (page * pageSize >= batch.totalItems || batch.items.length < pageSize) {
-      break;
-    }
-    page += 1;
+  const result = await runContentEngineScript('src/cli/pick-news-keyword-json.ts', [], 60_000);
+  if (!result.ok) return null;
+  const lines = result.output
+    .trim()
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean);
+  const jsonLine = [...lines].reverse().find((l) => l.startsWith('{') || l === 'null');
+  if (!jsonLine || jsonLine === 'null') return null;
+  try {
+    const parsed = JSON.parse(jsonLine) as { id?: string; anahtar?: string } | null;
+    if (!parsed?.anahtar) return null;
+    return { id: String(parsed.id ?? ''), anahtar: String(parsed.anahtar) };
+  } catch {
+    return null;
   }
-  return null;
 }

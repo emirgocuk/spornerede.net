@@ -1,6 +1,7 @@
 import type PocketBase from 'pocketbase';
 import { addDaysIso, todayTrIso } from './tr-date.js';
 import { isKonuAlreadyPublished, loadPublishedHistory, type PublishedEntry } from './published-topics.js';
+import { isKeywordEligibleForNews } from './news-keyword-policy.js';
 
 export type KeywordQueueRow = {
   id: string;
@@ -39,6 +40,7 @@ function isEligibleForPick(
   history: PublishedEntry[],
 ): boolean {
   if (row.durum !== 'kuyrukta' || !row.anahtar) return false;
+  if (!isKeywordEligibleForNews(row.kategori)) return false;
   if (isKonuAlreadyPublished(row.anahtar, history, { includePassive: true })) return false;
   if (row.planlanan_tarih && row.planlanan_tarih > today) return false;
   return true;
