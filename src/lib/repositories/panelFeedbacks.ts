@@ -69,13 +69,16 @@ export async function createPanelFeedback(input: CreatePanelFeedbackInput): Prom
 
 export async function getAdminFeedbacks(): Promise<PanelFeedback[]> {
   requireDatabase();
-  const db = await getDb();
-  
-  const list = await db.collection('panel_geribildirimleri').getFullList({
-    sort: '-created',
-  });
-  
-  return list.map((row) => mapFeedbackRow(row as unknown as Record<string, unknown>));
+  try {
+    const db = await getDb();
+    const list = await db.collection('panel_geribildirimleri').getFullList({
+      sort: '-created',
+    });
+    return list.map((row) => mapFeedbackRow(row as unknown as Record<string, unknown>));
+  } catch (error) {
+    console.error('panel_geribildirimleri listelenemedi:', error);
+    return [];
+  }
 }
 
 export async function updateAdminFeedbackStatus(id: number, durum: PanelFeedback['durum']): Promise<PanelFeedback | null> {

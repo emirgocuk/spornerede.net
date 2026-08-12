@@ -53,12 +53,8 @@ export function packageCodeForPeriod(period: MembershipPeriod) {
 }
 
 /** Ekranda gösterim — `aylik` paketi artık 6 aylık sayılır (eski veri). */
-export function formatMembershipPackageLabel(kod?: string, ad?: string) {
-  if (kod === 'alti-aylik' || kod === 'aylik') return '6 Aylık';
-  if (kod === 'on-iki-aylik' || kod === 'yillik') return 'Yıllık';
-  if (ad && /12\s*aylık|yıllık/i.test(ad)) return 'Yıllık';
-  if (ad && /6\s*aylık|aylık/i.test(ad) && !/12/i.test(ad)) return '6 Aylık';
-  return ad || kod || '—';
+export function formatMembershipPackageLabel(_kod?: string, _ad?: string) {
+  return 'Ücretsiz Sınırsız Üyelik';
 }
 
 async function ensureMembershipPlan(period: MembershipPeriod) {
@@ -154,38 +150,16 @@ export async function activateClubMembership(clubId: number, period: MembershipP
 }
 
 export async function expireDueMemberships() {
-  requireDatabase();
-  try {
-    const db = await getDb();
-    const nowMs = Date.now();
-    const paidRows = await db.collection('kulup_uyelikleri').getFullList({ filter: 'odemeDurumu = "paid"' }).catch(() => []);
-    let expired = 0;
-    for (const row of paidRows) {
-      const endRaw = row.bitisTarihi as string | undefined;
-      if (!endRaw || String(endRaw).trim() === '') continue;
-      const endMs = new Date(endRaw).getTime();
-      if (Number.isNaN(endMs) || endMs > nowMs) continue;
-      await db.collection('kulup_uyelikleri').update(row.id, { odemeDurumu: 'expired' }).catch(() => undefined);
-      expired += 1;
-    }
-    return expired;
-  } catch {
-    return 0;
-  }
+  // Platform 100% ücretsiz olduğu için üyelik süreleri dolmaz ve kayıtlar silinmez/pasife alınmaz.
+  return 0;
 }
 
 export async function hasActiveMembership(clubId: number) {
   requireDatabase();
-  await expireDueMemberships();
   const db = await getDb();
-  const row = await getClubMembershipRow(clubId);
-  if (!row) return false;
-  if (row.odemeDurumu !== 'paid') return false;
-  const endRaw = (row.bitisTarihi as string | undefined) ?? '';
-  if (!String(endRaw).trim()) return true;
-  const endMs = new Date(endRaw).getTime();
-  if (Number.isNaN(endMs)) return true;
-  return endMs > Date.now();
+  const club = await db.collection('kulupler').getFirstListItem(`legacyId = ${clubId}`).catch(() => null);
+  if (!club) return false;
+  return club.durum === 'approved';
 }
 
 /**

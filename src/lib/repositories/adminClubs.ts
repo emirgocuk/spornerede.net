@@ -113,30 +113,19 @@ export async function getApprovedAdminClubById(clubId: number) {
     .catch(() => null);
   if (!row) return null;
 
-  const [city, district, programs, membership, clubUserLinks] = await Promise.all([
+  const [city, district, programs, clubUserLinks, approvalLog] = await Promise.all([
     db.collection('iller').getFirstListItem(`legacyId = ${Number(row.ilLegacyId)}`).catch(() => null),
     db.collection('ilceler').getFirstListItem(`legacyId = ${Number(row.ilceLegacyId)}`).catch(() => null),
     db.collection('kulup_programlari').getFullList({
       filter: `kulupLegacyId = ${clubId}`,
       sort: '-legacyId',
     }),
-    db
-      .collection('kulup_uyelikleri')
-      .getFirstListItem(`kulupLegacyId = ${clubId}`, { sort: '-legacyId' })
-      .catch(() => null),
     db.collection('kulup_uyelik_kullanicilari').getFullList({ filter: `kulupLegacyId = ${clubId}` }).catch(() => []),
+    db
+      .collection('admin_basvuru_loglari')
+      .getFirstListItem(`basvuruLegacyId = ${clubId} && yeniDurum = "approved"`, { sort: '-legacyId' })
+      .catch(() => null),
   ]);
-
-  let paketKod = '';
-  let paketAd = '';
-  if (membership?.paketLegacyId) {
-    const plan = await db
-      .collection('uyelik_paketleri')
-      .getFirstListItem(`legacyId = ${Number(membership.paketLegacyId)}`)
-      .catch(() => null);
-    paketKod = (plan?.kod as string) ?? '';
-    paketAd = (plan?.ad as string) ?? '';
-  }
 
   const linkedUsers = [];
   for (const link of clubUserLinks) {
@@ -170,11 +159,12 @@ export async function getApprovedAdminClubById(clubId: number) {
     fiyatBilgisi: (row.fiyatBilgisi as string) ?? '',
     adminNotu: (row.adminNotu as string) ?? '',
     sorumluAdminEmail: (row.sorumluAdminEmail as string) ?? '',
-    paketKod,
-    paketAd,
-    paketLabel: formatMembershipPackageLabel(paketKod, paketAd),
+    paketKod: 'free',
+    paketAd: 'Ücretsiz Sınırsız Üyelik',
+    paketLabel: 'Ücretsiz Sınırsız Üyelik',
     bransSayisi,
-    membershipPeriod: membershipPeriodFromPackageCode(paketKod) ?? 'six_month',
+    createdAt: (row.created as string) ?? '',
+    approvedAt: (approvalLog?.created as string) || (row.updated as string) || '',
     linkedUsers,
     updatedAt: row.updated,
     programs: programs.map((program) => mapProgramRow(program)),

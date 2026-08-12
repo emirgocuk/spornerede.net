@@ -38,7 +38,22 @@ export async function polishTemplateNewsLlm(params: {
     { role: 'user', content: user },
   ];
 
-  const { content, modelUsed } = await chatWithFallback(messages, { temperature: 0.35 });
+  let content = '';
+  let modelUsed = 'template-default';
+  try {
+    const res = await chatWithFallback(messages, { temperature: 0.35 });
+    content = res.content;
+    modelUsed = res.modelUsed;
+  } catch (err) {
+    console.warn('[llm:polish] LLM polish basarisiz, sablon varsayilani kullaniliyor:', err);
+    return {
+      baslik: params.built.baslik,
+      seoTitle: params.built.seoTitle,
+      seoDescription: params.built.seoDescription,
+      ozetHtml: params.built.ozetHtml,
+      modelUsed: 'template-fallback',
+    };
+  }
   const meta = extractBlock(content, '---META---', '---BODY---');
   const bodyRaw =
     extractBlock(content, '---BODY---', '---END---') || extractBlock(content, '---BODY---', '');

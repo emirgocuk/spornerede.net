@@ -245,6 +245,14 @@ if [[ -f "${ROOT_DIR}/package-lock.json" ]]; then
   scp_r "${ROOT_DIR}/package-lock.json" "${DEPLOY_SSH}:${REMOTE_RELEASE}/package-lock.json"
 fi
 
+if [[ -d "${ROOT_DIR}/content-engine" ]]; then
+  echo "==> rsync: ./content-engine/ -> ${REMOTE_RELEASE}/content-engine/"
+  rsync_r --exclude 'node_modules' "${ROOT_DIR}/content-engine/" "${DEPLOY_SSH}:${REMOTE_RELEASE}/content-engine/"
+  if [[ -f "${ROOT_DIR}/content-engine/.env" ]]; then
+    scp_r "${ROOT_DIR}/content-engine/.env" "${DEPLOY_SSH}:${REMOTE_RELEASE}/content-engine/.env"
+  fi
+fi
+
 ssh_r bash -s <<EOF
 set -euo pipefail
 REMOTE_BASE="${REMOTE_BASE}"
@@ -253,14 +261,18 @@ SYSTEMD_UNIT="${SYSTEMD_UNIT}"
 
 CUR_LINK="\${REMOTE_BASE}/current"
 (cd "\${REMOTE_RELEASE}" && npm ci --omit=dev)
+if [[ -d "\${REMOTE_RELEASE}/content-engine" ]]; then
+  echo "==> content-engine npm ci"
+  (cd "\${REMOTE_RELEASE}/content-engine" && npm ci)
+fi
 ln -sfn "\${REMOTE_RELEASE}" "\${CUR_LINK}"
 echo "==> current -> \${REMOTE_RELEASE}"
 
-if systemctl list-unit-files | grep -q "^\${SYSTEMD_UNIT}.service"; then
-  systemctl restart "\${SYSTEMD_UNIT}"
-  systemctl --no-pager --full status "\${SYSTEMD_UNIT}" | sed -n '1,12p' || true
+if systemctl is-active --quiet "${SYSTEMD_UNIT}" || systemctl is-enabled --quiet "${SYSTEMD_UNIT}" || systemctl list-unit-files | grep -q "${SYSTEMD_UNIT}"; then
+  systemctl restart "${SYSTEMD_UNIT}"
+  systemctl --no-pager --full status "${SYSTEMD_UNIT}" | sed -n '1,12p' || true
 else
-  echo "UYARI: systemd unit bulunamadi: \${SYSTEMD_UNIT}.service" >&2
+  echo "UYARI: systemd unit bulunamadi: ${SYSTEMD_UNIT}" >&2
   echo "UYARI: Node prosesini manuel restart etmeniz gerekebilir." >&2
 fi
 EOF

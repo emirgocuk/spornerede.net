@@ -1317,18 +1317,34 @@ const adminLocationData = {
               <section class="card-section action-section">
                 <div class="section-head">
                   <span class="icon">⚖️</span>
-                  <h3>Karar & Onay</h3>
+                  <h3>Karar & Onay İşlemleri</h3>
                 </div>
                 <div class="action-body">
-                  <p class="section-help text-sm">Onay sonrası ilanlar yayına alınır. Bilgileri soldan düzenleyebilirsiniz.</p>
-                  <div class="form-group">
-                    <label>Üyelik Süresi</label>
-                    <select id="application-membership-period" class="modern-select">
-                      <option value="six_month" ${app.membershipPeriod !== 'yearly' ? 'selected' : ''}>6 Aylık</option>
-                      <option value="yearly" ${app.membershipPeriod === 'yearly' ? 'selected' : ''}>Yıllık</option>
-                    </select>
-                    <p class="section-help text-sm mt-2">Başvuruda seçilen paket burada gelir; onaylamadan önce değiştirebilirsiniz.</p>
+                  <p class="section-help text-sm">Üyelikler ücretsiz ve süresizdir. Onaylandığında kulüp ve ilanları doğrudan yayına alınır.</p>
+                  
+                  <div class="info-list mt-3 mb-4">
+                    <div class="info-item">
+                      <span class="label">📅 Kaydolma / Başvuru Tarihi</span>
+                      <span class="value"><strong>${formatDate(app.createdAt)}</strong></span>
+                    </div>
+                    <div class="info-item">
+                      <span class="label">⚖️ Onay Durumu</span>
+                      <span class="value">
+                        ${
+                          app.durum === 'approved'
+                            ? `<span class="status-badge status-approved">✅ ${app.approvedAt ? formatDate(app.approvedAt) + ' tarihinde onaylandı' : 'Onaylandı'}</span>`
+                            : app.durum === 'rejected'
+                            ? `<span class="status-badge status-rejected">❌ Reddedildi</span>`
+                            : `<span class="status-badge status-pending">⏳ İnceleme Bekliyor</span>`
+                        }
+                      </span>
+                    </div>
+                    <div class="info-item">
+                      <span class="label">🎁 Paket / Üyelik Tipi</span>
+                      <span class="value text-success"><strong>Ücretsiz Sınırsız Üyelik</strong></span>
+                    </div>
                   </div>
+
                   <div class="action-buttons">
                     <button class="btn-action action-approve" data-status="approved">✅ ${statusActionLabel(app.durum, 'approved')}</button>
                     <button class="btn-action action-pending" data-status="pending">⏳ ${statusActionLabel(app.durum, 'pending')}</button>
@@ -1978,27 +1994,27 @@ const adminLocationData = {
 
               <section class="card-section">
                 <div class="section-head">
-                  <span class="icon">📦</span>
-                  <h3>Başvuru Özeti</h3>
+                  <span class="icon">📋</span>
+                  <h3>Kayıt & Onay Bilgileri</h3>
                 </div>
                 <div class="info-list">
                   <div class="info-item">
-                    <span class="label">Üyelik Paketi</span>
-                    <span class="value">${escapeHtml(club.paketLabel || formatMembershipLabel(club.paketKod, club.paketAd))}</span>
-                  </div>
-                  <div class="form-group mt-2">
-                    <label>Üyelik Periyodu</label>
-                    <select id="club-membership-period" class="modern-select">
-                      <option value="six_month" ${club.membershipPeriod !== 'yearly' ? 'selected' : ''}>6 Aylık</option>
-                      <option value="yearly" ${club.membershipPeriod === 'yearly' ? 'selected' : ''}>Yıllık</option>
-                    </select>
+                    <span class="label">📅 Kaydolma / Başvuru Tarihi</span>
+                    <span class="value"><strong>${formatDate(club.createdAt)}</strong></span>
                   </div>
                   <div class="info-item">
-                    <span class="label">Yayınlanacak Branş</span>
+                    <span class="label">✅ Onaylanma Tarihi</span>
+                    <span class="value"><span class="status-badge status-approved">${club.approvedAt ? formatDate(club.approvedAt) + ' tarihinde onaylandı' : 'Sistemde Onaylı'}</span></span>
+                  </div>
+                  <div class="info-item">
+                    <span class="label">🎁 Üyelik Durumu</span>
+                    <span class="value text-success"><strong>Süresiz Ücretsiz Aktif Üyelik</strong></span>
+                  </div>
+                  <div class="info-item">
+                    <span class="label">Yayınlanan Branş</span>
                     <span class="value">${club.bransSayisi || 1} branş</span>
                   </div>
                 </div>
-                <button id="save-club-summary-btn" class="btn btn-primary w-full mt-4" type="button">Başvuru Özetini Güncelle</button>
               </section>
 
               <section class="card-section">

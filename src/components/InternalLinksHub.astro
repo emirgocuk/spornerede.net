@@ -1,8 +1,14 @@
 ---
+interface LinkChip {
+  href: string;
+  label: string;
+}
+
 interface LinkItem {
   href: string;
   title: string;
   description?: string;
+  chips?: LinkChip[];
 }
 
 interface Props {
@@ -11,92 +17,216 @@ interface Props {
   guideLinks?: LinkItem[];
 }
 
-const { title = 'İlişili içerikler', araLink, guideLinks = [] } = Astro.props;
+const { title = 'İlgili Rehberler ve Kurs Aramaları', araLink, guideLinks = [] } = Astro.props;
 const hasContent = Boolean(araLink || guideLinks.length);
 ---
 
 {hasContent && (
   <aside class="internal-links-hub" aria-labelledby="internal-links-heading">
-    <h2 id="internal-links-heading">{title}</h2>
-    <ul class="internal-links-list">
+    <div class="hub-header">
+      <span class="hub-badge" aria-hidden="true">💡 KEŞFET</span>
+      <h2 id="internal-links-heading">{title}</h2>
+    </div>
+
+    <div class="internal-links-list">
       {araLink && (
-        <li>
+        <div class="internal-link-wrapper">
           <a class="internal-link-card internal-link-card--primary" href={araLink.href}>
-            <span class="internal-link-kicker">Arama</span>
+            <div class="card-top-row">
+              <span class="internal-link-kicker kicker-search">🔍 ARAMA SERVİSİ</span>
+              <span class="action-arrow">İncele →</span>
+            </div>
             <strong>{araLink.title}</strong>
             {araLink.description && <p>{araLink.description}</p>}
           </a>
-        </li>
+
+          {araLink.chips && araLink.chips.length > 0 && (
+            <div class="hub-chips-container" aria-label="Hızlı Bağlantılar">
+              <span class="chips-label">Popüler Aramalar:</span>
+              <div class="chips-list">
+                {araLink.chips.map((chip) => (
+                  <a class="hub-chip" href={chip.href}>{chip.label}</a>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       )}
+
       {guideLinks.map((item) => (
-        <li>
-          <a class="internal-link-card" href={item.href}>
-            <span class="internal-link-kicker">Rehber</span>
-            <strong>{item.title}</strong>
-            {item.description && <p>{item.description}</p>}
-          </a>
-        </li>
+        <a class="internal-link-card internal-link-card--guide" href={item.href}>
+          <div class="card-top-row">
+            <span class="internal-link-kicker kicker-guide">📚 İLGİLİ REHBER</span>
+            <span class="action-arrow">Oku →</span>
+          </div>
+          <strong>{item.title}</strong>
+          {item.description && <p>{item.description}</p>}
+        </a>
       ))}
-    </ul>
+    </div>
   </aside>
 )}
 
 <style>
   .internal-links-hub {
-    margin-top: 1.75rem;
-    padding: 1.25rem;
-    border: 1px solid #f1dede;
-    border-radius: 1rem;
-    background: #fffaf8;
+    margin-top: 2rem;
+    padding: 1.5rem;
+    border: 1px solid #fce7e7;
+    border-radius: 1.25rem;
+    background: linear-gradient(135deg, #fffcfc 0%, #ffffff 60%, #fff5f5 100%);
+    box-shadow: 0 10px 30px rgba(227, 10, 23, 0.04);
   }
+
+  .hub-header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .hub-badge {
+    align-self: flex-start;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    color: #e30a17;
+    background: #ffebeb;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    border: 1px solid #fecaca;
+  }
+
   .internal-links-hub h2 {
-    margin: 0 0 1rem;
-    font-size: 1.15rem;
-    color: #111827;
-  }
-  .internal-links-list {
-    list-style: none;
     margin: 0;
-    padding: 0;
-    display: grid;
+    font-size: 1.22rem;
+    font-weight: 800;
+    color: #111827;
+    letter-spacing: -0.02em;
+  }
+
+  .internal-links-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .internal-link-wrapper {
+    display: flex;
+    flex-direction: column;
     gap: 0.65rem;
   }
+
   .internal-link-card {
     display: block;
-    padding: 0.85rem 1rem;
-    border-radius: 0.75rem;
-    border: 1px solid #f1dede;
-    background: #fff;
+    padding: 1.1rem 1.25rem;
+    border-radius: 1rem;
+    border: 1px solid #f3d5d5;
+    background: #ffffff;
     text-decoration: none;
     color: inherit;
-    transition: border-color 0.15s, box-shadow 0.15s;
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
   }
+
   .internal-link-card:hover {
-    border-color: #b5080f;
-    box-shadow: 0 4px 14px rgba(181, 8, 15, 0.08);
+    transform: translateY(-2px);
+    border-color: #e30a17;
+    box-shadow: 0 10px 24px rgba(227, 10, 23, 0.1);
   }
+
   .internal-link-card--primary {
-    border-color: #ffd5d8;
-    background: #fff5f5;
+    border-color: #fecaca;
+    background: linear-gradient(135deg, #fff5f5 0%, #ffffff 100%);
   }
+
+  .card-top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.4rem;
+  }
+
   .internal-link-kicker {
-    display: block;
-    font-size: 0.68rem;
-    text-transform: uppercase;
+    font-size: 0.72rem;
+    font-weight: 800;
     letter-spacing: 0.06em;
-    color: #b5080f;
-    font-weight: 700;
-    margin-bottom: 0.25rem;
+    text-transform: uppercase;
   }
+
+  .kicker-search {
+    color: #e30a17;
+  }
+
+  .kicker-guide {
+    color: #2563eb;
+  }
+
+  .action-arrow {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #e30a17;
+    opacity: 0.85;
+    transition: transform 0.18s ease;
+  }
+
+  .internal-link-card:hover .action-arrow {
+    transform: translateX(3px);
+    opacity: 1;
+  }
+
   .internal-link-card strong {
     display: block;
+    font-size: 1.02rem;
+    font-weight: 800;
     color: #111827;
-    line-height: 1.35;
+    line-height: 1.38;
   }
+
   .internal-link-card p {
-    margin: 0.35rem 0 0;
+    margin: 0.4rem 0 0;
     font-size: 0.88rem;
-    color: #6b7280;
-    line-height: 1.45;
+    color: #4b5563;
+    line-height: 1.5;
+  }
+
+  /* Chips Section for GSC SEO Links */
+  .hub-chips-container {
+    padding: 0.75rem 0.85rem;
+    background: #fdf2f2;
+    border: 1px solid #fecaca;
+    border-radius: 0.75rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .chips-label {
+    font-size: 0.76rem;
+    font-weight: 700;
+    color: #991b1b;
+  }
+
+  .chips-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .hub-chip {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #b5080f;
+    background: #ffffff;
+    padding: 0.25rem 0.65rem;
+    border-radius: 999px;
+    border: 1px solid #fca5a5;
+    text-decoration: none;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+  }
+
+  .hub-chip:hover {
+    background: #e30a17;
+    color: #ffffff;
+    border-color: #e30a17;
   }
 </style>

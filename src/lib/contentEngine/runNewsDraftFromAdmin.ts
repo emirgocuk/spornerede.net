@@ -3,9 +3,9 @@ import { spawnContentEngineCli, ContentEngineSpawnError } from './spawnContentEn
 import { runContentEngineScript } from './spawnContentEngineWait.js';
 
 const contentEngineRoot = getContentEngineRoot();
-const PIPELINE_TIMEOUT_MS = Math.max(
+const PIPELINE_TIMEOUT_MS = Math.min(
   60_000,
-  Number(process.env.SEO_NEWS_PIPELINE_TIMEOUT_MS) || 240_000,
+  Number(process.env.SEO_NEWS_PIPELINE_TIMEOUT_MS) || 60_000,
 );
 
 export type NewsDraftRunResult =

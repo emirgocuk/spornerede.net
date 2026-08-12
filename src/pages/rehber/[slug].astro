@@ -72,7 +72,7 @@ const jsonLdNodes = guide
       <div slot="footer">
         {guide.faq.length > 0 && (
           <section class="article-faq" aria-labelledby="faq-heading">
-            <h2 id="faq-heading">Sikca sorulan sorular</h2>
+            <h2 id="faq-heading">Sıkça Sorulan Sorular</h2>
             {guide.faq.map((item) => (
               <div class="article-faq-item">
                 <h3>{item.soru}</h3>
@@ -82,13 +82,13 @@ const jsonLdNodes = guide
           </section>
         )}
         <div class="article-cta-band">
-          <a class="btn btn-primary" href="/ara">Bu bransta yakinindaki kurslari bul</a>
+          <a class="btn btn-primary" href="/ara">Yakınınızdaki Spor Kurslarını ve Kulüpleri Bulun →</a>
         </div>
       </div>
 
       {related.length > 0 && (
         <div slot="aside">
-          <h2>Diger rehberler</h2>
+          <h2>Diğer Rehberler & İpuçları</h2>
           <div class="article-related-grid">
             {related.map((item) => (
               <a class="article-related-card" href={`/rehber/${item.slug}`}>

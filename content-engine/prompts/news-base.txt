@@ -26,6 +26,11 @@ PLATFORM VERISI (gercek; somut yazmak icin kullan):
 
 OZGUNLUK (cok onemli):
 - Sablon baslik YASAK: "{{KONU}}: kayit ve secim rehberi", "kayit ve secim rehberi" kalibi YASAK
+- KESINLIKLE YASAK baslik kaliplari:
+    "hakkında güncel bilgiler", "ile ilgili bilgiler", "hakkında her şey",
+    "hakkında merak edilenler", "öğrenmek için bilmeniz gerekenler",
+    "rehberi" (tek başına jenerik), "Güncel 2025/2026" (yıl dolgusu)
+- Baslik GUÇLÜ ve OZGUL olmali: soru sorusu, somut fayda, pratik ipucu, yas/hedef grubu vb.
 - Her haberde farkli baslik tonu (soru, liste, ipucu, sezon, ebeveyn, deneme dersi vb.)
 - h2 basliklari konuya/aciya gore SERBEST ve ozgun olsun; sabit iskelet tekrarlama
 - Ilk paragraf diger haberlerden farkli girisle baslasin

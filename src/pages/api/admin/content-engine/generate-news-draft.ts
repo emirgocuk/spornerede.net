@@ -33,18 +33,6 @@ export const POST: APIRoute = async ({ request }) => {
     );
   }
 
-  const picked = konuInput ? null : await pickKonuForNewsDraft();
-  if (!konuInput && !picked?.anahtar) {
-    return new Response(
-      JSON.stringify({
-        success: false,
-        code: 'no_topic',
-        error: 'Kuyrukta keyword yok. npm run content-engine:ensure calistirin.',
-      }),
-      { status: 400, headers: { 'Content-Type': 'application/json' } },
-    );
-  }
-
   let result: Awaited<ReturnType<typeof runNewsDraftFromAdmin>>;
   try {
     if (konuInput) {
@@ -80,8 +68,8 @@ export const POST: APIRoute = async ({ request }) => {
   const isTemplate = String(result.modelUsed).startsWith('template:');
 
   await markKeywordWritten({
-    id: picked?.id,
-    anahtar: result.konu || konuInput || picked?.anahtar,
+    id: (result as { konuId?: string }).konuId,
+    anahtar: result.konu || konuInput,
   });
 
   return new Response(

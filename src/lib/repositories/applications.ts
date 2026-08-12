@@ -278,20 +278,10 @@ export async function getAdminApplicationById(id: number) {
     db.collection('ilceler').getFirstListItem(`legacyId = ${Number(row.ilceLegacyId)}`).catch(() => null),
   ]);
 
-  const membership = await db
-    .collection('kulup_uyelikleri')
-    .getFirstListItem(`kulupLegacyId = ${id}`, { sort: '-legacyId' })
+  const approvalLog = await db
+    .collection('admin_basvuru_loglari')
+    .getFirstListItem(`basvuruLegacyId = ${id} && yeniDurum = "approved"`, { sort: '-legacyId' })
     .catch(() => null);
-  let paketKod = '';
-  let paketAd = '';
-  if (membership?.paketLegacyId) {
-    const plan = await db
-      .collection('uyelik_paketleri')
-      .getFirstListItem(`legacyId = ${Number(membership.paketLegacyId)}`)
-      .catch(() => null);
-    paketKod = (plan?.kod as string) ?? '';
-    paketAd = (plan?.ad as string) ?? '';
-  }
 
   const bransSayisiRaw = row.bransSayisi as number | undefined;
   const bransSayisi = Number.isFinite(bransSayisiRaw) && bransSayisiRaw > 0 ? Math.floor(bransSayisiRaw) : 1;
@@ -304,17 +294,17 @@ export async function getAdminApplicationById(id: number) {
     durum: row.durum as 'pending' | 'approved' | 'rejected',
     createdAt: row.created,
     updatedAt: row.updated,
+    approvedAt: (approvalLog?.created as string) || (row.durum === 'approved' ? (row.updated as string) : null),
     telefon: row.telefon as string,
     email: row.email as string,
     adres: row.adres as string,
     aciklama: row.aciklama as string,
     adminNotu: (row.adminNotu as string) ?? '',
     sorumluAdminEmail: (row.sorumluAdminEmail as string) ?? '',
-    paketKod,
-    paketAd,
-    paketLabel: formatMembershipPackageLabel(paketKod, paketAd),
+    paketKod: 'free',
+    paketAd: 'Ücretsiz Sınırsız Üyelik',
+    paketLabel: 'Ücretsiz Sınırsız Üyelik',
     bransSayisi,
-    membershipPeriod: membershipPeriodFromPackageCode(paketKod) ?? 'six_month',
     ilSlug: (city?.slug as string) ?? '',
     ilceSlug: (district?.slug as string) ?? '',
     ilanlar: await listApplicationPrograms(id),

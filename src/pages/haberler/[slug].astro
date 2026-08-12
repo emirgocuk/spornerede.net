@@ -4,7 +4,7 @@ import ArticleDetail from '../../components/ArticleDetail.astro';
 import InternalLinksHub from '../../components/InternalLinksHub.astro';
 import { getActiveNews, getActiveNewsBySlug } from '../../lib/repositories/news';
 import { getPublishedGuides } from '../../lib/repositories/seoArticles';
-import { buildAraSearchFromNews, pickGuidesForNews } from '../../lib/seo/internalLinks';
+import { buildAraSearchFromNews, pickGuidesForNews, detectNewsBranchTags } from '../../lib/seo/internalLinks';
 import { newsArticleSchema } from '../../lib/seo/jsonld';
 
 export const prerender = false;
@@ -22,12 +22,17 @@ const relatedNews = allNews.filter((item) => item.slug !== slug).slice(0, 4);
 const publishedGuides = haber ? await getPublishedGuides() : [];
 const relatedGuides = haber ? pickGuidesForNews(haber, publishedGuides, 3) : [];
 const araSearch = haber ? buildAraSearchFromNews(haber) : null;
+const branchTag = haber ? detectNewsBranchTags(haber) : null;
 
-const pageTitle = haber?.seoTitle || haber?.baslik || 'Haber Bulunamadi';
-const pageDescription = haber?.seoDescription || 'Aradiginiz haber bulunamadi.';
+const pageTitle = haber?.seoTitle || haber?.baslik || 'Haber Bulunamadı';
+const pageDescription = haber?.seoDescription || 'Aradığınız haber bulunamadı.';
 const canonical = `https://spornerede.net/haberler/${slug}`;
 
-const badgeClass = `article-badge-${haber?.kategoriRenk || 'gray'}`;
+const badgeLabel = branchTag
+  ? branchTag.name.toUpperCase()
+  : (haber?.kategori || 'SPOR').toUpperCase();
+
+const badgeClass = `article-badge-${haber?.kategoriRenk || 'red'}`;
 
 const articleSchema = haber
   ? newsArticleSchema({
@@ -63,7 +68,7 @@ const breadcrumbs = haber
         { label: 'Haberler', href: '/haberler' },
         { label: haber.baslik },
       ]}
-      badgeLabel={haber.kategori}
+      badgeLabel={badgeLabel}
       badgeClass={badgeClass}
       dateLabel={haber.tarih}
       dateIso={haber.tarihIso}
@@ -73,6 +78,22 @@ const breadcrumbs = haber
       <div set:html={haber.ozet} />
 
       <div slot="footer">
+        {branchTag && (
+          <div class="article-tags-box">
+            <span class="tags-box-label">📌 Branş Etiketleri & SEO Bağlantıları:</span>
+            <div class="tags-box-chips">
+              <a href={branchTag.href} class="tag-chip tag-chip--main">
+                {branchTag.emoji} {branchTag.name} Branş Rehberi
+              </a>
+              {branchTag.cityChips.map((chip) => (
+                <a href={chip.href} class="tag-chip">
+                  {chip.label}
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
+
         {haber.link && haber.link !== '#' && (
           <p class="article-source-link">
             Kaynak:
@@ -83,13 +104,14 @@ const breadcrumbs = haber
 
       <div slot="aside">
         <InternalLinksHub
-          title="Ilgili rehber ve kurs aramasi"
+          title="İlgili Rehberler ve Bölgesel Kurs Aramaları"
           araLink={
             araSearch
               ? {
                   href: araSearch.href,
                   title: araSearch.label,
-                  description: 'Yakinindaki spor kurslarini listeleyin.',
+                  description: araSearch.description,
+                  chips: araSearch.chips,
                 }
               : undefined
           }
@@ -102,7 +124,7 @@ const breadcrumbs = haber
 
         {relatedNews.length > 0 && (
           <>
-            <h2>Diger haberler</h2>
+            <h2>Diğer Haberler & Güncel Duyurular</h2>
             <div class="article-related-grid">
               {relatedNews.map((item) => (
                 <a class="article-related-card" href={`/haberler/${item.slug}`}>

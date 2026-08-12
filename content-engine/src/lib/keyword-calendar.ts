@@ -38,11 +38,12 @@ function isEligibleForPick(
   row: KeywordQueueRow,
   today: string,
   history: PublishedEntry[],
+  allowFuturePlanned = false,
 ): boolean {
   if (row.durum !== 'kuyrukta' || !row.anahtar) return false;
   if (!isKeywordEligibleForNews(row.kategori)) return false;
   if (isKonuAlreadyPublished(row.anahtar, history, { includePassive: true })) return false;
-  if (row.planlanan_tarih && row.planlanan_tarih > today) return false;
+  if (!allowFuturePlanned && row.planlanan_tarih && row.planlanan_tarih > today) return false;
   return true;
 }
 
@@ -52,7 +53,7 @@ export function pickKeywordFromRows(
   history: PublishedEntry[],
   today = todayTrIso(),
 ): KeywordQueueRow | null {
-  const eligible = rows.filter((r) => isEligibleForPick(r, today, history));
+  const eligible = rows.filter((r) => isEligibleForPick(r, today, history, false));
 
   const plannedToday = eligible
     .filter((r) => r.planlanan_tarih === today)
@@ -62,7 +63,12 @@ export function pickKeywordFromRows(
   const pool = eligible
     .filter((r) => !r.planlanan_tarih || r.planlanan_tarih <= today)
     .sort((a, b) => b.skor - a.skor);
-  return pool[0] ?? null;
+  if (pool.length) return pool[0]!;
+
+  // Manuel üretimde bugünün haberi yazılmışsa sıradaki en yüksek skorlu keyword'den devam et
+  const fallbackEligible = rows.filter((r) => isEligibleForPick(r, today, history, true));
+  const fallbackPool = fallbackEligible.sort((a, b) => b.skor - a.skor);
+  return fallbackPool[0] ?? null;
 }
 
 export async function loadKeywordQueueRows(pb: PocketBase): Promise<KeywordQueueRow[]> {

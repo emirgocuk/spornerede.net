@@ -23,22 +23,22 @@ export const cfg = {
   openrouterApiKey: opt('OPENROUTER_API_KEY'),
   openrouterModel: opt(
     'SEO_OPENROUTER_MODEL',
-    'deepseek/deepseek-v4-flash:free',
+    'meta-llama/llama-3.3-70b-instruct:free',
   ),
   openrouterModelFallback: opt(
     'SEO_OPENROUTER_MODEL_FALLBACK',
-    'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free',
+    'nvidia/nemotron-3-ultra-550b-a55b:free',
   ),
-  /** Virgulle ayrilmis ek :free modeller (ornek: qwen/qwen3-4b:free) */
-  openrouterExtraModels: opt('SEO_OPENROUTER_MODELS', '')
+  /** Virgulle ayrilmis ek :free modeller */
+  openrouterExtraModels: opt('SEO_OPENROUTER_MODELS', 'nvidia/nemotron-3-super-120b-a12b:free,google/gemma-4-31b-it:free,nvidia/nemotron-3-nano-30b-a3b:free,nvidia/nemotron-nano-9b-v2:free')
     .split(',')
     .map((m) => m.trim())
     .filter(Boolean),
   /** Bos yanit/429 sonrasi en fazla kac model denensin */
-  openrouterMaxModelTries: Math.max(1, Number(opt('SEO_OPENROUTER_MAX_MODEL_TRIES', '4')) || 4),
+  openrouterMaxModelTries: Math.max(1, Number(opt('SEO_OPENROUTER_MAX_MODEL_TRIES', '3')) || 3),
   openrouterRequestTimeoutMs: Math.max(
-    15_000,
-    Number(opt('SEO_OPENROUTER_REQUEST_TIMEOUT_MS', '90000')) || 90_000,
+    10_000,
+    Number(opt('SEO_OPENROUTER_REQUEST_TIMEOUT_MS', '25000')) || 25_000,
   ),
   draftFailSoft: opt('SEO_DRAFT_FAIL_SOFT', 'true') !== 'false',
   llmProvider: opt('SEO_LLM_PROVIDER', 'openrouter'),
@@ -48,7 +48,7 @@ export const cfg = {
    * llm = tam uretim (ozgunluk, varsayilan)
    * template_llm | template | hybrid = sablon tabanli
    */
-  newsMode: opt('SEO_NEWS_MODE', 'llm') as
+  newsMode: opt('SEO_NEWS_MODE', 'hybrid') as
     | 'template'
     | 'template_llm'
     | 'llm'
@@ -101,7 +101,9 @@ export function getOpenRouterModelChain(): string[] {
     cfg.openrouterModel,
     cfg.openrouterModelFallback,
     ...cfg.openrouterExtraModels,
-  ].filter(Boolean);
+  ]
+    .filter(Boolean)
+    .filter((m) => !/embed|embedding|vision|vector|bge/i.test(m));
   const unique = [...new Set(chain)];
   return unique.slice(0, cfg.openrouterMaxModelTries);
 }

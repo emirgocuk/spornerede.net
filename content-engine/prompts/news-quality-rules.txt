@@ -6,6 +6,25 @@ Yapi:
 - h2 basliklari tek satir, 4-60 karakter, Turkce imla (bosluklar dogru)
 - h2 basliklari konuya/aciya gore ozgun olsun; sabit iskelet tekrarlama
 
+BASLIK KURALLARI (EN ONEMLI):
+- Baslik MUTLAKA Turkce ve anlamlı olacak; kelime atlama, harf karıştırma YOK
+- YASAK baslik kaliplari (bunlari ASLA kullanma):
+    * "... hakkında güncel bilgiler"
+    * "... ile ilgili bilgiler"
+    * "... hakkında her şey"
+    * "... hakkında merak edilenler"
+    * "... nedir ve nasıl yapılır"  ← tek başina jenerik ise yasak
+    * "... rehberi" ← TEK basına ya da "kayıt ve seçim rehberi" kalıbı YASAK
+    * "... öğrenmek için bilmeniz gerekenler"
+    * "... 2024 / 2025 / 2026 Güncel"  ← yıl etiketi ile dolgu YASAK
+- Baslik guclü ve ozgul olmali; soru, fayda odakli veya somut bilgi vermeli
+- Iyi baslik ornekleri:
+    * "Bisiklete Kaç Yaşında Başlanır? Uzman Tavsiyesi"
+    * "Ankara'da Bisiklet Kursu Nasıl Seçilir"
+    * "Yetişkinler İçin Bisiklet Öğrenme Süresi Ne Kadar?"
+    * "İlk Kez Bisiklet Kullanacaklara 5 Pratik İpucu"
+- seo_title ve seo_description da baslik ile ayni kalite standardında olmali
+
 Yasaklar:
 - Yarim baslik: "Kayit ve", "Program ve" gibi tek baslik YASAK
 - Yarim cumle ile bitirme YASAK

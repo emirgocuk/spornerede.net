@@ -1,16 +1,21 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { getActiveNews } from '../lib/repositories/news';
+import { detectNewsBranchTags } from '../lib/seo/internalLinks';
 
 const rawHaberler = await getActiveNews();
 
 // Fallback visuals in case we don't have a real image yet
 const defaultVisuals = ['visual-marathon', 'visual-license', 'visual-success', 'visual-course', 'visual-guide'];
 
-const haberler = rawHaberler.map((haber, index) => ({
-  ...haber,
-  gorsel: defaultVisuals[index % defaultVisuals.length]
-}));
+const haberler = rawHaberler.map((haber, index) => {
+  const branchTag = detectNewsBranchTags(haber);
+  return {
+    ...haber,
+    kategori: branchTag ? branchTag.name : haber.kategori,
+    gorsel: defaultVisuals[index % defaultVisuals.length],
+  };
+});
 
 const kategoriStilleri: Record<string, string> = {
   red: 'badge-red',

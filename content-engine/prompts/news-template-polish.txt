@@ -24,6 +24,9 @@ Kurallar:
 - Son paragraf SporNerede CTA
 - Ilgili sayfalar blogu EKLEME
 - GSC CTR dusukse meta_title ve seo_description daha net ve tiklanabilir yap (max 60 / 155 karakter)
+- BASLIK KALITESI: Mevcut baslik jenerik ise ("hakkında güncel bilgiler", "ile ilgili bilgiler",
+  "hakkında her şey", "rehberi" gibi dolgu kalıbı) MUTLAKA daha güçlü ve özgül bir başlıkla değiştir.
+  İyi başlık: soru, somut fayda, hedef grup, pratik ipucu içermeli.
 
 Cikti formati:
 ---META---
