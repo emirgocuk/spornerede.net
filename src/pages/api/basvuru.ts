@@ -84,13 +84,12 @@ export const POST: APIRoute = async ({ request }) => {
     const yetkili = formData.get('yetkili')?.toString().trim() || '';
     const telefon = formData.get('telefon')?.toString().trim() || '';
     const email = formData.get('email')?.toString().trim() || '';
-    const paket = formData.get('paket')?.toString().trim() || '';
-    const odemeOnay = formData.get('odemeOnay')?.toString().trim() || '';
+    const paket = formData.get('paket')?.toString().trim() || 'ucretsiz';
     const bransSayisiRaw = Number(formData.get('bransSayisi')?.toString().trim() || '1');
-    const bransSayisi = Number.isFinite(bransSayisiRaw) ? Math.max(1, Math.floor(bransSayisiRaw)) : 1;
+    const bransSayisi = Number.isFinite(bransSayisiRaw) ? Math.max(1, Math.min(1, Math.floor(bransSayisiRaw))) : 1;
     const ilanlar = parseIlanlarFromFormData(formData, bransSayisi);
 
-    if (!kulupad || !il || !ilce || !paket || !yetkili || !telefon) {
+    if (!kulupad || !il || !ilce || !yetkili || !telefon) {
       return redirectToForm(request, { error: 'missing' });
     }
 
@@ -101,10 +100,6 @@ export const POST: APIRoute = async ({ request }) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (email && !emailRegex.test(email)) {
       return redirectToForm(request, { error: 'email' });
-    }
-
-    if (odemeOnay !== '1') {
-      return redirectToForm(request, { error: 'payment' });
     }
 
     const applicationResult = await createClubApplication({

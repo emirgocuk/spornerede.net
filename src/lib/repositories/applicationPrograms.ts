@@ -29,7 +29,12 @@ function requireDatabase() {
 }
 
 export async function linkClubBranch(db: Awaited<ReturnType<typeof getDb>>, clubLegacyId: number, bransName: string) {
-  const branch = await db.collection('branslar').getFirstListItem(`slug = "${slugify(bransName)}"`).catch(() => null);
+  const s = slugify(bransName);
+  const targetSlug = s === 'jimnastik' ? 'cimnastik' : s;
+  let branch = await db.collection('branslar').getFirstListItem(`slug = "${targetSlug}"`).catch(() => null);
+  if (!branch && s !== targetSlug) {
+    branch = await db.collection('branslar').getFirstListItem(`slug = "${s}"`).catch(() => null);
+  }
   if (!branch) return;
   const existing = await db
     .collection('kulup_branslar')

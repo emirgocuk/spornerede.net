@@ -504,7 +504,8 @@
   background: #fff;
   display: grid;
   gap: 0.5rem;
-  max-width: 420px;
+  width: 100%;
+  max-width: 100%;
 }
 
 .basvuru-form-root .membership-branch-global label {
@@ -527,7 +528,8 @@
 }
 
 .basvuru-form-root .membership-branch-input--global {
-  max-width: 140px;
+  width: 100%;
+  max-width: 200px;
 }
 
 .basvuru-form-root .payment-confirm {

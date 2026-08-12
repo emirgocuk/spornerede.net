@@ -2,11 +2,15 @@
 
 ## Şimdiki Çalışma Odağı
 
-**Content Engine — haber otopilotu genişletmesi (CE-5 → CE-8).** Tek içerik kanalı: **`haberler`** (günde 1, GSC + keyword kuyruğu). Soro benzeri yetkinlikler bu pipeline’a ekleniyor; **rehber otomasyonu**, **AI/stock görsel** ve **video embed** bu turda **kapsam dışı**. Detay: `memory-bank/content-engine-isolated-plan-tr.md` → **Faz CE-5–CE-8**.
+**Faz 13 — Ölçüm doğrulama** (GA4/GTM canlıda; DebugView + consent testi kaldı) → ardından **Faz 14** (Bing/Yandex, SC rutini, NewsArticle şema). **Content Engine haber otopilotu** (Ö1–Ö4 + CE-5–8 + 2026-06-14 operasyon düzeltmeleri) **canlı**; ince ayar ve izleme devam eder.
 
-**Önceki odak (tamamlandı / canlı):** Faz 12 SEO + reklam altyapısı; content-engine Ö1–Ö4 (özgünlük + GSC CTR rewrite); scheduler `enabled` kapanma düzeltmesi (`ebf29da`); GSC secrets kalıcı deploy.
+**Tek otomatik içerik kanalı:** `haberler` (günde 1, GSC + keyword kuyruğu, admin onay/auto-publish). **Rehber otomasyonu**, **AI/stock görsel** ve **video embed** kapsam dışı. Detay: `content-engine-isolated-plan-tr.md`.
 
-Mevcut durum: Faz 12 kodu `main` üzerinde; production'da `spornerede-autoupdate` ile release alındı (son release: `20260513T185315Z`). ConsentBanner'da ASCII Türkçe yazılan tüm metinler doğru karakterlere çevrildi: "Çerez Tercihleri", "Yönet", "Tümünü Kabul Et", "Gerekli" (Zorunlu yerine), "devre dışı bırakılamaz", "kullanım verileri", "kampanyalarını", "Çerez/Gizlilik Politikamızı". PageSpeed Lab raporundan gelen bulgular (Lighthouse 13 / Performance 100, A11y 91, BP 96, SEO 92) tek tek giderildi:
+**Production analytics (2026-06-14):** `PUBLIC_GTM_ID=GTM-NHH7M2CH`, `PUBLIC_GA4_ID=G-9TVLS12FYN` — GA4 doğrudan gtag ile yüklenir; GTM container’da **çift GA4 Configuration tag olmamalı**.
+
+**Son release:** `20260614T085634Z` (`spornerede-autoupdate`). Önceki önemli: Faz 12 SEO altyapısı; Ö1–Ö4 özgünlük; CE-5–8; scheduler duplicate/`sehir_brans` düzeltmeleri; admin haber API nginx 360s timeout.
+
+ConsentBanner'da ASCII Türkçe yazılan tüm metinler doğru karakterlere çevrildi: "Çerez Tercihleri", "Yönet", "Tümünü Kabul Et", "Gerekli" (Zorunlu yerine), "devre dışı bırakılamaz", "kullanım verileri", "kampanyalarını", "Çerez/Gizlilik Politikamızı". PageSpeed Lab raporundan gelen bulgular (Lighthouse 13 / Performance 100, A11y 91, BP 96, SEO 92) tek tek giderildi:
 
 - ClubCTA görselleri sharp ile yeniden encode edildi (23 MB → 83 KB). Asset import + düz `<img>` ile `/_astro/<hash>.webp` üzerinden 1y immutable cache.
 - `/api/panel/session` çağrısı Header'da hint cookie + `requestIdleCallback` ile kritik yoldan çıktı; anonim ziyaretçide tetiklenmiyor (login/logout endpoint'leri non-HttpOnly `spornerede_session_hint` cookie set/clear ediyor).
@@ -21,7 +25,7 @@ Sunucudaki repo-temiz olmayan senaryolar giderildi. **Otomatik guncelleme betigi
 
 Beklenen (kullanıcı aksiyonu): **Cloudflare Dashboard → Bots → AI Audit / Content Signal Policy → "Append to robots.txt" kapat** — `Content-Signal: search=yes,ai-train=no` direktifi Cloudflare tarafından otomatik ekleniyor ve Lighthouse 13 "unknown directive" diyor. SEO skoru 92 → ~97 etkisi var.
 
-Sonraki adımlar: geliştirme sırası **Faz 13 → 14 → 15 → 16 → 17**, **Faz 18 → 19 → 20 → 21** (SEO otopilot **MVP ücretsiz**: GSC + **OpenRouter `:free` LLM**; Gemini/Google AI Studio yok; günde 1 taslak + admin onay; `SEO_USE_PAID_APIS=false`), ardından veya paralel **Faz 4**. Plan: `memory-bank/seo-autopilot-plan-tr.md`; checklist Faz 18–21: `memory-bank/faz-gelistirme-checklist-tr.md`. Özet yol haritası: `memory-bank/progress.md`, `memory-bank/seo-ads-plan.md`, `memory-bank/growth-revenue-traffic-tr.md`. Organik **sıra + CTR** (GSC, programatik meta, FAQ şema, görsel disiplin; LLM şart değil): `memory-bank/seo-ctr-organic-plan-tr.md`. Operasyonel yükü düşürmeye yönelik aday backlog: bu dosyada **Operasyonel yükü düşüren backlog (öneri havuzu)**; özet: `memory-bank/progress.md`.
+Sonraki adımlar: **Faz 13** (DebugView) → **Faz 14 → 15 → 16 → 17** → **Faz 4**. Haber otopilot (Faz 18–21) canlı; izleme devam eder. Plan: `seo-autopilot-plan-tr.md`, `content-engine-isolated-plan-tr.md`. Checklist: `faz-gelistirme-checklist-tr.md`. Organik sıra + CTR: `seo-ctr-organic-plan-tr.md`.
 
 ## Güncel Görevler (Öncelik Sırasıyla)
 
@@ -40,10 +44,11 @@ Sonraki adımlar: geliştirme sırası **Faz 13 → 14 → 15 → 16 → 17**, *
 
 ### 🚧 Devam Eden
 
-- Hero autocomplete: klavye ile tamamlama (yukarı/aşağı/enter)
-- Club CTA sağ medya geçişi: son dokunuşlar
+- **Faz 13:** GA4 DebugView + consent (Reddet/Kabul) doğrulama; haftalık metrik rutini (`mvp-metrics.md`)
+- **Haber otopilot izleme:** Scheduler 10:00 TR; keyword kuyruğu `sehir_brans` dışı; manuel “SEO haber yaz” sonrası kuyruk ilerlemesi
+- İsteğe bağlı polish: Hero klavye typeahead, Club CTA medya geçişi
 
-**Ana geliştirme sırası:** Faz **13** (reklam yayını ve ölçüm) → 14 → 15 → 16 → 17; ardından veya paralel **Faz 4** (harita, tam quiz, yorum, derin filtre). Faz 11 deploy omurgası, Faz 2–3 veri/panel/admin işleri tamamlandı; ayrıntılı `[ ]` maddeler: `memory-bank/faz-gelistirme-checklist-tr.md`.
+**Ana geliştirme sırası:** Faz **13** → **14** → **15** → **16** → **17**; **Faz 4** (harita, tam quiz, yorum) paralel veya sonrası. Checklist: `memory-bank/faz-gelistirme-checklist-tr.md`.
 
 ### 🆕 Son Tamamlanan (UI Revizyon Paketi)
 
@@ -318,12 +323,14 @@ Sonraki adımlar: geliştirme sırası **Faz 13 → 14 → 15 → 16 → 17**, *
 
 Tam `[ ]` checklist: `memory-bank/faz-gelistirme-checklist-tr.md`. Strateji ve taktik detay: `memory-bank/growth-revenue-traffic-tr.md`.
 
-**Faz 13 — Ölçüm (başladı; AdSense ertelendi):**
+**Faz 13 — Ölçüm (kısmen canlı; AdSense ertelendi):**
 
-- Kod: `AnalyticsPageEvent.astro` + sayfa event'leri; beacon consent gate.
-- Sırada: GA4 mülk + GTM → `PUBLIC_GTM_ID` sunucu `.env` → deploy → DebugView.
-- GTM tag listesi: `view_club`, `view_listing`, `search_performed`, lead_* , application_* , contact_form_submit.
-- Google Ads / AdSense: ölçüm stabil olduktan sonra (`deploy/analytics-env.example`).
+- [x] Kod: `AnalyticsPageEvent.astro`, `ConsentModeHead.astro`, `GoogleTagManager.astro` (GA4 + GTM), beacon consent gate.
+- [x] Production env: `PUBLIC_GTM_ID`, `PUBLIC_GA4_ID` set; release `20260614T085634Z`.
+- [ ] DebugView: `view_club`, `view_listing`, `search_performed`, lead_*, `application_*`, `contact_form_submit`.
+- [ ] İsteğe bağlı: GTM custom event tag’leri (GA4 doğrudan gtag zaten çalışıyor).
+- [ ] Google Ads — ölçüm stabil olduktan sonra.
+- AdSense bilinçli ertelendi (`deploy/analytics-env.example`).
 
 **Faz 14 — SEO (içerik + indeks):**
 
@@ -358,6 +365,16 @@ Tam `[ ]` checklist: `memory-bank/faz-gelistirme-checklist-tr.md`. Strateji ve t
    - Her deploy sonrası servis ayakta mı + XML içinde en az bir `<url>` var mı doğrulama
    - (Faz 12 sonrası) GA4 DebugView'da kritik event'lerin (`view_listing`, `application_submit`, `lead_phone_click`) hâlâ akıyor olduğu kontrolü
 
+### Ürün iyileştirme + araç önerileri (2026-06-14) 🆕
+
+Kod incelemesine dayalı öncelikli öneriler, faz planı geri bildirimi ve aday araç değerlendirmesi ayrı dosyada: **`urun-iyilestirme-onerileri-tr.md`**. Özet:
+
+- **P0 (bu hafta, ~0 TL):** (1) Lead hunisini tamir et — `kulupler/[id].astro` telefon düz metin; `tel:`/WhatsApp/Maps + lead formu yok → dönüşüm+ölçüm+gelir aynı anda açılır. (2) `catalog.ts` arama performansı — `searchClubs` her çağrıda 6 koleksiyonu `getFullList` çekiyor, `getClubById` tek kulüp için tüm DB'yi yüklüyor; cache + dar sorgu.
+- **P1:** Yorum/puanlama MVP (`puan`/`yorumSayisi` alanları var, UI yok) + panel profil doluluk göstergesi.
+- **P2:** Panelde lead/trafik özeti (ödeme sebebi) → sonra paket/ödeme.
+- **Faz planı notu:** Lead funnel + yorum şu an "Faz 4 büyük epik"e gömülü; Faz 13–17 önüne çekilmesi önerildi.
+- **Araç kararı:** Şimdi al → **Zod** (API doğrulama), **Biome** (lint/format yok). Cloudflare Rate Limiting + Turnstile → **Arcjet** yerine. Sonra/seçici → **PostHog** session replay, **knip/Fallow**. Geç → **Bun, Motion, Lucide**.
+
 ### Operasyonel yükü düşüren backlog (öneri havuzu)
 
 > Amaç: admin ve kulüp tarafında **tekrarlayan manuel işi**, **destek / düzeltme talebini** ve **sunucu-maliyet baskını** azaltmak. Ana faz yolunu değiştirmez; onay sonrası sprint veya `faz-gelistirme-checklist-tr.md` içine taşınır.
@@ -388,13 +405,14 @@ Tam `[ ]` checklist: `memory-bank/faz-gelistirme-checklist-tr.md`. Strateji ve t
 
 ## Faz Sırasına Göre Uygulama Akışı
 
-1. **Faz 2.1–2.2:** PocketBase ve `/ara` veri sorgusu (Tamamlandı)
-2. **Faz 3:** Admin, kulüp paneli, belgeler (Büyük oranda tamamlandı)
-3. **Faz 11:** Deploy ve operasyon (Sürekli)
-4. **Faz 12:** SEO + reklam altyapısı (Tamamlandı)
-5. **Faz 13 → 17:** Reklam ölçümü → organik SEO → trafik ürünleri → E-E-A-T → gelir MVP — sıra ve `[ ]` maddeler: `faz-gelistirme-checklist-tr.md`
-6. **Faz 4:** Harita, tam quiz, yorum, derin filtre (büyük epik; 13–17 ile paralel veya sonrası)
-7. **Operasyonel takip:** `mvp-metrics.md` haftalık/aylık izleme
+1. **Faz 2.1–2.2:** PocketBase ve `/ara` veri sorgusu (✅)
+2. **Faz 3:** Admin, kulüp paneli, belgeler (✅ büyük oranda)
+3. **Faz 11:** Deploy ve operasyon (🚧 sürekli)
+4. **Faz 12:** SEO + reklam altyapısı (✅)
+5. **Faz 18–21:** Haber otopilotu (✅ canlı; systemd timer opsiyonel)
+6. **Faz 13 → 17:** Ölçüm doğrulama → organik SEO → trafik → güven → gelir
+7. **Faz 4:** Harita, tam quiz, yorum, derin filtre (büyük epik)
+8. **Operasyonel takip:** `mvp-metrics.md` haftalık/aylık izleme
 
 ## Son Kararlar
 
@@ -491,21 +509,21 @@ Tam `[ ]` checklist: `memory-bank/faz-gelistirme-checklist-tr.md`. Strateji ve t
 - Canlı `gsc:check` OK; rewrite dry-run: 6 yayın tarandı, henüz CTR adayı yok (normal — eşik ≥50 gösterim + <%3 CTR).
 
 **Durum (2026-05-31): CE-5 → CE-8 uygulandı (haber otopilotu genişletmesi).**
-- **CE-5 takvim:** `seo_keywords.planlanan_tarih`; `pickNewsKeyword` bugün planlı öncelik; admin 14 gün önizleme + PATCH `/api/admin/content-engine/keyword-calendar`; sezon skor boost (`season-boost.ts`).
+- **CE-5 takvim:** `seo_keywords.planlanan_tarih`; `pickNewsKeyword` bugün planlı öncelik; admin 14 gün önizleme + PATCH `/api/admin/content-engine/keyword-calendar`; sezon skor boost (`season-boost.ts`). Takvimde “tahmini” satırlar yalnızca UI önizlemesi — DB `planlanan_tarih` değildir.
 - **CE-6 linkler:** Gövde — `Platformda örnek kulüpler` (1–2 gerçek slug) + `İlgili haber` bloğu; footer hub linkleri aynı (`news-body-links.ts`).
 - **CE-7 research:** GSC sorgu varyantları `site_context.gsc_query_variants`; güçlendirilmiş `avoidList` (başlık tekrarı uyarısı).
 - **CE-8 CTA:** `buildCtaHint(niyet)` → prompt `{{CTA_HINT}}`.
-- **Deploy notu:** Canlıda `npm run pb:setup` (veya content-engine ilk çalışma) ile `planlanan_tarih` alanı eklenir.
+
+**Durum (2026-06-14): Scheduler ve admin haber API düzeltmeleri.**
+- **Kök neden:** Zamanlayıcı yalnızca en yüksek skorlu kelimeyi seçiyordu; `sehir_brans` kategorisi kuyruğu domine ediyordu → “Bu konu zaten yayınlandı” ile günlük üretim düşüyordu.
+- **Düzeltmeler:** Astro scheduler `runNewsDraftAutoPick()` (content-engine `pickNewsKeyword`); `news-keyword-policy.ts` — otomatik haberden `sehir_brans` hariç; `keyword-engine.ts` — `sehir_brans` skor cezası + yayınlanan kelimeler `yazildi`; duplicate’te 5 deneme; manuel/admin taslak sonrası `markKeywordWritten()`; nginx `/api/admin/content-engine/` → 360s read timeout (504 giderildi).
+- **Canlı schedule:** `enabled: true`, `runHour: 10`, `runMinute: 0` (TR).
 
 ## Bir Sonraki Konuşmada Yapılacaklar
 
-1. **CE-5 — İçerik takvimi (haber):** Admin’de 14 günlük keyword önizleme; opsiyonel `seo_keywords.planlanan_tarih`; sezon skor boost (yaz kursu / okula dönüş). Spec: `content-engine-isolated-plan-tr.md`.
-2. **CE-6 — Auto linking derinliği:** Gövde içi 1–2 gerçek kulüp slug + ilgili önceki haber (PB + `parseKonu`; LLM serbest URL yok).
-3. **Canlı scheduler:** Admin’de zamanlayıcı açık + Kaydet (fix sonrası bir kez); ertesi gün otomatik haber doğrulama.
-4. **Faz 13 — Reklam yayını ve ölçüm** (paralel / sonra) (`progress.md`, `faz-gelistirme-checklist-tr.md`):
-   - Production’da `PUBLIC_GTM_ID` / `PUBLIC_GA4_ID` netleştir; GA4 DebugView ile temel event’leri doğrula (`view_listing`, `view_club`, formlar, lead tıkları).
-   - Google Ads hesabı + GA4 dönüşüm içe aktarma; ilk kampanya taslağı (şehir+branş arama → landing, PMax veya Search → `/basvuru`, remarketing kitleleri).
-   - AdSense için içerik hacmi / `ads.txt` / `PUBLIC_AD_PROVIDER` hazırlığını checklist ile hizala (içerik yeterliyse başvuru).
-2. **Faz 12 kapanış doğrulamaları (canlı):** Rich Results / PageSpeed hedefleri, KVKK reddinde analitik tetiklenmemesi — `progress.md` kabul kriterleri.
-3. **İsteğe bağlı polish:** Hero klavye typeahead, CTA medya geçişi.
-4. **Faz 4** harita ve derin ürün epik — kaynak planına göre 13–17 ile paralel veya sonrası; teknik seçim notu (Leaflet vs Mapbox) ayrı sprintte.
+1. **Faz 13 kapanış:** GA4 DebugView + consent testi; haftalık metrik bakışı (`mvp-metrics.md`).
+2. **Faz 14 başlangıç:** Bing/Yandex doğrulama; Search Console rutin şablonu; `NewsArticle` JSON-LD.
+3. **Haber otopilot izleme:** Scheduler günlük çıktı; ulusal/ebeveyn/sezonsal keyword seed artırımı.
+4. **Backlog fix:** Admin Geribildirimler sekmesi `/api/admin/feedbacks` 500.
+5. **Faz 12 canlı doğrulama:** Rich Results, KVKK reddinde analitik kapalı mı.
+6. **Faz 4** harita/quiz/yorum epik — 13–17 sonrası veya paralel.

@@ -74,6 +74,10 @@ Current additional docs in this project:
 - `seo-ads-plan.md` (Faz 12: SEO guclendirme + reklam altyapisi hazirligi)
 - `growth-revenue-traffic-tr.md` (gelir modeli adaylari + SEO ve trafik taktikleri; Faz 13-17 plani ile eslenir; `faz-gelistirme-checklist-tr.md` ile birlikte)
 - `seo-ctr-organic-plan-tr.md` (organik sira + CTR: GSC, programatik meta, FAQ/schema, goruntu SEO, olcum; LLM sart degil)
+- `seo-autopilot-plan-tr.md` (Faz 18-21: SEO otopilot MVP ucretsiz — OpenRouter :free, haber-only)
+- `content-engine-isolated-plan-tr.md` (content-engine izole paket; CE-5-8 + operasyon notlari)
+- `faz-gelistirme-checklist-tr.md` (faz bazli [x]/[ ] ana checklist)
+- `urun-iyilestirme-onerileri-tr.md` (kod incelemesine dayali oncelikli urun/teknik oneriler + faz plani geri bildirimi + arac degerlendirmesi: Zod/Biome/Arcjet/PostHog/Bun vb.)
 
 ## Core Workflows
 

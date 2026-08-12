@@ -35,10 +35,23 @@ migrate((app) => {
       {
         "help": "",
         "hidden": false,
-        "id": "number4145757593",
+        "id": "number4016231341",
         "max": null,
         "min": null,
-        "name": "kullaniciLegacyId",
+        "name": "kulupLegacyId",
+        "onlyInt": false,
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "number"
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "number3771455792",
+        "max": null,
+        "min": null,
+        "name": "paketLegacyId",
         "onlyInt": false,
         "presentable": false,
         "required": true,
@@ -49,37 +62,46 @@ migrate((app) => {
         "autogeneratePattern": "",
         "help": "",
         "hidden": false,
-        "id": "text743327609",
+        "id": "text855118059",
         "max": 0,
         "min": 0,
-        "name": "mesaj",
-        "pattern": "",
-        "presentable": false,
-        "primaryKey": false,
-        "required": true,
-        "system": false,
-        "type": "text"
-      },
-      {
-        "autogeneratePattern": "",
-        "help": "",
-        "hidden": false,
-        "id": "text3226425942",
-        "max": 0,
-        "min": 0,
-        "name": "durum",
+        "name": "odemeDurumu",
         "pattern": "",
         "presentable": false,
         "primaryKey": false,
         "required": false,
         "system": false,
         "type": "text"
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "date962879552",
+        "max": "",
+        "min": "",
+        "name": "baslangicTarihi",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "date"
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "date3717326503",
+        "max": "",
+        "min": "",
+        "name": "bitisTarihi",
+        "presentable": false,
+        "required": false,
+        "system": false,
+        "type": "date"
       }
     ],
-    "id": "pbc_3247798885",
+    "id": "pbc_629499490",
     "indexes": [],
     "listRule": "",
-    "name": "panel_geribildirimleri",
+    "name": "kulup_uyelikleri",
     "system": false,
     "type": "base",
     "updateRule": "",
@@ -88,7 +110,7 @@ migrate((app) => {
 
   return app.save(collection);
 }, (app) => {
-  const collection = app.findCollectionByNameOrId("pbc_3247798885");
+  const collection = app.findCollectionByNameOrId("pbc_629499490");
 
   return app.delete(collection);
 })

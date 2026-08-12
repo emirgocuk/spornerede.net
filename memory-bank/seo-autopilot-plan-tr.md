@@ -6,7 +6,7 @@
 **Profil:** `SEO_USE_PAID_APIS=false` · **LLM:** OpenRouter `:free` (varsayılan) — Google AI Studio / ücretli Gemini **yok** (fatura sızıntısı riski). GSC + PocketBase/Astro.  
 **Hedef:** Günde en fazla **1** haber (`haberler`); admin onay veya auto-publish. Taslak kalitesi “mükemmel AI” değil, **iş akışı + insan düzeltmesi** ile yeterli.
 
-> **Kapsam güncellemesi (2026-05-31):** Otomasyon **yalnızca `haberler`**. Rehber otomasyonu (Faz 20) ve görsel/video üretimi **ertelendi**. Sıradaki geliştirme: **CE-5 → CE-8** (`content-engine-isolated-plan-tr.md`).
+> **Kapsam güncellemesi (2026-06-14):** Otomasyon **yalnızca `haberler`**. Ö1–Ö4 + CE-5–8 + scheduler/504 düzeltmeleri **canlı**. Rehber otomasyonu (Faz 20) ve görsel/video **ertelendi**. Sıradaki ürün fazı: **Faz 13** (DebugView) → **Faz 14**. Detay: `content-engine-isolated-plan-tr.md`, `activeContext.md`.
 
 ---
 
@@ -58,11 +58,11 @@
 |---|---|---|
 | Keyword (trafik) | Google Search Console API | Service account veya OAuth |
 | Keyword (yeni) | `seed-keywords-tr.json` + PB `iller`/`branslar` | ~130+ programatik satır |
-| Makale (taslak) | **OpenRouter** + `SEO_OPENROUTER_MODEL=…:free` | ~50 istek/gün (kredi yoksa); `429` → ertesi gün |
-| GSC (sadece okuma) | Search Console API | Üretken AI değil; faturalandırma riski yok |
+| Makale (taslak) | **OpenRouter** + `SEO_OPENROUTER_MODEL=…:free` | Günde 1 haber + haftalık max 2 CTR rewrite |
+| GSC (sadece okuma) | Search Console API | Pazartesi 04:00 sync + 04:10 rewrite; secrets canlı |
 | SERP / hacim | — | GSC `impressions` skor proxy; rakip snippet yok |
 | Görsel | `/api/og.png` | AI görsel üretimi yok |
-| Yayın / ölçüm | PocketBase + GSC | 0 TL |
+| Yayın / ölçüm | PocketBase `haberler` + Astro scheduler | 10:00 TR günlük; admin onay/auto-publish |
 
 ### Zorunlu `.env` (ücretsiz profil — OpenRouter birincil)
 ```env

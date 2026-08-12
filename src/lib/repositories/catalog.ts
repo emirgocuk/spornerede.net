@@ -203,10 +203,30 @@ export async function searchClubs(filters: SearchFilters) {
   const cityById = new Map(cities.map((row) => [Number(row.legacyId), row]));
   const districtById = new Map(districts.map((row) => [Number(row.legacyId), row]));
   const branchById = new Map(branches.map((row) => [Number(row.legacyId), row]));
-  const branchLinkByClub = new Map<number, number>();
+  const branchBySlug = new Map(branches.map((row) => [row.slug as string, row]));
+
+  // Club ID -> Map of branchSlug to branch row (aggregates kulup_branslar and active kulup_programlari)
+  const clubBranchMap = new Map<number, Map<string, Record<string, unknown>>>();
+
   for (const link of clubBranches) {
-    if (!branchLinkByClub.has(Number(link.kulupLegacyId))) {
-      branchLinkByClub.set(Number(link.kulupLegacyId), Number(link.bransLegacyId));
+    const clubId = Number(link.kulupLegacyId);
+    const branch = branchById.get(Number(link.bransLegacyId));
+    if (branch) {
+      if (!clubBranchMap.has(clubId)) clubBranchMap.set(clubId, new Map());
+      clubBranchMap.get(clubId)!.set(branch.slug as string, branch as Record<string, unknown>);
+    }
+  }
+
+  for (const p of programs) {
+    const clubId = Number(p.kulupLegacyId);
+    const pSlug = slugify(String(p.ad ?? ''));
+    const targetSlug = pSlug === 'jimnastik' ? 'cimnastik' : pSlug;
+    const branch = branchBySlug.get(targetSlug) ?? branchBySlug.get(pSlug);
+    if (branch) {
+      if (!clubBranchMap.has(clubId)) clubBranchMap.set(clubId, new Map());
+      if (!clubBranchMap.get(clubId)!.has(branch.slug as string)) {
+        clubBranchMap.get(clubId)!.set(branch.slug as string, branch as Record<string, unknown>);
+      }
     }
   }
 
@@ -216,15 +236,23 @@ export async function searchClubs(filters: SearchFilters) {
     .map((club) => {
       const city = cityById.get(Number(club.ilLegacyId));
       const district = districtById.get(Number(club.ilceLegacyId));
-      const linkedBranch = branchById.get(branchLinkByClub.get(Number(club.legacyId)) ?? -1);
-      const branchVisual = branchVisualFromRow(linkedBranch as Record<string, unknown> | undefined);
+      const cBranchesMap = clubBranchMap.get(Number(club.legacyId)) ?? new Map();
+      const cBranchList = Array.from(cBranchesMap.values());
+
+      let activeBranch = cBranchList[0];
+      if (filters.brans && cBranchesMap.has(filters.brans)) {
+        activeBranch = cBranchesMap.get(filters.brans);
+      }
+
+      const branchVisual = branchVisualFromRow(activeBranch);
       return {
         id: Number(club.legacyId),
         ad: club.ad as string,
         il: displayIlAd(city?.slug as string | undefined, city?.ad as string | undefined),
         ilSlug: (city?.slug as string | undefined) ?? '',
-        brans: (linkedBranch?.ad as string | undefined) ?? '',
-        bransSlug: (linkedBranch?.slug as string | undefined) ?? '',
+        brans: (activeBranch?.ad as string | undefined) ?? '',
+        bransSlug: (activeBranch?.slug as string | undefined) ?? '',
+        allBranchSlugs: Array.from(cBranchesMap.keys()),
         ilce: (district?.ad as string | undefined) ?? '',
         ilceSlug: (district?.slug as string | undefined) ?? '',
         adres: (club.adres as string) ?? '',
@@ -243,7 +271,7 @@ export async function searchClubs(filters: SearchFilters) {
     })
     .filter((club) => (!filters.il ? true : club.ilSlug === filters.il))
     .filter((club) => (!filters.ilce ? true : slugify(club.ilce) === filters.ilce))
-    .filter((club) => (!filters.brans ? true : club.bransSlug === filters.brans))
+    .filter((club) => (!filters.brans ? true : club.allBranchSlugs.includes(filters.brans)))
     .sort((a, b) => {
       if (hasUserLocation) {
         const aHasDistance = Number.isFinite(a.enlem) && Number.isFinite(a.boylam);

@@ -36,25 +36,10 @@ migrate((app) => {
         "autogeneratePattern": "",
         "help": "",
         "hidden": false,
-        "id": "text1378298709",
+        "id": "text2560465762",
         "max": 0,
         "min": 0,
-        "name": "adSoyad",
-        "pattern": "",
-        "presentable": false,
-        "primaryKey": false,
-        "required": true,
-        "system": false,
-        "type": "text"
-      },
-      {
-        "autogeneratePattern": "",
-        "help": "",
-        "hidden": false,
-        "id": "text2306712695",
-        "max": 0,
-        "min": 0,
-        "name": "telefon",
+        "name": "slug",
         "pattern": "",
         "presentable": false,
         "primaryKey": false,
@@ -63,62 +48,25 @@ migrate((app) => {
         "type": "text"
       },
       {
-        "exceptDomains": null,
-        "help": "",
-        "hidden": false,
-        "id": "email3885137012",
-        "name": "email",
-        "onlyDomains": null,
-        "presentable": false,
-        "required": true,
-        "system": false,
-        "type": "email"
-      },
-      {
         "autogeneratePattern": "",
         "help": "",
         "hidden": false,
-        "id": "text1442439321",
+        "id": "text2011229528",
         "max": 0,
         "min": 0,
-        "name": "konu",
+        "name": "ad",
         "pattern": "",
         "presentable": false,
         "primaryKey": false,
         "required": true,
         "system": false,
         "type": "text"
-      },
-      {
-        "autogeneratePattern": "",
-        "help": "",
-        "hidden": false,
-        "id": "text743327609",
-        "max": 0,
-        "min": 0,
-        "name": "mesaj",
-        "pattern": "",
-        "presentable": false,
-        "primaryKey": false,
-        "required": true,
-        "system": false,
-        "type": "text"
-      },
-      {
-        "help": "",
-        "hidden": false,
-        "id": "bool2580858852",
-        "name": "okundu",
-        "presentable": false,
-        "required": false,
-        "system": false,
-        "type": "bool"
       }
     ],
-    "id": "pbc_2435156470",
+    "id": "pbc_268085703",
     "indexes": [],
     "listRule": "",
-    "name": "iletisim_mesajlari",
+    "name": "iller",
     "system": false,
     "type": "base",
     "updateRule": "",
@@ -127,7 +75,7 @@ migrate((app) => {
 
   return app.save(collection);
 }, (app) => {
-  const collection = app.findCollectionByNameOrId("pbc_2435156470");
+  const collection = app.findCollectionByNameOrId("pbc_268085703");
 
   return app.delete(collection);
 })

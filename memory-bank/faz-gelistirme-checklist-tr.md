@@ -65,13 +65,15 @@ Bu dosya, proje ilerlemesini tek yerden takip etmek için faz bazlı ana checkli
 - [x] Teknik SEO temeli (robots, sitemap, slug, JSON-LD, middleware cache, self-hosted font, consent, GTM/GA hazırlığı) — ayrıntı: `seo-ads-plan.md`, `activeContext.md`
 - [x] Performans ve Lighthouse geri bildirim turu (üretimde doğrulama operasyonu devam eder)
 
-## Faz 13 — Ölçüm (GA4/GTM; AdSense sonra)
+## Faz 13 — Ölçüm (GA4/GTM; AdSense ertelendi)
 
 - [x] Sayfa event wiring (`AnalyticsPageEvent`: kulüp, ilan, arama, başvuru success)
 - [x] Beacon consent gate (analitik onayı yoksa `/api/internal/track` atlanır)
-- [ ] Production `PUBLIC_GTM_ID` + GTM container tag'leri + DebugView doğrulama
+- [x] Production `PUBLIC_GTM_ID` + `PUBLIC_GA4_ID` set (`20260614T085634Z`)
+- [ ] GA4 DebugView + consent (Reddet/Kabul) doğrulama
+- [ ] İsteğe bağlı: GTM custom event tag’leri (GA4 çift Configuration tag olmasın)
 - [ ] Google Ads / dönüşüm içe aktarma (ölçüm stabil olduktan sonra)
-- [ ] AdSense önkoşulları: içerik hacmi, `ads.txt`, `PUBLIC_AD_PROVIDER=adsense` (ertelendi)
+- [ ] AdSense — bilinçli ertelendi
 
 ## Faz 14 — SEO: İndeks, İçerik, Programatik Sayfalar
 
@@ -116,16 +118,21 @@ Bu dosya, proje ilerlemesini tek yerden takip etmek için faz bazlı ana checkli
 
 - [x] PocketBase `seo_keywords` + `rehber_yazilari` (`content-engine` setup)
 - [x] Seed ~146 keyword (`buildSeedRows`)
-- [x] `keyword-engine.ts` (GSC opsiyonel + skor)
-- [ ] GSC service account JSON + `SEO_GSC_SERVICE_ACCOUNT_PATH` (lokal test)
-- [ ] `seo-keyword-weekly.timer` (canlıya siz karar verince)
+- [x] `keyword-engine.ts` (GSC + skor + sezon boost)
+- [x] GSC secrets canlı (`content-engine-secrets`, 2026-06-06)
+- [x] Otomatik haber seçiminde `sehir_brans` hariç (`news-keyword-policy.ts`)
+- [x] Astro Pazartesi 04:00 keyword sync (`newsScheduler.ts`)
+- [ ] `seo-keyword-weekly.timer` (opsiyonel; Astro scheduler yeterliyse gerekmez)
 
-## Faz 19 — SEO Otopilot: İçerik Pipeline (OpenRouter `:free`)
+## Faz 19 — SEO Otopilot: Haber Pipeline (OpenRouter `:free`)
 
 - [x] OpenRouter + DeepSeek yedek; parse retry
-- [x] `content-pipeline.ts`, prompt seti, günde 1 taslak
-- [x] `list:drafts` / `publish:draft` CLI
-- [ ] `seo-content-daily.timer` (canlıya siz karar verince)
+- [x] `news-draft-runner`, prompt seti, günde 1 haber
+- [x] CE-5–8: takvim, gövde link, GSC hint, niyet CTA
+- [x] Astro günlük scheduler (10:00 TR) + `runNewsDraftAutoPick`
+- [x] Duplicate retry + manuel taslak sonrası keyword `yazildi`
+- [x] Admin haber API nginx 360s timeout (504 giderildi)
+- [ ] `seo-content-daily.timer` (opsiyonel; Astro scheduler yeterliyse gerekmez)
 
 ## Faz 20 — SEO Otopilot: Yayın ve Teknik SEO
 
@@ -137,9 +144,10 @@ Bu dosya, proje ilerlemesini tek yerden takip etmek için faz bazlı ana checkli
 ## Faz 21 — SEO Otopilot: GSC Ölçüm ve Geri Bildirim
 
 - [x] `gsc-reporter.ts` (GSC path varsa)
-- [ ] `seo-gsc-weekly.timer`
+- [x] Haber CTR rewrite (`news-gsc-rewrite.ts`, Pazartesi 04:10, max 2/hafta)
 - [x] Admin sekme badge (bekleyen taslak sayısı)
 - [x] Otomatik `dusuk_performans` kuralı (`gsc-reporter` + `performance-rules.ts`)
+- [ ] `seo-gsc-weekly.timer` (opsiyonel)
 
 ## Faz 4 — Gelişmiş Ürün (Harita, Tam Quiz, Yorum) — Büyük Epik
 
@@ -152,9 +160,9 @@ Bu dosya, proje ilerlemesini tek yerden takip etmek için faz bazlı ana checkli
 
 ### Önerilen geliştirme sırası (faz numarası akışı)
 
-1. **Faz 13** — Ölçüm ve ücretli trafik (GA/GTM/Ads/AdSense yol haritası)  
+1. **Faz 13** — Ölçüm doğrulama (DebugView, consent; GA4/GTM canlı)  
 2. **Faz 14** — Organik SEO (indeks + içerik + programatik kalite + şema)  
-3. **Faz 18 → 19 → 20 → 21** — SEO otopilot **ücretsiz** (GSC + Gemini free + `/rehber/`; Faz 14 rehber maddesiyle birleştirilebilir)  
+3. **Faz 18–21** — Haber otopilotu **canlı** (izleme + keyword çeşitliliği; rehber otomasyonu ertelendi)  
 4. **Faz 15** — Trafik kancaları (quiz MVP, sezon sayfası, bülten)  
 5. **Faz 16** — Güven ve dış dağıtım (E-E-A-T, doğrulama taslağı, PR şablonu)  
 6. **Faz 17** — Gelir MVP (öne çıkarma, paket, kredi, ödeme)  
@@ -172,8 +180,10 @@ Detaylı gelir ve trafik taktik listesi: `growth-revenue-traffic-tr.md`. Operasy
 
 ## Bu Haftaki Odak (Önerilen)
 
-- `faz-gelistirme-checklist-tr.md` üzerinden **Faz 13** ilk `[ ]` maddeleri (GA/GTM production, reklam ölçümü)
-- Faz 14 için Bing/Yandex doğrulama ve Search Console rutin şablonu taslağı
+- **Faz 13:** GA4 DebugView + consent testi; haftalık metrik rutini (`mvp-metrics.md`)
+- **Faz 14 hazırlık:** Bing/Yandex doğrulama; Search Console rutin şablonu
+- **Haber otopilot:** Scheduler günlük çıktı izleme; ulusal/ebeveyn/sezonsal keyword seed
+- **Backlog:** Admin `/api/admin/feedbacks` 500 fix
 
 ## Backlog — Operasyonel yük azaltma (öneri havuzu)
 

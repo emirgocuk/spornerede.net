@@ -7,6 +7,7 @@
 import AnalyticsPageEvent from '../components/AnalyticsPageEvent.astro';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { getAllBranches, getAllCities, getAllDistricts, searchClubs } from '../lib/repositories/catalog';
+import { resolveBranchVisual, slugifyBranch } from '../lib/branches/branchEmoji';
 import { itemListSchema, SITE_URL } from '../lib/seo/jsonld';
 import { listingSlug } from '../lib/seo/slug';
 
@@ -31,22 +32,60 @@ const filtreliKulupler = await searchClubs({
   userLat: hasUserLocation ? userLat : undefined,
   userLng: hasUserLocation ? userLng : undefined,
 });
-const filtreliIlanlar = filtreliKulupler.flatMap((kulup) =>
-  (kulup.programlar ?? []).map((program) => ({
-    ...program,
-    kulupId: kulup.id,
-    kulupAd: kulup.ad,
-    kulupAdres: kulup.adres,
-    kulupYasAraligi: kulup.yasAraligi,
-    kulupIl: kulup.il,
-    kulupAciklama: kulup.aciklama,
-    ilce: kulup.ilce,
-    bransSlug: kulup.bransSlug,
-    bransAd: program.ad,
-    emoji: kulup.emoji,
-    renk: kulup.renk,
-  }))
-);
+
+const targetBransSlug = secilinBrans ? (secilinBrans === 'jimnastik' ? 'cimnastik' : secilinBrans) : '';
+
+const filtreliIlanlar = filtreliKulupler.flatMap((kulup) => {
+  const progs = kulup.programlar ?? [];
+  const list =
+    progs.length > 0
+      ? progs
+      : [
+          {
+            id: kulup.id,
+            ad: kulup.brans || 'Spor İlanı',
+            gunSaat: '',
+            seviye: '',
+            ucretBilgisi: kulup.fiyat,
+            aktif: true,
+            eventDate: '',
+            endDate: '',
+            isOngoing: true,
+            days: [],
+            startTime: '',
+            endTime: '',
+            locationText: kulup.adres,
+            mapsUrl: '',
+            aciklama: kulup.aciklama,
+            yasAraligi: kulup.yasAraligi,
+          },
+        ];
+
+  return list
+    .filter((program) => {
+      if (!targetBransSlug) return true;
+      const pSlug = slugifyBranch(program.ad);
+      const normPSlug = pSlug === 'jimnastik' ? 'cimnastik' : pSlug;
+      return normPSlug === targetBransSlug;
+    })
+    .map((program) => {
+      const pVisual = resolveBranchVisual('', program.ad || kulup.brans);
+      return {
+        ...program,
+        kulupId: kulup.id,
+        kulupAd: kulup.ad,
+        kulupAdres: kulup.adres,
+        kulupYasAraligi: kulup.yasAraligi,
+        kulupIl: kulup.il,
+        kulupAciklama: kulup.aciklama,
+        ilce: kulup.ilce,
+        bransSlug: slugifyBranch(program.ad || kulup.brans),
+        bransAd: program.ad || kulup.brans,
+        emoji: pVisual.emoji,
+        renk: pVisual.renk,
+      };
+    });
+});
 
 const seciliBransObj = BRANCHES.find((item) => item.slug === secilinBrans);
 const baslikBrans = seciliBransObj?.isim ?? 'Tüm Branşlar';

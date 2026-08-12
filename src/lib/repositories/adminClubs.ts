@@ -1,5 +1,6 @@
 import { getDb, hasDatabaseUrl } from '../../db/client';
 import { displayIlAd } from '../turkishIlDisplay';
+import { linkClubBranch } from './applicationPrograms';
 import {
   formatMembershipPackageLabel,
   membershipPeriodFromPackageCode,
@@ -278,6 +279,7 @@ export async function createAdminClubProgram(clubId: number, payload: ProgramPay
     ucretBilgisi: payload.ucretBilgisi?.trim() ?? '',
     aktif: payload.aktif ?? true,
   });
+  await linkClubBranch(db, clubId, ad).catch(() => undefined);
   return mapProgramRow(row);
 }
 
@@ -293,14 +295,16 @@ export async function updateAdminClubProgram(clubId: number, programId: number, 
     return null;
   }
 
+  const ad = payload.ad.trim() || 'İlan';
   const updated = await db.collection('kulup_programlari').update(program.id, {
-    ad: payload.ad.trim() || 'İlan',
+    ad,
     aciklama: serializeProgramPayload(payload),
     gunSaat: payload.gunSaat?.trim() ?? '',
     seviye: payload.seviye?.trim() ?? '',
     ucretBilgisi: payload.ucretBilgisi?.trim() ?? '',
     aktif: payload.aktif ?? true,
   });
+  await linkClubBranch(db, clubId, ad).catch(() => undefined);
   return mapProgramRow(updated);
 }
 

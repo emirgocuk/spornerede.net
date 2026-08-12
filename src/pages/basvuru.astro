@@ -7,15 +7,12 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import BasvuruFormSections from '../components/BasvuruFormSections.astro';
 import { getAllCities, getAllDistrictsWithCities, getAllBranches } from '../lib/repositories/catalog';
-import { getMembershipPlans } from '../lib/repositories/applications';
-import { getBankTransferDisplay } from '../lib/billing/bankTransfer';
 
 const success = Astro.url.searchParams.get('success') === '1';
 const errorCode = Astro.url.searchParams.get('error') ?? '';
 const errorMessages: Record<string, string> = {
   missing: 'Lütfen zorunlu alanları eksiksiz doldurun.',
   email: 'Lütfen geçerli bir e-posta adresi yazın.',
-  payment: 'Başvuru için ödeme onayı zorunludur.',
   server: 'Başvuru gönderilemedi. Lütfen tekrar deneyin.',
 };
 const errorMessage = errorMessages[errorCode] ?? '';
@@ -26,13 +23,6 @@ const [cityRows, districtRows, branchRows] = await Promise.all([
   getAllBranches(),
 ]);
 const CITIES = cityRows.map((c) => c.ad);
-const membershipPlanRows = await getMembershipPlans({ basvuruOnly: true });
-const MEMBERSHIP_PLANS = membershipPlanRows.map((plan) => ({
-  kod: plan.kod,
-  ad: plan.kod === 'on-iki-aylik' ? 'Yıllık' : '6 Aylık',
-  ucret: plan.ucret,
-  aciklama: plan.aciklama,
-}));
 const DISTRICTS_BY_CITY = districtRows.reduce<Record<string, { ad: string; slug: string }[]>>((acc, district) => {
   if (!district.il) return acc;
   acc[district.il] ??= [];
@@ -49,19 +39,16 @@ const bransListesi = [
 ];
 
 const adimlar = [
-  { num: '1', label: 'Paket' },
-  { num: '2', label: 'Kulüp' },
+  { num: '1', label: 'Kulüp' },
+  { num: '2', label: 'Branş Sayısı' },
   { num: '3', label: 'İlanlar' },
-  { num: '4', label: 'Ödeme' },
 ];
-
-const { iban, accountName, bankName, branch } = getBankTransferDisplay();
 ---
 
 <BaseLayout
-  title="Kulübünü Ekle — Başvuru Formu"
-  description="SporNerede.net'e kulübünüzü veya kursunuzu ekleyin. Türkiye genelinde spor arayan ailelere ulaşın. Başvuru formu hızlı ve kolay."
-  keywords="spor kulübü ekle, spor kursu ekle, spornerede başvuru, kulüp listesi"
+  title="Kulübünü Ekle — Ücretsiz Başvuru Formu"
+  description="SporNerede.net'e kulübünüzü veya kursunuzu ücretsiz ekleyin. Türkiye genelinde spor arayan ailelere ulaşın. Başvuru formu hızlı ve kolay."
+  keywords="ücretsiz spor kulübü ekle, ücretsiz spor kursu ekle, spornerede başvuru, kulüp listesi"
 >
 
   <div class="basvuru-page">
@@ -74,10 +61,10 @@ const { iban, accountName, bankName, branch } = getBankTransferDisplay();
       </div>
       <div class="container basvuru-hero-content">
         <div class="hero-left-content">
-          <div class="basvuru-badge">🏆 Platforma Katıl</div>
-          <h1 class="basvuru-title">Kulübünüzü<br />Listeleyin</h1>
+          <div class="basvuru-badge">🏆 Ücretsiz Platforma Katıl</div>
+          <h1 class="basvuru-title">Kulübünüzü<br />Ücretsiz Listeleyin</h1>
           <p class="basvuru-desc">
-            Paketinizi seçin, her branş için ilan bilgilerinizi girin ve ödemeyi tamamlayın. Onay sonrası ilanlarınız yayına alınır.
+            Kulüp bilgilerinizi girin, yayınlanacak branş sayınızı seçin ve ilanlarınızı oluşturun. Onay sonrası ilanlarınız ücretsiz olarak yayına alınır.
           </p>
           <!-- Adım göstergesi -->
           <div class="adimlar" aria-label="Form Adımları" role="list">
@@ -110,7 +97,7 @@ const { iban, accountName, bankName, branch } = getBankTransferDisplay();
                 <div class="success-icon" aria-hidden="true">✅</div>
                 <h2 class="success-title">Başvurunuz Alındı!</h2>
                 <p class="success-desc">
-                  Başvurunuzu inceleyeceğiz ve 24 saat içinde iletişim bilgileriniz üzerinden size dönüş yapacağız.
+                  Başvurunuzu inceleyeceğiz ve en kısa sürede ilanlarınız ücretsiz olarak yayınlanacaktır.
                 </p>
                 <a href="/" class="btn btn-primary">Ana Sayfaya Dön</a>
               </div>
@@ -126,11 +113,6 @@ const { iban, accountName, bankName, branch } = getBankTransferDisplay();
                 <BasvuruFormSections
                   cities={CITIES}
                   bransListesi={bransListesi}
-                  membershipPlans={MEMBERSHIP_PLANS}
-                  bankName={bankName}
-                  accountName={accountName}
-                  branch={branch}
-                  iban={iban}
                   errorMessage={errorMessage || undefined}
                 />
 
@@ -143,7 +125,7 @@ const { iban, accountName, bankName, branch } = getBankTransferDisplay();
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                       <polyline points="20 6 9 17 4 12"/>
                     </svg>
-                    Başvuruyu Gönder
+                    Ücretsiz Başvuruyu Gönder
                   </button>
                 </div>
 
@@ -220,7 +202,6 @@ const { iban, accountName, bankName, branch } = getBankTransferDisplay();
 
     const branchRoot = document.getElementById('branch-listings-root');
     const branchTemplate = document.getElementById('branch-listing-template');
-    const paymentSectionNum = document.querySelector('.payment-section-last .form-section-num');
     const branchFieldKeys = ['brans', 'yasAraligi', 'aidat'];
 
     function configureBranchSection(section, index) {
@@ -228,7 +209,7 @@ const { iban, accountName, bankName, branch } = getBankTransferDisplay();
       const title = section.querySelector('.branch-listing-title-text');
       if (title) title.textContent = `${index + 1}. Branş Bilgileri (İlan)`;
       const numEl = section.querySelector('.branch-listing-num');
-      if (numEl) numEl.textContent = String(index + 1);
+      if (numEl) numEl.textContent = String(index + 3);
       branchFieldKeys.forEach((field) => {
         const el = section.querySelector(`[data-field="${field}"]`);
         if (el instanceof HTMLInputElement || el instanceof HTMLSelectElement || el instanceof HTMLTextAreaElement) {
@@ -248,64 +229,11 @@ const { iban, accountName, bankName, branch } = getBankTransferDisplay();
         fragment.appendChild(section);
       }
       branchRoot.replaceChildren(fragment);
-      if (paymentSectionNum) paymentSectionNum.textContent = String(count + 3);
     }
 
     const kulupInput = document.getElementById('kulup-ad');
-    const dynDesc = document.getElementById('dyn-payment-desc');
-    const dynAmount = document.getElementById('dyn-payment-amount');
-    const dynTotal = document.getElementById('dyn-payment-total');
-    const dynReference = document.getElementById('dyn-payment-ref');
     const branchCountHidden = document.getElementById('brans-sayisi-hidden');
     const branchCountInputs = Array.from(document.querySelectorAll('[data-branch-input]'));
-    const radios = document.querySelectorAll('input[name="paket"]');
-
-    const formatTL = (amount) => `${new Intl.NumberFormat('tr-TR').format(amount)} TL`;
-    const getSelectedPlan = () => Array.from(radios).find((radio) => radio.checked);
-
-    const CLUB_PAYMENT_LABEL = 'Kulüp veya Kurs Adınızı';
-
-    function displayClubLabel(clubName) {
-      return clubName || CLUB_PAYMENT_LABEL;
-    }
-
-    function setPaymentTotalPending(pending) {
-      if (!(dynTotal instanceof HTMLElement)) return;
-      dynTotal.dataset.empty = pending ? '1' : '0';
-      dynTotal.classList.toggle('payment-total-pending', pending);
-    }
-
-    function updatePaymentInfo() {
-      const selected = getSelectedPlan();
-      const clubName = kulupInput instanceof HTMLInputElement ? kulupInput.value.trim() : '';
-      const clubLabel = displayClubLabel(clubName);
-      const branchCountRaw = branchCountHidden instanceof HTMLInputElement ? Number(branchCountHidden.value || 1) : 1;
-      const branchCount = Number.isFinite(branchCountRaw) ? Math.max(1, Math.floor(branchCountRaw)) : 1;
-      const extraCount = Math.max(0, branchCount - 1);
-
-      if (dynDesc) dynDesc.textContent = `"${clubLabel}"`;
-
-      if (!selected) {
-        if (dynAmount) dynAmount.textContent = 'Paket tutarını';
-        if (dynTotal) dynTotal.textContent = '—';
-        setPaymentTotalPending(true);
-        if (dynReference instanceof HTMLInputElement) {
-          dynReference.value = `${clubLabel} -`;
-        }
-        return;
-      }
-
-      const basePrice = Number(selected.dataset.planPrice || 0);
-      const totalAmount = basePrice + extraCount * basePrice * 0.5;
-      const totalText = formatTL(totalAmount);
-
-      if (dynAmount) dynAmount.textContent = `${totalText} tutarını`;
-      if (dynTotal) dynTotal.textContent = totalText;
-      setPaymentTotalPending(false);
-      if (dynReference instanceof HTMLInputElement) {
-        dynReference.value = `${clubLabel} - ${totalText}`;
-      }
-    }
 
     function collectBranchDraft() {
       return Array.from(branchRoot?.querySelectorAll('[data-branch-section]') || []).map((section) => ({
@@ -336,10 +264,7 @@ const { iban, accountName, bankName, branch } = getBankTransferDisplay();
     }
 
     function collectFormDraft() {
-      const selectedPlan = getSelectedPlan();
-      const paymentConfirm = document.querySelector('input[name="odemeOnay"]');
       return {
-        paket: selectedPlan instanceof HTMLInputElement ? selectedPlan.value : '',
         bransSayisi: branchCountHidden instanceof HTMLInputElement ? branchCountHidden.value : '1',
         kulupad: getDraftValue('kulup-ad'),
         il: getDraftValue('kulup-il'),
@@ -348,7 +273,6 @@ const { iban, accountName, bankName, branch } = getBankTransferDisplay();
         yetkili: getDraftValue('yetkili-ad'),
         telefon: getDraftValue('yetkili-telefon'),
         email: getDraftValue('yetkili-email'),
-        odemeOnay: paymentConfirm instanceof HTMLInputElement ? paymentConfirm.checked : false,
         ilanlar: collectBranchDraft(),
       };
     }
@@ -392,22 +316,12 @@ const { iban, accountName, bankName, branch } = getBankTransferDisplay();
         fillDistricts(citySelect.value, draft.ilce || '');
       }
 
-      radios.forEach((radio) => {
-        if (radio instanceof HTMLInputElement) radio.checked = radio.value === draft.paket;
-      });
-
-      const paymentConfirm = document.querySelector('input[name="odemeOnay"]');
-      if (paymentConfirm instanceof HTMLInputElement) {
-        paymentConfirm.checked = Boolean(draft.odemeOnay);
-      }
-
       const branchCount = Number(draft.bransSayisi || draft.ilanlar?.length || 1);
       syncBranchCount(branchCount, Array.isArray(draft.ilanlar) ? draft.ilanlar : []);
-      updatePaymentInfo();
     }
 
     function syncBranchCount(nextValue, preservedIlanlar = collectBranchDraft()) {
-      const count = Number.isFinite(nextValue) ? Math.max(1, Math.min(10, Math.floor(nextValue))) : 1;
+      const count = Number.isFinite(nextValue) ? Math.max(1, Math.min(1, Math.floor(nextValue))) : 1;
       if (branchCountHidden instanceof HTMLInputElement) {
         branchCountHidden.value = String(count);
       }
@@ -418,11 +332,9 @@ const { iban, accountName, bankName, branch } = getBankTransferDisplay();
       });
       renderBranchSections(count);
       applyBranchDraft(preservedIlanlar);
-      updatePaymentInfo();
     }
 
     kulupInput?.addEventListener('input', () => {
-      updatePaymentInfo();
       saveFormDraft();
     });
     branchCountInputs.forEach((input) => {
@@ -433,12 +345,6 @@ const { iban, accountName, bankName, branch } = getBankTransferDisplay();
       input.addEventListener('click', (event) => event.stopPropagation());
       input.addEventListener('keydown', (event) => event.stopPropagation());
     });
-    radios.forEach((radio) =>
-      radio.addEventListener('change', () => {
-        updatePaymentInfo();
-        saveFormDraft();
-      }),
-    );
     syncBranchCount(1);
     if (new URLSearchParams(window.location.search).has('error')) {
       applyFormDraft(readFormDraft());
@@ -454,10 +360,10 @@ const { iban, accountName, bankName, branch } = getBankTransferDisplay();
         }
       }, { once: true });
     }
-    updatePaymentInfo();
   </script>
 
 </BaseLayout>
+
 
 <style>
   /* ===== GENEL SAYFA ===== */
@@ -1264,13 +1170,15 @@ const { iban, accountName, bankName, branch } = getBankTransferDisplay();
     display: flex;
     flex-direction: column;
     gap: 1rem;
-    align-items: flex-start;
+    align-items: center;
+    text-align: center;
   }
 
   .form-gizlilik {
     font-size: 0.8rem;
     color: #6C757D;
     line-height: 1.5;
+    text-align: center;
   }
 
   .gizlilik-link {
@@ -1280,12 +1188,13 @@ const { iban, accountName, bankName, branch } = getBankTransferDisplay();
   }
 
   .submit-btn {
-    align-self: stretch;
+    align-self: center;
     justify-content: center;
+    min-width: 280px;
   }
 
   @media (min-width: 640px) {
-    .submit-btn { align-self: flex-start; }
+    .submit-btn { align-self: center; }
   }
 
   /* ===== BAŞARI DURUMU ===== */

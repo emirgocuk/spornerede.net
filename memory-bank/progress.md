@@ -2,7 +2,9 @@
 
 ## Özet Durum
 
-**Faz: Faz 12 (SEO + reklam altyapısı) canlıda; sıradaki geliştirme sırası: Faz 13 → 14 → 15 → 16 → 17, ardından veya paralel Faz 4 (harita ve derin ürün) ve Faz 18 → 19 → 20 → 21 (SEO Otopilot — Soro benzeri kendi kendine çalışan içerik motoru).** Checklist: `faz-gelistirme-checklist-tr.md`.
+**Faz: Faz 12 ✅ · Content Engine haber otopilotu (Ö1–Ö4, CE-5–8) ✅ canlı · Faz 13 🟡 (GA4/GTM production; DebugView bekliyor) · Sırada: Faz 14 → 15 → 16 → 17 (+ Faz 4 epik).**
+
+Checklist: `faz-gelistirme-checklist-tr.md` · Aktif odak: `activeContext.md`
 **Versiyon:** 0.4.0
 
 Ana takip dosyasi: `memory-bank/faz-gelistirme-checklist-tr.md` (faz bazli [x]/[ ] durum takibi)
@@ -71,13 +73,17 @@ Ana takip dosyasi: `memory-bank/faz-gelistirme-checklist-tr.md` (faz bazli [x]/[
 - Premium öne çıkarma akışı (Sırada)
 - Lead komisyon akışı (Sırada)
 
+### Ürün iyileştirme + araç önerileri (2026-06-14)
+
+Kod incelemesine dayalı öncelikli öneriler ve aday araç değerlendirmesi: `memory-bank/urun-iyilestirme-onerileri-tr.md`. Özet öncelik: **P0** lead hunisi (`kulupler/[id].astro` `tel:`/WhatsApp/Maps + lead formu) + `catalog.ts` arama cache; **P1** yorum/puanlama MVP + panel profil doluluk; **P2** panelde lead özeti → paket/ödeme. Araç: şimdi **Zod + Biome**; Arcjet yerine Cloudflare Rate Limiting/Turnstile; sonra PostHog replay; geç Bun/Motion/Lucide.
+
 ### Operasyonel yükü azaltma (backlog önerileri)
 
 Tekrarlayan manuel işi, destek talebini ve yoğun sorgu maliyetini düşürmeye yönelik aday özellikler; ana faz yolu (13–17, Faz 4) ile çakışmadan onay sonrası sprinte alınır. Tam liste ve gerekçeler: `memory-bank/activeContext.md` → bölüm **Operasyonel yükü düşüren backlog (öneri havuzu)**. Özet: kulüp panelinde profil doluluğu + branş seçim/uyarı UX’i; görsel encode ve liste/arama performansı; kayıtlı arama bildirimi ve mini karşılaştırma; başvuru çakışması uyarısı + panel rate limit / güvenlik log’u.
 
 ### Gelir ve trafik (strateji öneri havuzu)
 
-Satılabilir B2B/B2C paketler, pazar yeri fikirleri ve SEO ile siteye çekme taktikleri: `memory-bank/growth-revenue-traffic-tr.md`. Uygulama fazları ve sırası: **Faz 13 → 14 → 18–21 (SEO otopilot ücretsiz, haber-only CE-5–8) → 15 → 16 → 17** (+ Faz 4 epik); detaylı maddeler `memory-bank/faz-gelistirme-checklist-tr.md`. **Organik sıra ve SERP CTR:** `memory-bank/seo-ctr-organic-plan-tr.md`. **Otopilot (0 TL):** `memory-bank/seo-autopilot-plan-tr.md` + `content-engine-isolated-plan-tr.md`.
+Satılabilir B2B/B2C paketler, pazar yeri fikirleri ve SEO ile siteye çekme taktikleri: `memory-bank/growth-revenue-traffic-tr.md`. Uygulama fazları: **Faz 13 → 14 → 15 → 16 → 17** (+ Faz 4 epik); haber otopilot (Faz 18–21) **canlı**. Detay: `faz-gelistirme-checklist-tr.md`, `seo-ctr-organic-plan-tr.md`, `seo-autopilot-plan-tr.md`.
 
 ---
 
@@ -88,7 +94,10 @@ Satılabilir B2B/B2C paketler, pazar yeri fikirleri ve SEO ile siteye çekme tak
 | ------------------------------------------ | ---------------- | ------------------------------------- |
 | Nginx yönlendirme sorunlarının geçmişi var | ✅ Çözüldü        | Cloudflare SSL modu düzenlendi        |
 | Astro image sharp pixel limiti             | ✅ Geçici çözüldü | CTA görselleri `img` olarak sunuluyor |
-| Content-engine LLM metinleri basma kalıp   | ✅ Ö1–Ö4; 🚧 CE-5–8 | Özgünlük + GSC rewrite canlı. Sırada: takvim, gövde link, research, CTA. Plan: `content-engine-isolated-plan-tr.md` |
+| Content-engine LLM metinleri basma kalıp   | ✅ Ö1–Ö4 + CE-5–8 | Özgünlük, dedup, GSC rewrite, takvim, gövde link, CTA canlı. Plan: `content-engine-isolated-plan-tr.md` |
+| Scheduler günlük haber üretmiyordu         | ✅ 2026-06-14     | `runNewsDraftAutoPick`, `sehir_brans` hariç, duplicate retry |
+| Admin “SEO haber yaz” 504                  | ✅ 2026-06-14     | Nginx `/api/admin/content-engine/` 360s timeout |
+| Admin Geribildirimler sekmesi 500          | ⬜ Açık           | `/api/admin/feedbacks` — ayrı fix     |
 
 
 ---
@@ -201,22 +210,19 @@ Satılabilir B2B/B2C paketler, pazar yeri fikirleri ve SEO ile siteye çekme tak
   - `.env`, SMTP key, admin token gibi secret dosyalar arşive dahil edilmiyor.
   - Canlı endpoint testi 200 döndü ve arşiv içeriği doğrulandı.
 
-### Faz 11 — Canlı Operasyon ve Güncelleme Akışı 🚧
+### Faz 11 — Canlı Operasyon ve Güncelleme Akışı 🚧 (omurga canlı)
 
 - Elle canlı deploy başarılı ve smoke check temiz.
+- GitHub deploy key + `/opt/spornerede/repo` clone + `spornerede-autoupdate.timer` **aktif**.
 - Yeni versiyon yayınlama standart yolu:
   1. Lokalde değişiklikleri tamamla.
   2. `npm run build` çalıştır.
   3. Gerekirse `npm run release:gate` ve `npm run smoke:check` için `SITE_URL` ayarla.
   4. Değişiklikleri `main` branch'e push et.
-  5. GitHub deploy key eklendikten sonra sunucu timer yeni commit'i otomatik çeker.
-  6. Timer hazır değilse geçici elle deploy: `npm run build` sonrası `deploy.sh` veya mevcut Windows `ssh/scp` release akışı.
-  7. Deploy sonrası `SITE_URL=https://spornerede.net npm run smoke:check` eşdeğeri kontrol yapılır.
-- Auto-update tamamen açılmadan önce yapılacak:
-  - GitHub deploy key'i repo `Deploy keys` bölümüne ekle.
-  - Sunucuda `/opt/spornerede/repo` clone et.
-  - `spornerede-autoupdate.service/timer` etkinleştir.
-  - `systemctl start spornerede-autoupdate.service` ile elle test et.
+  5. Sunucu timer yeni commit'i otomatik çeker (`spornerede-autoupdate`).
+  6. Timer hazır değilse geçici elle deploy: `deploy.sh` veya Windows `ssh/scp` release akışı.
+  7. Deploy sonrası `SITE_URL=https://spornerede.net npm run smoke:check` eşdeğeri kontrol.
+- **Açık:** Staging ortamı (ayrı); backup restore tatbikatı düzenli plan.
 
 ### Faz 12 — SEO Güçlendirme + Reklam Altyapısı ✅ (2026-05-12)
 
@@ -282,30 +288,32 @@ Detaylı plan: `memory-bank/seo-ads-plan.md`. Tüm altyapı turu tek seferde tam
 - [ ] Google Rich Results Test → kulüp, ilan, FAQ, breadcrumb yeşil (canlıda doğrula)
 - [x] Detay sayfaları slug ile erişiliyor, sayısal ID'lerden 301
 - [x] `Astro.redirect('/ara')` tüm rotalardan kaldırıldı
-- [ ] KVKK reddinde GA4 hiç ateşlenmiyor (production GTM ID set edilince doğrulanacak)
-- [ ] GTM DebugView'da 10 event görünüyor (production'da)
+- [ ] KVKK reddinde GA4 hiç ateşlenmiyor (production’da doğrulanacak)
+- [ ] GTM/GA4 DebugView’da kritik event’ler görünüyor (production’da)
 - [x] 4 yasal sayfa yayında + footer linklenmiş
 - [x] `ads.txt` placeholder erişilebilir
 - [x] UTM cookie + auto track listener çalışıyor (`/api/internal/track` log basıyor)
 
-### Faz 13 — Ölçüm (başladı; AdSense sonra)
+### Faz 13 — Ölçüm (kısmen canlı; AdSense ertelendi)
 
-**Kod (2026-06-07):**
+**Kod (2026-06-07 → 2026-06-14):**
 - [x] Sayfa event'leri: `view_club`, `view_listing`, `search_performed`, `application_success` (`AnalyticsPageEvent.astro`)
+- [x] `ConsentModeHead.astro` — consent default GTM’den önce
+- [x] `GoogleTagManager.astro` — GA4 gtag (`PUBLIC_GA4_ID`) + GTM (`PUBLIC_GTM_ID`)
 - [x] Sunucu beacon yalnızca analitik onayı varsa (`TrackingAutoListeners`)
-- [x] `deploy/analytics-env.example` + `.env.example` GTM kurulum notları
+- [x] `deploy/analytics-env.example` + `.env.example` kurulum notları
 
-**Sizin yapmanız gereken (Google hesabı):**
-- [ ] GA4 mülk + GTM konteyner oluştur
-- [ ] `/opt/spornerede/.env` → `PUBLIC_GTM_ID=GTM-...` + `force-release-now.sh`
-- [ ] GTM'de GA4 tag + 10 custom event tag; DebugView doğrula
-- [ ] Reddet → GA4 istek yok; Kabul → event'ler görünür
+**Production (2026-06-14):**
+- [x] `/opt/spornerede/.env` → `PUBLIC_GTM_ID=GTM-NHH7M2CH`, `PUBLIC_GA4_ID=G-9TVLS12FYN`
+- [x] Release `20260614T085634Z` (`spornerede-autoupdate`)
+- [ ] GA4 DebugView: consent Reddet/Kabul + 10 custom event
+- [ ] İsteğe bağlı: GTM container’da custom event tag’leri (GA4 çift tag olmasın)
 
 **Sonra (ücretli trafik — AdSense değil):**
 - Google Ads + GA4 conversion import
 - İlk kampanyalar: şehir+branş Search, `/basvuru` PMax, remarketing
 
-**AdSense:** içerik hacmi yeterli olunca (`PUBLIC_AD_PROVIDER=adsense`)
+**AdSense:** bilinçli ertelendi; içerik hacmi yeterliyse (`PUBLIC_AD_PROVIDER=adsense`)
 
 ### Faz 14 — SEO: indeks, içerik, programatik sayfalar
 
@@ -347,7 +355,7 @@ Detaylı plan: `memory-bank/seo-ads-plan.md`. Tüm altyapı turu tek seferde tam
 - Yorum/puanlama sistemi (moderasyon + KVKK)
 - Arama filtrelerinin URL tabanlı sorgu ile derinleştirilmesi
 
-**Önerilen sıra (özet):** 13 → 14 → 15 → 16 → 17 → (kaynak planına göre) Faz 4; ardından paralel veya sıralı **Faz 18 → 19 → 20 → 21 (SEO Otopilot)**. Ayrıntılı `[ ]` maddeler: `memory-bank/faz-gelistirme-checklist-tr.md`. Strateji ve taktik havuzu: `memory-bank/growth-revenue-traffic-tr.md`.
+**Önerilen sıra (özet):** 13 (DebugView) → 14 → 15 → 16 → 17 → Faz 4; **Faz 18–21** haber otopilotu büyük ölçüde canlı (Astro scheduler; systemd timer opsiyonel). Ayrıntılı `[ ]` maddeler: `memory-bank/faz-gelistirme-checklist-tr.md`. Strateji: `memory-bank/growth-revenue-traffic-tr.md`.
 
 ---
 
@@ -355,34 +363,27 @@ Detaylı plan: `memory-bank/seo-ads-plan.md`. Tüm altyapı turu tek seferde tam
 
 > Teknik plan: `memory-bank/seo-autopilot-plan-tr.md` · İzole uygulama: `content-engine/` · `memory-bank/content-engine-isolated-plan-tr.md`
 
-**Profil:** `SEO_USE_PAID_APIS=false` — LLM: **OpenRouter `:free` sabit model**. GSC + PocketBase/Astro. **Tek otomatik kanal: `haberler`** — günde **1** haber (scheduler + admin onay/auto-publish). **Haftalık:** Pazartesi 04:00 keyword sync + 04:10 düşük CTR rewrite (max 2).
+**Profil:** `SEO_USE_PAID_APIS=false` — LLM: **OpenRouter `:free` sabit model**. GSC + PocketBase/Astro. **Tek otomatik kanal: `haberler`** — günde **1** haber (Astro `newsScheduler` + admin onay/auto-publish). **Haftalık:** Pazartesi 04:00 keyword sync + 04:10 düşük CTR rewrite (max 2).
 
-**Aktif geliştirme sırası (CE-5 → CE-8):** takvim (keyword kuyruğu görünürlüğü) → gövde içi linkler → GSC research zenginleştirme → niyet bazlı CTA. **Kapsam dışı (şimdilik):** rehber otomasyonu, AI/stock görsel, video embed. Detay: `content-engine-isolated-plan-tr.md`.
+**Durum (2026-06-14):** Ö1–Ö4 + CE-5–8 + scheduler/504 düzeltmeleri **canlı**. Otomatik haber seçiminde `sehir_brans` hariç; duplicate’te retry; manuel taslak sonrası keyword `yazildi`. **Kapsam dışı:** rehber otomasyonu, AI/stock görsel, video embed. Detay: `content-engine-isolated-plan-tr.md`, `activeContext.md`.
 
-> **Tamamlanan özgünlük paketi (Ö1–Ö4):** data-grounding, dedup gate, açı çeşitliliği, GSC seçici CTR rewrite, scheduler `enabled` fix, GSC secrets kalıcı deploy. Aktif odak: `activeContext.md`.
-
-### Faz 18 — Keyword kuyruğu (ücretsiz)
+### Faz 18 — Keyword kuyruğu (ücretsiz) — ✅ kısmen canlı
 
 **Amaç:** Yazılacak anahtar kelimeleri önceliklendirmek.
 
-**Kaynaklar (0 TL):**
-- Google Search Console API — impression ≥ 50, CTR < %3 öncelik
-- `scripts/seo-autopilot/seed-keywords-tr.json` (~130 seed)
-- PocketBase şehir × branş programatik üretim
+**Canlı:** `seo_keywords` koleksiyonu; seed ~146 satır; `keyword-engine.ts` (GSC + skor + sezon boost); Pazartesi 04:00 Astro sync; `sehir_brans` otomatik haberden hariç + skor cezası.
 
-**Çıktı:** `seo_keywords` (skor = GSC impression + niyet + iç link potansiyeli)
+**Opsiyonel:** `seo-keyword-weekly.timer` (systemd — Astro scheduler yeterliyse gerekmez).
 
-**Dosyalar:** `keyword-engine.ts`, `seed-keywords-tr.json`, `seo-keyword-weekly.timer`
+**Dosyalar:** `keyword-engine.ts`, `seed-keywords-tr.json`, `news-keyword-policy.ts`
 
 ---
 
-### Faz 19 — Haber içerik pipeline (OpenRouter `:free`) — ✅ kısmen canlı
+### Faz 19 — Haber içerik pipeline (OpenRouter `:free`) — ✅ canlı
 
 **Amaç:** Günde 1 Türkçe SEO **haber** taslağı/yayını (`haberler`).
 
-**Canlı:** `news-draft-runner`, günlük scheduler, data-grounding, dedup, footer iç linkler, auto-publish toggle.
-
-**Sırada (CE-5 → CE-8):** takvim alanları, gövde linkleri, GSC research hint, niyet CTA — bkz. `content-engine-isolated-plan-tr.md`.
+**Canlı:** `news-draft-runner`, Astro günlük scheduler (10:00 TR), `runNewsDraftAutoPick`, data-grounding, dedup, footer + gövde linkler (CE-6), GSC hint (CE-7), niyet CTA (CE-8), auto-publish toggle, admin manuel taslak + 360s nginx timeout.
 
 **Not:** `draft-runner` → `rehber_yazilari` manuel kalır; otomasyon **haber-only**.
 
@@ -410,11 +411,11 @@ Detaylı plan: `memory-bank/seo-ads-plan.md`. Tüm altyapı turu tek seferde tam
 
 ### Faz 21 — Ölçüm ve geri bildirim — ✅ kısmen canlı (haber)
 
-**Canlı:** GSC keyword sync (Pazartesi 04:00); **haber** CTR rewrite (04:10, max 2/hafta); `haberler.gsc_*`; admin zamanlayıcı durumu.
+**Canlı:** GSC keyword sync (Pazartesi 04:00); **haber** CTR rewrite (04:10, max 2/hafta); `haberler.gsc_*`; admin zamanlayıcı durumu; GSC secrets kalıcı deploy (`content-engine-secrets`).
 
 **Ertelenen:** `/rehber/*` GSC sync, rehber yeniden yaz kuyruğu — rehber epik açılınca.
 
-**CE-7/CE-8 ile örtüşen:** GSC varyant hint, niyet bazlı CTA (`content-engine-isolated-plan-tr.md`).
+**İzleme:** ulusal/ebeveyn/sezonsal keyword çeşitliliği; scheduler günlük log.
 
 ---
 

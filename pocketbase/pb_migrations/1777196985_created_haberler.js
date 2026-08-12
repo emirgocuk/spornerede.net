@@ -1,9 +1,5 @@
 /// <reference path="../pb_data/types.d.ts" />
 migrate((app) => {
-  const collection = app.findCollectionByNameOrId("pbc_1085383557");
-
-  return app.delete(collection);
-}, (app) => {
   const collection = new Collection({
     "createRule": "",
     "deleteRule": "",
@@ -24,6 +20,61 @@ migrate((app) => {
         "type": "text"
       },
       {
+        "help": "",
+        "hidden": false,
+        "id": "number2476487423",
+        "max": null,
+        "min": null,
+        "name": "legacyId",
+        "onlyInt": false,
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "number"
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "",
+        "hidden": false,
+        "id": "text3357413904",
+        "max": 0,
+        "min": 0,
+        "name": "kategori",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": true,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "",
+        "hidden": false,
+        "id": "text554154715",
+        "max": 0,
+        "min": 0,
+        "name": "kategoriRenk",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "help": "",
+        "hidden": false,
+        "id": "date3922306254",
+        "max": "",
+        "min": "",
+        "name": "tarih",
+        "presentable": false,
+        "required": true,
+        "system": false,
+        "type": "date"
+      },
+      {
         "autogeneratePattern": "",
         "help": "",
         "hidden": false,
@@ -35,6 +86,36 @@ migrate((app) => {
         "presentable": false,
         "primaryKey": false,
         "required": true,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "",
+        "hidden": false,
+        "id": "text1418067720",
+        "max": 0,
+        "min": 0,
+        "name": "ozet",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": false,
+        "system": false,
+        "type": "text"
+      },
+      {
+        "autogeneratePattern": "",
+        "help": "",
+        "hidden": false,
+        "id": "text917281265",
+        "max": 0,
+        "min": 0,
+        "name": "link",
+        "pattern": "",
+        "presentable": false,
+        "primaryKey": false,
+        "required": false,
         "system": false,
         "type": "text"
       },
@@ -57,10 +138,10 @@ migrate((app) => {
         "autogeneratePattern": "",
         "help": "",
         "hidden": false,
-        "id": "text3295727154",
+        "id": "text1258567589",
         "max": 0,
         "min": 0,
-        "name": "meta_title",
+        "name": "seoTitle",
         "pattern": "",
         "presentable": false,
         "primaryKey": false,
@@ -72,48 +153,10 @@ migrate((app) => {
         "autogeneratePattern": "",
         "help": "",
         "hidden": false,
-        "id": "text3307435217",
+        "id": "text2387610480",
         "max": 0,
         "min": 0,
-        "name": "meta_description",
-        "pattern": "",
-        "presentable": false,
-        "primaryKey": false,
-        "required": false,
-        "system": false,
-        "type": "text"
-      },
-      {
-        "convertURLs": false,
-        "help": "",
-        "hidden": false,
-        "id": "editor2100067688",
-        "maxSize": 0,
-        "name": "icerik_html",
-        "presentable": false,
-        "required": false,
-        "system": false,
-        "type": "editor"
-      },
-      {
-        "help": "",
-        "hidden": false,
-        "id": "json240296136",
-        "maxSize": 0,
-        "name": "icerik_json",
-        "presentable": false,
-        "required": false,
-        "system": false,
-        "type": "json"
-      },
-      {
-        "autogeneratePattern": "",
-        "help": "",
-        "hidden": false,
-        "id": "text2521790464",
-        "max": 0,
-        "min": 0,
-        "name": "anahtar_kelime_id",
+        "name": "seoDescription",
         "pattern": "",
         "presentable": false,
         "primaryKey": false,
@@ -124,115 +167,18 @@ migrate((app) => {
       {
         "help": "",
         "hidden": false,
-        "id": "json1762944860",
-        "maxSize": 0,
-        "name": "ic_linkler",
+        "id": "bool3443592685",
+        "name": "aktif",
         "presentable": false,
         "required": false,
         "system": false,
-        "type": "json"
-      },
-      {
-        "autogeneratePattern": "",
-        "help": "",
-        "hidden": false,
-        "id": "text2628553679",
-        "max": 0,
-        "min": 0,
-        "name": "sema_tipi",
-        "pattern": "",
-        "presentable": false,
-        "primaryKey": false,
-        "required": false,
-        "system": false,
-        "type": "text"
-      },
-      {
-        "help": "",
-        "hidden": false,
-        "id": "date3241377466",
-        "max": "",
-        "min": "",
-        "name": "yayinlanma_tarihi",
-        "presentable": false,
-        "required": false,
-        "system": false,
-        "type": "date"
-      },
-      {
-        "autogeneratePattern": "",
-        "help": "",
-        "hidden": false,
-        "id": "text3226425942",
-        "max": 0,
-        "min": 0,
-        "name": "durum",
-        "pattern": "",
-        "presentable": false,
-        "primaryKey": false,
-        "required": true,
-        "system": false,
-        "type": "text"
-      },
-      {
-        "help": "",
-        "hidden": false,
-        "id": "number3988984249",
-        "max": null,
-        "min": null,
-        "name": "gsc_tiklama",
-        "onlyInt": false,
-        "presentable": false,
-        "required": false,
-        "system": false,
-        "type": "number"
-      },
-      {
-        "help": "",
-        "hidden": false,
-        "id": "number761371652",
-        "max": null,
-        "min": null,
-        "name": "gsc_gosterim",
-        "onlyInt": false,
-        "presentable": false,
-        "required": false,
-        "system": false,
-        "type": "number"
-      },
-      {
-        "help": "",
-        "hidden": false,
-        "id": "number368530847",
-        "max": null,
-        "min": null,
-        "name": "gsc_konum",
-        "onlyInt": false,
-        "presentable": false,
-        "required": false,
-        "system": false,
-        "type": "number"
-      },
-      {
-        "autogeneratePattern": "",
-        "help": "",
-        "hidden": false,
-        "id": "text2237393869",
-        "max": 0,
-        "min": 0,
-        "name": "kaynak",
-        "pattern": "",
-        "presentable": false,
-        "primaryKey": false,
-        "required": false,
-        "system": false,
-        "type": "text"
+        "type": "bool"
       }
     ],
-    "id": "pbc_1085383557",
+    "id": "pbc_959969506",
     "indexes": [],
     "listRule": "",
-    "name": "rehber_yazilari",
+    "name": "haberler",
     "system": false,
     "type": "base",
     "updateRule": "",
@@ -240,4 +186,8 @@ migrate((app) => {
   });
 
   return app.save(collection);
+}, (app) => {
+  const collection = app.findCollectionByNameOrId("pbc_959969506");
+
+  return app.delete(collection);
 })

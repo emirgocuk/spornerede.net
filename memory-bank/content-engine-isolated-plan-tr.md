@@ -23,7 +23,7 @@ spornerede.net/
 | `rehber_yazilari` | content-engine (manuel) | `/rehber/[slug]` (Faz 20 — **otomasyon ertelendi**) |
 | `haberler` | admin + content-engine (günlük otopilot) | `/haberler` — **günde 1 otomatik + haftalık CTR rewrite** |
 
-Haber akışı: günlük otomatik üretim + GSC tabanlı seçici rewrite (haftada max 2). **CE-5–CE-8** bu kanalı genişletir. Rehber otomasyonu **ertelendi**; onaylanan rehber ileride manuel aktarılabilir (opsiyonel).
+Haber akışı: günlük otomatik üretim + GSC tabanlı seçici rewrite (haftada max 2). **CE-5–CE-8 ✅ (2026-05-31).** Operasyon düzeltmeleri **2026-06-14** (scheduler pick, `sehir_brans` policy, 504 timeout). Rehber otomasyonu **ertelendi**.
 
 ## Sizin hazırlık sırası
 
@@ -106,7 +106,7 @@ npm run content-engine:check
 
 ---
 
-## Faz CE-5 → CE-8 — Haber otopilotu genişletmesi (Soro benzeri, 0 TL öncelik)
+## Faz CE-5 → CE-8 — Haber otopilotu genişletmesi ✅ (2026-05-31)
 
 > **Karar (2026-05-31):** Tek otomatik kanal **`haberler`**. Rehber (`rehber_yazilari`, `/rehber/`, `draft-runner`) ve görsel/video otomasyonu **bu plandan çıkarıldı** — ileride ayrı epik. Ana site Faz 20 rehber sayfaları content-engine ile karıştırılmaz.
 
@@ -178,7 +178,7 @@ Takvim ayrı ürün değil; **`seo_keywords` kuyruğunun planlanmış sırası**
 | CE-5b | Opsiyonel `planlanan_tarih` — o gün sabit konu | `seo_keywords` alan |
 | CE-5c | Sezon skor boost (Mayıs yaz, Ağustos okula dönüş) | `keyword-engine` iş kuralı |
 
-**Seçim kuralı:** `planlanan_tarih = bugün` varsa o kayıt; yoksa en yüksek `skor`, `durum=kuyrukta`.
+**Seçim kuralı (spec):** `planlanan_tarih = bugün` varsa o kayıt; yoksa `pickNewsKeyword` (skor DESC, `sehir_brans` hariç, yayın dedup). Güncel uygulama: yukarıdaki **Operasyon düzeltmeleri (2026-06-14)**.
 
 ### Faz CE-6 — Auto linking (gövde derinliği)
 
@@ -218,8 +218,23 @@ Linkler **LLM’den değil, PB + `parseKonu` kurallarından**.
 ### Uygulama sırası ve efor
 
 ```
-Temel (Ö1–Ö4) ✅ → CE-5 → CE-6 → CE-7 → CE-8
+Temel (Ö1–Ö4) ✅ → CE-5 → CE-6 → CE-7 → CE-8 ✅
 ```
+
+### Operasyon düzeltmeleri (2026-06-14) — ✅ uygulandı
+
+| Sorun | Çözüm |
+|-------|--------|
+| Scheduler yalnızca en yüksek skorlu kelimeyi seçiyordu; yayın dedup yoktu | Astro `runScheduledNewsDraft` → `runNewsDraftAutoPick()` (content-engine `pickNewsKeyword`) |
+| `sehir_brans` kategorisi haber kuyruğunu domine ediyordu | `news-keyword-policy.ts` — otomatik haberden hariç; `keyword-engine.ts` skor cezası |
+| Duplicate konu → günlük üretim düşüyordu | `news-draft-runner.ts` — 5 deneme; yayınlanan keyword → `yazildi` |
+| Admin “SEO haber yaz” 504 (LLM 1–3 dk) | Nginx `/api/admin/content-engine/` → 360s read timeout |
+| Manuel taslak sonrası kuyruk ilerlemiyordu | `markKeywordWritten()` / `markKeywordUsedByAnahtar()` |
+| Takvim “tahmini” satırları DB tarihi sanılıyordu | Admin UI açıklaması: önizleme ≠ `planlanan_tarih` |
+
+**Canlı schedule:** `enabled: true`, `runHour: 10`, `runMinute: 0` (TR).
+
+**Seçim kuralı (güncel):** `planlanan_tarih = bugün` varsa o kayıt; yoksa `pickNewsKeyword` (skor DESC, `sehir_brans` hariç, yayın dedup).
 
 | Faz | Tahmini efor | Maliyet |
 |-----|--------------|---------|
