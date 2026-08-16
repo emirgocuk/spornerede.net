@@ -139,20 +139,26 @@ export async function buildSiteContext(pb: PocketBase, anahtar: string): Promise
 export function buildInternalLinks(anahtar: string): string {
   const links = [
     `<a href="${cfg.siteUrl}/ara">Kurs ara</a>`,
-    `<a href="${cfg.siteUrl}/basvuru">Kulup basvurusu</a>`,
+    `<a href="${cfg.siteUrl}/basvuru">Kulüp başvurusu</a>`,
     `<a href="${cfg.siteUrl}/haberler">Haberler</a>`,
   ];
   const lower = anahtar.toLowerCase();
-  if (lower.includes('voleybol')) links.push(`<a href="${cfg.siteUrl}/branslar/voleybol">Voleybol branslari</a>`);
-  if (lower.includes('basketbol')) links.push(`<a href="${cfg.siteUrl}/branslar/basketbol">Basketbol branslari</a>`);
+  if (lower.includes('voleybol')) links.push(`<a href="${cfg.siteUrl}/branslar/voleybol">Voleybol branşları</a>`);
+  if (lower.includes('basketbol')) links.push(`<a href="${cfg.siteUrl}/branslar/basketbol">Basketbol branşları</a>`);
   if (lower.includes('yuzme') || lower.includes('yüzme')) {
-    links.push(`<a href="${cfg.siteUrl}/branslar/yuzme">Yuzme branslari</a>`);
+    links.push(`<a href="${cfg.siteUrl}/branslar/yuzme">Yüzme branşları</a>`);
   }
-  if (lower.includes('istanbul')) {
-    links.push(`<a href="${cfg.siteUrl}/ara?il=istanbul">Istanbul kurslari</a>`);
+  if (lower.includes('oryantiring')) {
+    links.push(`<a href="${cfg.siteUrl}/branslar/oryantiring">Oryantiring branşları</a>`);
+  }
+  if (lower.includes('satranc') || lower.includes('satranç')) {
+    links.push(`<a href="${cfg.siteUrl}/branslar/satranc">Satranç branşları</a>`);
+  }
+  if (lower.includes('istanbul') || lower.includes('İstanbul')) {
+    links.push(`<a href="${cfg.siteUrl}/ara?il=istanbul">İstanbul kursları</a>`);
   }
   if (lower.includes('ankara')) {
-    links.push(`<a href="${cfg.siteUrl}/ara?il=ankara">Ankara kurslari</a>`);
+    links.push(`<a href="${cfg.siteUrl}/ara?il=ankara">Ankara kursları</a>`);
   }
   return links.join('\n');
 }

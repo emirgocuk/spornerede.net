@@ -12,18 +12,18 @@ const branchCards = branches.map((branch) => {
 ---
 
 <BaseLayout
-  title="Tum Spor Branslari"
-  description="Turkiye genelinde arayabileceginiz tum spor branslari. Bransa gore kulup ve kurslari kesfedin."
-  keywords="turkiye spor branslari, cocuk spor branslari, futbol basketbol yuzme kurslari"
+  title="Tüm Spor Branşları"
+  description="Türkiye genelinde arayabileceğiniz tüm spor branşları. Branşa göre kulüp ve kursları keşfedin."
+  keywords="türkiye spor branşları, çocuk spor branşları, futbol basketbol yüzme kursları"
 >
   <section class="section">
     <div class="container">
       <div class="head">
-        <h1 class="title">Tum Spor Branslari</h1>
-        <p class="desc">Bransa gore tum kulup ve kurs listelerine hizlica ulasabilirsiniz.</p>
+        <h1 class="title">Tüm Spor Branşları</h1>
+        <p class="desc">Branşa göre tüm kulüp ve kurs listelerine hızlıca ulaşabilirsiniz.</p>
       </div>
 
-      <div class="grid" role="list" aria-label="Brans listesi">
+      <div class="grid" role="list" aria-label="Branş listesi">
         {branchCards.map((branch) => (
           <a href={`/branslar/${branch.slug}`} class="card" role="listitem">
             <div class="icon" style={`--branch-color: ${branch.renk}`}>{branch.emoji}</div>
@@ -31,7 +31,7 @@ const branchCards = branches.map((branch) => {
               <h2>{branch.isim}</h2>
               <p>{branch.aciklama}</p>
             </div>
-            <span class="count">{branch.kulupSayisi} kulup</span>
+            <span class="count">{branch.kulupSayisi} kulüp</span>
           </a>
         ))}
       </div>

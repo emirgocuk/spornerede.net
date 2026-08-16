@@ -60,8 +60,9 @@ async function seed() {
         emoji: visual.emoji,
         renk: visual.renk,
       });
-    } else if (existing.emoji !== visual.emoji || existing.renk !== visual.renk) {
+    } else if (existing.ad !== b.isim || existing.emoji !== visual.emoji || existing.renk !== visual.renk) {
       await db.collection('branslar').update(existing.id, {
+        ad: b.isim,
         emoji: visual.emoji,
         renk: visual.renk,
       });

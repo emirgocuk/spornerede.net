@@ -11,30 +11,30 @@ const kulupListesi = await searchClubs({ brans: branch.slug });
 ---
 
 <BaseLayout
-  title={`Turkiye ${branch.isim} Kurslari ve Kulupleri`}
-  description={`Turkiye genelinde ${branch.isim.toLowerCase()} kurslarini ve spor kuluplerini listeleyin, fiyat ve ilceye gore inceleyin.`}
-  keywords={`turkiye ${branch.slug} kursu, ${branch.slug} spor kulubu`}
+  title={`Türkiye ${branch.isim} Kursları ve Kulüpleri`}
+  description={`Türkiye genelinde ${branch.isim.toLowerCase()} kurslarını ve spor kulüplerini listeleyin, fiyat ve ilçeye göre inceleyin.`}
+  keywords={`türkiye ${branch.slug} kursu, ${branch.slug} spor kulübü`}
 >
   <section class="section page">
     <div class="container">
       <div class="head">
-        <a href="/branslar" class="back">← Tum Branslar</a>
+        <a href="/branslar" class="back">← Tüm Branşlar</a>
         <h1>{branch.emoji} {branch.isim}</h1>
-        <p>{kulupListesi.length} kulup bulundu.</p>
+        <p>{kulupListesi.length} kulüp bulundu.</p>
       </div>
 
       {kulupListesi.length > 0 ? (
-        <div class="grid" role="list" aria-label={`${branch.isim} kulup listesi`}>
+        <div class="grid" role="list" aria-label={`${branch.isim} kulüp listesi`}>
           {kulupListesi.map((kulup) => (
             <article class="card" role="listitem">
               <div class="card-head">
                 <h2>{kulup.ad}</h2>
-                {kulup.oneCikan && <span class="badge">One Cikan</span>}
+                {kulup.oneCikan && <span class="badge">Öne Çıkan</span>}
               </div>
-              <p class="meta">{kulup.ilce} • {kulup.yasAraligi} yas • {kulup.fiyat}</p>
+              <p class="meta">{kulup.ilce} • {kulup.yasAraligi} yaş • {kulup.fiyat}</p>
               <p class="desc">{kulup.aciklama}</p>
               <div class="actions">
-                <a class="btn btn-primary btn-sm" href={`tel:${kulup.telefon.replace(/\s/g, '')}`}>Iletisim</a>
+                <a class="btn btn-primary btn-sm" href={`tel:${kulup.telefon.replace(/\s/g, '')}`}>İletişim</a>
                 {kulup.ilkProgramId ? (
                   <a class="btn btn-outline btn-sm" href={`/ilanlar/${kulup.ilkProgramId}`}>İlan Detayı</a>
                 ) : (
@@ -46,8 +46,8 @@ const kulupListesi = await searchClubs({ brans: branch.slug });
         </div>
       ) : (
         <div class="empty">
-          <p>Bu brans icin henuz kulup eklenmedi.</p>
-          <a href="/basvuru" class="btn btn-primary btn-sm">Kulubunu Ekle</a>
+          <p>Bu branş için henüz kulüp eklenmedi.</p>
+          <a href="/basvuru" class="btn btn-primary btn-sm">Kulübünü Ekle</a>
         </div>
       )}
     </div>

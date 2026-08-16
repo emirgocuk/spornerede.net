@@ -1,7 +1,8 @@
 const SEHIRLER = ['istanbul', 'ankara', 'izmir', 'bursa', 'antalya', 'adana', 'konya'];
 const BRANSLAR = [
-  'voleybol', 'basketbol', 'yuzme', 'tenis', 'futbol', 'jimnastik', 'atletizm',
+  'voleybol', 'basketbol', 'yuzme', 'yüzme', 'tenis', 'futbol', 'jimnastik', 'cimnastik', 'atletizm',
   'boks', 'judo', 'karate', 'hentbol', 'badminton', 'pilates', 'yoga', 'bisiklet',
+  'oryantiring', 'satranc', 'satranç', 'gures', 'güreş', 'okculuk', 'okçuluk',
 ];
 
 const SEHIR_LABEL: Record<string, string> = {
@@ -18,9 +19,11 @@ const BRANS_LABEL: Record<string, string> = {
   voleybol: 'Voleybol',
   basketbol: 'Basketbol',
   yuzme: 'Yüzme',
+  yüzme: 'Yüzme',
   tenis: 'Tenis',
   futbol: 'Futbol',
-  jimnastik: 'Jimnastik',
+  jimnastik: 'Cimnastik',
+  cimnastik: 'Cimnastik',
   atletizm: 'Atletizm',
   boks: 'Boks',
   judo: 'Judo',
@@ -30,6 +33,13 @@ const BRANS_LABEL: Record<string, string> = {
   pilates: 'Pilates',
   yoga: 'Yoga',
   bisiklet: 'Bisiklet',
+  oryantiring: 'Oryantiring',
+  satranc: 'Satranç',
+  satranç: 'Satranç',
+  gures: 'Güreş',
+  güreş: 'Güreş',
+  okculuk: 'Okçuluk',
+  okçuluk: 'Okçuluk',
 };
 
 export type ParsedKonu = {

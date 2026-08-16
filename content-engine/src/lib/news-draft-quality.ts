@@ -15,8 +15,9 @@ const CLUB_LINKS_BLOCK_RE =
 export const MIN_NEWS_H2 = 3;
 
 const BRANSLAR = [
-  'voleybol', 'basketbol', 'yuzme', 'tenis', 'futbol', 'jimnastik', 'atletizm',
-  'boks', 'judo', 'karate', 'hentbol', 'badminton', 'pilates', 'yoga', 'bisiklet',
+  'voleybol', 'basketbol', 'yuzme', 'yüzme', 'tenis', 'futbol', 'jimnastik', 'cimnastik', 'atletizm',
+  'boks', 'judo', 'karate', 'hentbol', 'badminton', 'pilates', 'yoga', 'bisiklet', 'oryantiring',
+  'satranc', 'satranç', 'gures', 'güreş', 'okculuk', 'okçuluk', 'kurek', 'kürek',
 ];
 
 const INCOMPLETE_TAIL = /\b(ve|ile|icin|için|olan|olarak|kayit|kayıt|den|da|de|bir|the)\s*$/i;

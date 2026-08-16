@@ -24,6 +24,12 @@ const BRANS_MAP: Record<string, { slug: string; name: string }> = {
   bale: { slug: 'bale', name: 'Bale' },
   dans: { slug: 'dans', name: 'Dans' },
   okculuk: { slug: 'okculuk', name: 'Okçuluk' },
+  satranc: { slug: 'satranc', name: 'Satranç' },
+  oryantiring: { slug: 'oryantiring', name: 'Oryantiring' },
+  gures: { slug: 'gures', name: 'Güreş' },
+  kurek: { slug: 'kurek', name: 'Kürek' },
+  dalis: { slug: 'dalis', name: 'Dalış' },
+  masa_tenisi: { slug: 'masa-tenisi', name: 'Masa Tenisi' },
 };
 
 function normalize(text: string) {

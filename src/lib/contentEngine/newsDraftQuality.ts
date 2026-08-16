@@ -12,8 +12,9 @@ const CLUB_LINKS_BLOCK_RE =
 export const MIN_NEWS_H2 = 3;
 
 const BRANSLAR = [
-  'voleybol', 'basketbol', 'yuzme', 'tenis', 'futbol', 'jimnastik', 'atletizm',
-  'boks', 'judo', 'karate', 'hentbol', 'badminton', 'pilates', 'yoga', 'bisiklet',
+  'voleybol', 'basketbol', 'yuzme', 'yüzme', 'tenis', 'futbol', 'jimnastik', 'cimnastik', 'atletizm',
+  'boks', 'judo', 'karate', 'hentbol', 'badminton', 'pilates', 'yoga', 'bisiklet', 'oryantiring',
+  'satranc', 'satranç', 'gures', 'güreş', 'okculuk', 'okçuluk', 'kurek', 'kürek',
 ];
 
 const INCOMPLETE_TAIL = /\b(ve|ile|icin|için|olan|olarak|kayit|kayıt|den|da|de|bir|the)\s*$/i;
@@ -174,16 +175,18 @@ export function buildNewsInternalLinksHtml(konu: string, siteUrl: string): strin
     `<a href="${base}/haberler">Haberler</a>`,
   ];
   const lower = konu.toLowerCase();
-  if (lower.includes('voleybol')) links.push(`<a href="${base}/branslar/voleybol">Voleybol branslari</a>`);
-  if (lower.includes('basketbol')) links.push(`<a href="${base}/branslar/basketbol">Basketbol branslari</a>`);
+  if (lower.includes('voleybol')) links.push(`<a href="${base}/branslar/voleybol">Voleybol branşları</a>`);
+  if (lower.includes('basketbol')) links.push(`<a href="${base}/branslar/basketbol">Basketbol branşları</a>`);
   if (lower.includes('yuzme') || lower.includes('yüzme')) {
-    links.push(`<a href="${base}/branslar/yuzme">Yuzme branslari</a>`);
+    links.push(`<a href="${base}/branslar/yuzme">Yüzme branşları</a>`);
   }
-  if (lower.includes('futbol')) links.push(`<a href="${base}/branslar/futbol">Futbol branslari</a>`);
-  if (lower.includes('istanbul')) links.push(`<a href="${base}/ara?il=istanbul">Istanbul kurslari</a>`);
-  if (lower.includes('ankara')) links.push(`<a href="${base}/ara?il=ankara">Ankara kurslari</a>`);
-  if (lower.includes('izmir')) links.push(`<a href="${base}/ara?il=izmir">Izmir kurslari</a>`);
-  return `<p><strong>Ilgili sayfalar:</strong> ${links.join(' · ')}.</p>`;
+  if (lower.includes('futbol')) links.push(`<a href="${base}/branslar/futbol">Futbol branşları</a>`);
+  if (lower.includes('oryantiring')) links.push(`<a href="${base}/branslar/oryantiring">Oryantiring branşları</a>`);
+  if (lower.includes('satranc') || lower.includes('satranç')) links.push(`<a href="${base}/branslar/satranc">Satranç branşları</a>`);
+  if (lower.includes('istanbul') || lower.includes('İstanbul')) links.push(`<a href="${base}/ara?il=istanbul">İstanbul kursları</a>`);
+  if (lower.includes('ankara')) links.push(`<a href="${base}/ara?il=ankara">Ankara kursları</a>`);
+  if (lower.includes('izmir') || lower.includes('İzmir')) links.push(`<a href="${base}/ara?il=izmir">İzmir kursları</a>`);
+  return `<p><strong>İlgili sayfalar:</strong> ${links.join(' · ')}.</p>`;
 }
 
 export function ensureMinNewsWords(bodyHtml: string, konu: string, min = MIN_NEWS_WORDS_TEMPLATE): string {

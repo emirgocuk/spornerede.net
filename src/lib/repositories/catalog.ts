@@ -175,7 +175,7 @@ export async function getAllBranches() {
   requireDatabase();
   const db = await getDb();
   const rows = await db.collection('branslar').getFullList({ sort: 'ad' });
-  return rows.map((row) =>
+  const list = rows.map((row) =>
     enrichBranchFields({
       slug: row.slug as string,
       isim: row.ad as string,
@@ -184,6 +184,7 @@ export async function getAllBranches() {
       aciklama: row.aciklama as string,
     }),
   );
+  return list.sort((a, b) => a.isim.localeCompare(b.isim, 'tr'));
 }
 
 export async function searchClubs(filters: SearchFilters) {

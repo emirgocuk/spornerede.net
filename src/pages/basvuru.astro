@@ -7,6 +7,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import BasvuruFormSections from '../components/BasvuruFormSections.astro';
 import { getAllCities, getAllDistrictsWithCities, getAllBranches } from '../lib/repositories/catalog';
+import { BRANCHES } from '../data/mockData';
 
 const success = Astro.url.searchParams.get('success') === '1';
 const errorCode = Astro.url.searchParams.get('error') ?? '';
@@ -33,8 +34,18 @@ for (const il of Object.keys(DISTRICTS_BY_CITY)) {
   DISTRICTS_BY_CITY[il].sort((a, b) => a.ad.localeCompare(b.ad, 'tr'));
 }
 
+const rawBranchNames = [
+  ...branchRows.map((b) => b.isim),
+  ...BRANCHES.map((b) => b.isim),
+  'Oryantiring',
+  'Satranç',
+];
+const uniqueBranches = Array.from(new Set(rawBranchNames))
+  .filter((name) => Boolean(name) && name !== 'Diğer')
+  .sort((a, b) => a.localeCompare(b, 'tr'));
+
 const bransListesi = [
-  ...branchRows.map((b) => b.isim).sort((a, b) => a.localeCompare(b, 'tr')),
+  ...uniqueBranches,
   'Diğer',
 ];
 

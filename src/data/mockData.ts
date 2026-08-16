@@ -37,18 +37,24 @@ export type Branch = {
 };
 
 export const BRANCHES: Branch[] = [
-  { slug: 'futbol', isim: 'Futbol', emoji: '⚽', renk: '#22C55E', aciklama: 'Takim ruhu, strateji, hiz' },
-  { slug: 'basketbol', isim: 'Basketbol', emoji: '🏀', renk: '#F97316', aciklama: 'Sicrama, ceviklik, koordinasyon' },
-  { slug: 'yuzme', isim: 'Yuzme', emoji: '🏊', renk: '#3B82F6', aciklama: '4 teknik, tam vucut antrenmani' },
-  { slug: 'tenis', isim: 'Tenis', emoji: '🎾', renk: '#EAB308', aciklama: 'Refleksler, strateji, dayaniklilik' },
-  { slug: 'karate', isim: 'Karate', emoji: '🥋', renk: '#EF4444', aciklama: 'Disiplin, guc, oz savunma' },
-  { slug: 'jimnastik', isim: 'Jimnastik', emoji: '🤸', renk: '#EC4899', aciklama: 'Esneklik, guc, denge' },
-  { slug: 'voleybol', isim: 'Voleybol', emoji: '🏐', renk: '#8B5CF6', aciklama: 'Takim calismasi, refleks' },
-  { slug: 'taekwondo', isim: 'Taekwondo', emoji: '🥋', renk: '#DC2626', aciklama: 'Kore dovus sanati, esneklik' },
-  { slug: 'atletizm', isim: 'Atletizm', emoji: '🏃', renk: '#14B8A6', aciklama: 'Kosu, atlama, atma' },
-  { slug: 'judo', isim: 'Judo', emoji: '🥋', renk: '#DC2626', aciklama: 'Dusurme teknikleri, denge' },
-  { slug: 'badminton', isim: 'Badminton', emoji: '🏸', renk: '#10B981', aciklama: 'Hiz, refleks, koordinasyon' },
-  { slug: 'masa-tenisi', isim: 'Masa Tenisi', emoji: '🏓', renk: '#F59E0B', aciklama: 'El-goz koordinasyonu, taktik' },
+  { slug: 'futbol', isim: 'Futbol', emoji: '⚽', renk: '#22C55E', aciklama: 'Takım ruhu, strateji, hız' },
+  { slug: 'basketbol', isim: 'Basketbol', emoji: '🏀', renk: '#F97316', aciklama: 'Sıçrama, çeviklik, koordinasyon' },
+  { slug: 'yuzme', isim: 'Yüzme', emoji: '🏊', renk: '#3B82F6', aciklama: '4 teknik, tam vücut antrenmanı' },
+  { slug: 'tenis', isim: 'Tenis', emoji: '🎾', renk: '#EAB308', aciklama: 'Refleksler, strateji, dayanıklılık' },
+  { slug: 'karate', isim: 'Karate', emoji: '🥋', renk: '#EF4444', aciklama: 'Disiplin, güç, öz savunma' },
+  { slug: 'jimnastik', isim: 'Cimnastik', emoji: '🤸', renk: '#EC4899', aciklama: 'Esneklik, güç, denge' },
+  { slug: 'voleybol', isim: 'Voleybol', emoji: '🏐', renk: '#8B5CF6', aciklama: 'Takım çalışması, refleks' },
+  { slug: 'taekwondo', isim: 'Taekwondo', emoji: '🥋', renk: '#DC2626', aciklama: 'Kore dövüş sanatı, esneklik' },
+  { slug: 'atletizm', isim: 'Atletizm', emoji: '🏃', renk: '#14B8A6', aciklama: 'Koşu, atlama, atma' },
+  { slug: 'judo', isim: 'Judo', emoji: '🥋', renk: '#DC2626', aciklama: 'Düşürme teknikleri, denge' },
+  { slug: 'badminton', isim: 'Badminton', emoji: '🏸', renk: '#10B981', aciklama: 'Hız, refleks, koordinasyon' },
+  { slug: 'masa-tenisi', isim: 'Masa Tenisi', emoji: '🏓', renk: '#F59E0B', aciklama: 'El-göz koordinasyonu, taktik' },
+  { slug: 'satranc', isim: 'Satranç', emoji: '♟️', renk: '#57534E', aciklama: 'Zihinsel strateji ve taktik' },
+  { slug: 'oryantiring', isim: 'Oryantiring', emoji: '🧭', renk: '#059669', aciklama: 'Harita ve pusula ile hedef bulma' },
+  { slug: 'gures', isim: 'Güreş', emoji: '🤼', renk: '#B45309', aciklama: 'Güç, denge ve teknik mücadele' },
+  { slug: 'okculuk', isim: 'Okçuluk', emoji: '🏹', renk: '#65A30D', aciklama: 'Odaklanma, duruş ve isabet' },
+  { slug: 'boks', isim: 'Boks', emoji: '🥊', renk: '#EF4444', aciklama: 'Çeviklik, güç ve savunma sanatı' },
+  { slug: 'kurek', isim: 'Kürek', emoji: '🚣', renk: '#0284C7', aciklama: 'Su sporları, dayanıklılık ve takım ruhu' },
 ];
 
 export const CLUBS: Club[] = [
