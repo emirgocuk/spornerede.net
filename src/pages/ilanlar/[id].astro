@@ -87,6 +87,7 @@ function formatDateTr(value: string) {
 }
 
 function dateRangeText() {
+  if (!listing) return '';
   if (listing.isOngoing) return 'Sürekli devam ediyor';
   const start = formatDateTr(listing.eventDate);
   const end = formatDateTr(listing.endDate);
@@ -95,6 +96,7 @@ function dateRangeText() {
 }
 
 function scheduleText() {
+  if (!listing) return '';
   const days = Array.isArray(listing.days) && listing.days.length ? listing.days.join(', ') : '';
   const time = listing.startTime && listing.endTime ? `${listing.startTime} - ${listing.endTime}` : listing.gunSaat;
   return [days, time].filter(Boolean).join(' · ');

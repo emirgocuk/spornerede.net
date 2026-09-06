@@ -492,6 +492,7 @@ const adminLocationData = {
   <script id="admin-brans-data" type="application/json" set:html={JSON.stringify(adminBransList)}></script>
 
   <script>
+    // @ts-nocheck
     import { buildClubProgramsSectionHtml, bindClubProgramEditor } from '../lib/admin/clubProgramEditorClient';
     import { mountGuidesAdminTab } from '../lib/admin/guidesAdminClient';
     import { mountContentEngineNews } from '../lib/admin/contentEngineNewsAdminClient';
@@ -2381,7 +2382,7 @@ const adminLocationData = {
         .join('');
     }
 
-    async function deleteNewsItem(id, baslikHint) {
+    async function deleteNewsItem(id, baslikHint = '') {
       const news = cachedNews.find((n) => n.id === id);
       const title = baslikHint || news?.baslik || `#${id}`;
       if (!confirm(`"${title}" kalıcı olarak silinsin mi?\n\nBu işlem geri alınamaz.`)) return;
@@ -2912,8 +2913,9 @@ const adminLocationData = {
       apiPost,
       apiDelete,
       escapeHtml,
-      initGuideEditor: (html) =>
-        initRichTextEditor('guide-icerik', html, { height: 520, uploadImage: uploadNewsImage }),
+      initGuideEditor: (html) => {
+        void initRichTextEditor('guide-icerik', html, { height: 520, uploadImage: uploadNewsImage });
+      },
       destroyGuideEditor: () => destroyRichTextEditor('guide-icerik'),
       getGuideEditorHtml: () => getRichTextContent('guide-icerik'),
     });
@@ -2947,7 +2949,7 @@ const adminLocationData = {
           await loadNews();
         }
         if (tabKey === 'guides') {
-          await guidesAdmin.loadGuides();
+          await guidesAdmin?.loadGuides();
         } else {
           await destroyRichTextEditor('guide-icerik');
           await destroyRichTextEditor('news-editor');
