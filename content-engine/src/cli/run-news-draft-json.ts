@@ -38,7 +38,8 @@ async function run() {
       return;
     }
     if (e instanceof ClientResponseError) {
-      emitError(`${e.message} (${cfg.pocketbaseUrl})`);
+      const detail = e.response?.data ? JSON.stringify(e.response.data) : '';
+      emitError(`${e.message} ${detail} (${cfg.pocketbaseUrl})`);
     }
     emitError(e instanceof Error ? e.message : String(e));
   }

@@ -51,13 +51,23 @@ export function spawnContentEngineCli(
   extraArgs: string[] = [],
   options?: { cwd?: string; env?: NodeJS.ProcessEnv },
 ): ChildProcessWithoutNullStreams {
-  const cwd = options?.cwd ?? getContentEngineRoot();
+  let cwd = options?.cwd ?? getContentEngineRoot();
+  if (!existsSync(cwd)) {
+    // Fallback to repo content-engine if release content-engine is missing
+    if (existsSync('/opt/spornerede/repo/content-engine')) {
+      cwd = '/opt/spornerede/repo/content-engine';
+    } else {
+      throw new ContentEngineSpawnError(
+        `content-engine dizini bulunamadi (${cwd}). Sunucuda: cd /opt/spornerede/repo/content-engine && npm ci`,
+      );
+    }
+  }
   const env = { ...loadContentEngineEnv(cwd), ...options?.env };
   const tsxCli = resolveContentEngineTsx(cwd);
 
   if (!tsxCli) {
     throw new ContentEngineSpawnError(
-      `content-engine tsx bulunamadi (${cwd}). Sunucuda: cd content-engine && npm ci --include=dev`,
+      `content-engine tsx bulunamadi (${cwd}). Sunucuda: cd ${cwd} && npm ci --include=dev`,
     );
   }
 

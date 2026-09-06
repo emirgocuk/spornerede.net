@@ -23,14 +23,14 @@ export const cfg = {
   openrouterApiKey: opt('OPENROUTER_API_KEY'),
   openrouterModel: opt(
     'SEO_OPENROUTER_MODEL',
-    'meta-llama/llama-3.3-70b-instruct:free',
+    'minimax/minimax-m3:free',
   ),
   openrouterModelFallback: opt(
     'SEO_OPENROUTER_MODEL_FALLBACK',
-    'nvidia/nemotron-3-ultra-550b-a55b:free',
+    'nvidia/nemotron-3.5-lightning:free',
   ),
   /** Virgulle ayrilmis ek :free modeller */
-  openrouterExtraModels: opt('SEO_OPENROUTER_MODELS', 'nvidia/nemotron-3-super-120b-a12b:free,google/gemma-4-31b-it:free,nvidia/nemotron-3-nano-30b-a3b:free,nvidia/nemotron-nano-9b-v2:free')
+  openrouterExtraModels: opt('SEO_OPENROUTER_MODELS', 'nvidia/nemotron-3-ultra-550b-a55b:free,nvidia/nemotron-3-super-120b-a12b:free')
     .split(',')
     .map((m) => m.trim())
     .filter(Boolean),

@@ -171,7 +171,7 @@ if [[ -d "${APP_REPO_DIR}/content-engine" ]]; then
   else
     log "UYARI: content-engine npm ci basarisiz; admin Content Engine sekmesi calismayabilir."
   fi
-  CE_ENV_SRC="${REMOTE_BASE}/content-engine.env"
+  CE_ENV_SRC="${APP_BASE}/content-engine.env"
   if [[ -f "${CE_ENV_SRC}" ]]; then
     cp "${CE_ENV_SRC}" "${NEW_RELEASE}/content-engine/.env"
     chmod 600 "${NEW_RELEASE}/content-engine/.env"
