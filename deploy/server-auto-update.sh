@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+# v2.1.0 - content-engine bundle & verified models
 
 # git pull bu dosyayi guncelleyebilir; bash repo dosyasindan satir satir okudugu icin
 # inode/offset kaymasi olusur (exec satirina hic gelinmeden eski kod calisabilir).
