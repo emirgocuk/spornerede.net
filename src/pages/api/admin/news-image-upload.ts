@@ -28,7 +28,24 @@ export const POST: APIRoute = async ({ request }) => {
     });
   }
 
-  const imageBase64 = Buffer.from(await image.arrayBuffer()).toString('base64');
+  const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+  if (image.size > MAX_IMAGE_SIZE) {
+    return new Response(JSON.stringify({ error: 'Görsel boyutu en fazla 5 MB olabilir.' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  const bytes = new Uint8Array(await image.arrayBuffer());
+  const { isValidImageSignature } = await import('../../../lib/security/fileValidation');
+  if (!isValidImageSignature(bytes)) {
+    return new Response(JSON.stringify({ error: 'Geçersiz görsel formatı. Sadece JPG, PNG veya WEBP yükleyebilirsiniz.' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  const imageBase64 = Buffer.from(bytes).toString('base64');
   const upstreamBody = new URLSearchParams({ key: apiKey, image: imageBase64 });
 
   const upstream = await fetch('https://api.imgbb.com/1/upload', {

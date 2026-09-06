@@ -30,6 +30,15 @@ export async function buildNewsRealData(pb: PocketBase, anahtar: string): Promis
       if (il) ilLegacyId = Number(il.legacyId);
     }
 
+    let ilceLegacyId: number | null = null;
+    if (parsed.hasIlce) {
+      const ilce = await pb
+        .collection('ilceler')
+        .getFirstListItem(`slug = "${parsed.ilce}"`)
+        .catch(() => null);
+      if (ilce) ilceLegacyId = Number(ilce.legacyId);
+    }
+
     let bransLegacyId: number | null = null;
     if (parsed.hasBrans) {
       const brans = await pb
@@ -53,6 +62,15 @@ export async function buildNewsRealData(pb: PocketBase, anahtar: string): Promis
     }
 
     if (!clubs.length) return '';
+
+    // Ilce eslesmesi varsa o ilcedeki kulupleri basa al
+    if (ilceLegacyId != null) {
+      const districtClubs = clubs.filter((c) => Number(c.ilceLegacyId) === ilceLegacyId);
+      if (districtClubs.length > 0) {
+        const otherClubs = clubs.filter((c) => Number(c.ilceLegacyId) !== ilceLegacyId);
+        clubs = [...districtClubs, ...otherClubs];
+      }
+    }
 
     const ilceler = await pb.collection('ilceler').getFullList().catch(() => []);
     const ilceById = new Map(ilceler.map((d) => [Number(d.legacyId), String(d.ad ?? '')]));

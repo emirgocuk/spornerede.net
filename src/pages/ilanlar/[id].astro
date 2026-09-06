@@ -5,8 +5,6 @@ import { getProgramListingById } from '../../lib/repositories/catalog';
 import { courseSchema, SITE_URL } from '../../lib/seo/jsonld';
 import { extractIdFromSlug, listingSlug, isPureNumericSlug, clubSlug } from '../../lib/seo/slug';
 
-// URL segmenti hem "42" hem "yuzme-kursu-istanbul-42" olabilir.
-// Numerik id'yi her zaman sondan parse ederiz.
 const rawSlug = String(Astro.params.id ?? '').trim();
 const id = extractIdFromSlug(rawSlug);
 const listing = id !== null ? await getProgramListingById(id) : null;
@@ -14,14 +12,12 @@ if (!listing) {
   return new Response(null, { status: 404 });
 }
 
-// Kanonik slug'i uret
 const expectedSlug = listingSlug({
   id: listing.id,
   ad: listing.ad,
   clubAd: listing.club.ad,
 });
 
-// Gelen slug pure-numeric VEYA yanlis ise kanonik URL'ye 301 yonlendir
 if (isPureNumericSlug(rawSlug) || rawSlug !== expectedSlug) {
   return Astro.redirect(`/ilanlar/${expectedSlug}`, 301);
 }
@@ -95,14 +91,53 @@ function dateRangeText() {
   const start = formatDateTr(listing.eventDate);
   const end = formatDateTr(listing.endDate);
   if (start && end) return `${start} - ${end}`;
-  return start || 'Tarih belirtilmedi';
+  return start || '';
 }
 
 function scheduleText() {
   const days = Array.isArray(listing.days) && listing.days.length ? listing.days.join(', ') : '';
   const time = listing.startTime && listing.endTime ? `${listing.startTime} - ${listing.endTime}` : listing.gunSaat;
-  return [days, time].filter(Boolean).join(' / ') || 'Saat belirtilmedi';
+  return [days, time].filter(Boolean).join(' · ');
 }
+
+function cleanPhoneNumber(phone?: string | null) {
+  if (!phone) return null;
+  const digits = phone.replace(/\D/g, '');
+  if (!digits) return null;
+  if (digits.startsWith('0')) return `90${digits.slice(1)}`;
+  if (digits.length === 10) return `90${digits}`;
+  return digits;
+}
+
+function formatPhoneDisplay(phone?: string | null) {
+  if (!phone) return 'Belirtilmedi';
+  const clean = phone.replace(/\D/g, '');
+  if (clean.length === 11 && clean.startsWith('0')) {
+    return `${clean.slice(0, 4)} ${clean.slice(4, 7)} ${clean.slice(7, 9)} ${clean.slice(9)}`;
+  }
+  if (clean.length === 10) {
+    return `0${clean.slice(0, 3)} ${clean.slice(3, 6)} ${clean.slice(6, 8)} ${clean.slice(8)}`;
+  }
+  return phone;
+}
+
+const cleanedPhone = cleanPhoneNumber(listing.club.telefon);
+const formattedPhone = formatPhoneDisplay(listing.club.telefon);
+const whatsappText = encodeURIComponent(
+  `Merhaba, SporNerede.net üzerinden "${listing.club.ad} - ${listing.ad}" programınız hakkında bilgi almak istiyorum.`
+);
+const whatsappUrl = cleanedPhone ? `https://wa.me/${cleanedPhone}?text=${whatsappText}` : null;
+const telUrl = listing.club.telefon ? `tel:${listing.club.telefon.replace(/\s+/g, '')}` : null;
+
+const fullAddress = [listing.club.adres, listing.locationText, listing.club.ilce, listing.club.il]
+  .filter(Boolean)
+  .filter((v, i, a) => a.indexOf(v) === i)
+  .join(', ');
+
+const mapsQuery = encodeURIComponent(
+  listing.mapsUrl || [listing.club.ad, fullAddress].filter(Boolean).join(', ')
+);
+const googleMapsUrl = listing.mapsUrl || `https://www.google.com/maps/search/?api=1&query=${mapsQuery}`;
 
 const bodyHtml = renderRichTextHtml(listing.bodyJson);
 
@@ -143,17 +178,30 @@ const breadcrumbs = [
   { name: `${listing.club.ad} — ${listing.ad}`, url: canonicalUrl },
 ];
 
-// OG image: ilan galerisi varsa ilk goruntu, yoksa dinamik endpoint
 const ogParams = new URLSearchParams({
   title: listing.club.ad,
   kicker: `${listing.ad} · ${listing.club.brans || 'Spor'}`,
   badge: listing.club.ilce || listing.club.il || '',
 });
 const ogImage = `${SITE_URL}/api/og.png?${ogParams.toString()}`;
+
+const schedule = scheduleText();
+const dateRange = dateRangeText();
+
+function formatCourseTitle(ad: string) {
+  const clean = (ad || '').trim();
+  const lower = clean.toLowerCase();
+  if (lower.includes('kurs') || lower.includes('okul') || lower.includes('eğitim') || lower.includes('akademi')) {
+    return clean;
+  }
+  return `${clean} Kursu`;
+}
+
+const courseTitle = formatCourseTitle(listing.ad);
 ---
 
 <BaseLayout
-  title={`${listing.club.ad} — ${listing.ad}`}
+  title={`${listing.club.ad} — ${courseTitle}`}
   description={ilanDescription}
   keywords={`${listing.club.bransSlug} ilanı, ${listing.club.ilce} spor kursu, ${listing.ad.toLowerCase()}`}
   canonical={canonicalUrl}
@@ -162,96 +210,188 @@ const ogImage = `${SITE_URL}/api/og.png?${ogParams.toString()}`;
   breadcrumbs={breadcrumbs}
   jsonLd={listingJsonLd}
 >
-  <div class="page-background"></div>
-  <section class="section listing-page relative z-10">
-    <div class="container listing-wrap" data-club-lat={listing.club.enlem || ''} data-club-lng={listing.club.boylam || ''}>
+  <div class="page-wrap">
+    <div class="page-container">
 
-      <div class="mb-6 animate-fade-in-up">
-        <a href={`/ara?brans=${listing.club.bransSlug || ''}`} class="back-link group">
-          <span class="back-icon group-hover:-translate-x-1 transition-transform">←</span>
-          <span>Arama sonuçlarına dön</span>
+      <!-- Geri Dönüş Linki -->
+      <div class="top-nav">
+        <a href={`/ara?brans=${listing.club.bransSlug || ''}`} class="back-btn">
+          <span>←</span>
+          <span>{listing.club.brans || 'Arama'} sonuçlarına dön</span>
         </a>
       </div>
 
-      <!-- Hero Section -->
-      <header class="listing-hero card-glass animate-fade-in-up delay-100">
+      <!-- Hero Kartı -->
+      <header class="hero-card">
+        <div class="hero-avatar" style={`--branch-color: ${listing.club.renk || '#E30A17'}`}>
+          <span class="hero-emoji">{listing.club.emoji || '🏅'}</span>
+        </div>
+
         <div class="hero-content">
-          <div class="icon-wrapper" style={`--branch-color: ${listing.club.renk || '#E30A17'}`}>
-            <div class="icon-bg"></div>
-            <span class="icon-emoji">{listing.club.emoji}</span>
-          </div>
-          <div class="hero-text">
-            <p class="kicker">
-              <span class="pulse-dot"></span>
-              {listing.ad} · {listing.club.ilce || listing.club.il}
-            </p>
-            <h1 class="listing-title">{listing.club.ad}</h1>
-            <div class="hero-badges-inline">
-              {listing.yasAraligi && (
-                <span class="badge-modern"><i class="badge-icon">👥</i>Yaş: {listing.yasAraligi}</span>
-              )}
-              <span class="badge-modern badge-highlight"><i class="badge-icon">💳</i>{listing.ucretBilgisi || 'Aidat sorunuz'}</span>
-              <span class="badge-modern"><i class="badge-icon">📍</i>{listing.club.il}{listing.club.ilce ? ` - ${listing.club.ilce}` : ''}</span>
-            </div>
+          <h1 class="hero-title">{listing.club.ad}</h1>
+          <p class="hero-subtitle">{courseTitle}</p>
+
+          <div class="hero-pills">
+            {listing.yasAraligi && (
+              <span class="pill">
+                <strong>Yaş:</strong> {listing.yasAraligi}
+              </span>
+            )}
+            <span class="pill pill-highlight">
+              <strong>Aidat:</strong> {listing.ucretBilgisi || 'Fiyat sorunuz'}
+            </span>
+            <span class="pill">
+              <strong>Konum:</strong> {listing.club.il}{listing.club.ilce ? ` - ${listing.club.ilce}` : ''}
+            </span>
           </div>
         </div>
       </header>
 
-      <!-- Details Grid -->
-      <div class="grid-layout animate-fade-in-up delay-200">
-        <!-- Main Content -->
-        <div class="main-column">
-          <article class="content-card card-glass">
-            <h2 class="card-title">Bilgiler</h2>
-            <div class="listing-summary-grid">
-              <section class="listing-summary-card">
-                <h3>Kulüp</h3>
-                <p class="summary-lead"><strong>{listing.club.ad}</strong></p>
-                <ul class="summary-facts">
-                  <li><span>İl / İlçe</span><strong>{listing.club.il}{listing.club.ilce ? ` - ${listing.club.ilce}` : ''}</strong></li>
-                  {listing.club.adres && <li><span>Tesis / Adres</span><strong>{listing.club.adres}</strong></li>}
-                </ul>
-              </section>
-              <section class="listing-summary-card">
-                <h3>Branş ilanı</h3>
-                <p class="summary-lead"><strong>{listing.ad}</strong></p>
-                <ul class="summary-facts">
-                  {listing.yasAraligi && <li><span>Yaş aralığı</span><strong>{listing.yasAraligi}</strong></li>}
-                  <li><span>Aidat</span><strong>{listing.ucretBilgisi || 'Fiyat sorunuz'}</strong></li>
-                </ul>
-              </section>
+      <!-- 2 Kolonlu Sayfa Yapısı -->
+      <div class="content-layout">
+
+        <!-- Sol Kolon: Tesis, Detaylar ve Açıklama -->
+        <main class="main-flow">
+
+          <!-- 1. Tesis & Antrenman Alanı (Görsel Doğrulama) -->
+          <section class="info-card">
+            <div class="card-header">
+              <h2 class="card-title">Tesis ve Antrenman Alanı</h2>
+              <span class="badge-status">Görsel İnceleme</span>
             </div>
 
-            {listing.club.aciklama && (
-              <div class="summary-box">
-                <h3 class="summary-box-title">Kulüp hakkında</h3>
-                <p>{listing.club.aciklama}</p>
+            {listing.gallery && listing.gallery.length > 0 ? (
+              <div class="photo-gallery">
+                {listing.gallery.map((imgUrl, idx) => (
+                  <div class="photo-item">
+                    <img src={imgUrl} alt={`${listing.club.ad} tesis görseli ${idx + 1}`} loading="lazy" />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div class="facility-notice">
+                <div class="notice-icon">🏟️</div>
+                <div class="notice-text">
+                  <h3>Tesis ve Saha Fotoğrafları Onay Sürecinde</h3>
+                  <p>
+                    Kulübün resmi kaydı ve faaliyet bilgileri SporNerede tarafından onaylanmıştır.
+                    Güncel antrenman sahası ve tesis fotoğrafları kulüp yetkilisinden talep edilmiştir.
+                  </p>
+                  <div class="notice-tip">
+                    <span>💡</span>
+                    <span>Tesis ortamını ve antrenman şartlarını yerinde görmek için kulüpten <strong>1 günlük deneme antrenmanı</strong> talep edebilirsiniz.</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </section>
+
+          <!-- 2. Program ve Kulüp Bilgileri -->
+          <section class="info-card">
+            <div class="card-header">
+              <h2 class="card-title">Kurs ve Eğitim Detayları</h2>
+            </div>
+
+            <div class="meta-row-grid">
+              <div class="meta-cell">
+                <span class="cell-label">Branş</span>
+                <strong class="cell-value">{listing.club.brans || 'Spor'}</strong>
+              </div>
+              <div class="meta-cell">
+                <span class="cell-label">Hedef Yaş</span>
+                <strong class="cell-value">{listing.yasAraligi ? `${listing.yasAraligi} Yaş` : 'Tüm Yaş Grupları'}</strong>
+              </div>
+              <div class="meta-cell">
+                <span class="cell-label">Aidat / Ücret</span>
+                <strong class="cell-value text-green">{listing.ucretBilgisi || 'Aidat Sorunuz'}</strong>
+              </div>
+              <div class="meta-cell">
+                <span class="cell-label">Bölge</span>
+                <strong class="cell-value">{listing.club.ilce ? `${listing.club.ilce}, ` : ''}{listing.club.il}</strong>
+              </div>
+            </div>
+
+            {(schedule || dateRange) && (
+              <div class="schedule-box">
+                <div class="schedule-title">Antrenman Saatleri & Sezon</div>
+                {schedule && <div class="schedule-main">{schedule}</div>}
+                {dateRange && <div class="schedule-sub">{dateRange}</div>}
               </div>
             )}
 
             {listing.aciklama && (
-              <div class="summary-box">
+              <div class="description-text">
                 <p>{listing.aciklama}</p>
               </div>
             )}
-            
-            {bodyHtml && <div class="body-content" set:html={bodyHtml} />}
 
-            <div class="cta-box mt-6">
-              <h3 class="cta-title">Kulüple İletişime Geç</h3>
-              <p class="cta-desc">Bu ilanla ilgileniyorsanız aşağıdaki bilgilerden hemen ulaşabilirsiniz.</p>
-              <ul class="contact-list">
-                <li><strong>Telefon:</strong> {listing.club.telefon || 'Belirtilmedi'}</li>
-                <li><strong>E-posta:</strong> {listing.club.email || 'Belirtilmedi'}</li>
-                <li><strong>Adres:</strong> {listing.club.adres || listing.locationText || listing.club.ilce || listing.club.il || 'Belirtilmedi'}</li>
-              </ul>
+            {listing.club.aciklama && listing.club.aciklama !== listing.aciklama && (
+              <div class="club-bio">
+                <h4>Kulüp Hakkında</h4>
+                <p>{listing.club.aciklama}</p>
+              </div>
+            )}
+
+            {bodyHtml && <div class="rich-content" set:html={bodyHtml} />}
+          </section>
+
+          <!-- 3. Konum & Harita -->
+          <section class="info-card">
+            <div class="card-header">
+              <h2 class="card-title">Tesis Konumu</h2>
             </div>
-          </article>
+            <p class="address-text">{fullAddress || 'Adres detayları kulüpten öğrenilebilir.'}</p>
+            <div class="maps-action">
+              <a href={googleMapsUrl} target="_blank" rel="noopener noreferrer" class="maps-btn">
+                <span>Google Haritalar'da Aç ↗</span>
+              </a>
+            </div>
+          </section>
 
-        </div>
+        </main>
+
+        <!-- Sağ Kolon: İletişim Kartı -->
+        <aside class="sidebar-flow">
+          <div class="contact-card">
+            <h3 class="contact-title">Kulüple İletişime Geç</h3>
+            <p class="contact-sub">Kayıt şartları, aidat ve deneme antrenmanı randevusu için kulübe hemen ulaşabilirsiniz.</p>
+
+            <div class="contact-details">
+              <div class="detail-row">
+                <span class="detail-label">Telefon</span>
+                {telUrl ? (
+                  <a href={telUrl} class="detail-val link">{formattedPhone}</a>
+                ) : (
+                  <span class="detail-val">Belirtilmedi</span>
+                )}
+              </div>
+
+              <div class="detail-row">
+                <span class="detail-label">E-posta</span>
+                {listing.club.email ? (
+                  <a href={`mailto:${listing.club.email}`} class="detail-val link">{listing.club.email}</a>
+                ) : (
+                  <span class="detail-val">Belirtilmedi</span>
+                )}
+              </div>
+
+              <div class="detail-row">
+                <span class="detail-label">Adres</span>
+                <span class="detail-val">{fullAddress || 'Belirtilmedi'}</span>
+              </div>
+            </div>
+
+            <div class="trust-box">
+              <strong>%100 Doğrudan İletişim</strong>
+              <p>SporNerede bir aracı değildir. Yapacağınız tüm görüşmeler doğrudan spor kulübü yetkilisiyle gerçekleştirilir.</p>
+            </div>
+          </div>
+        </aside>
+
       </div>
+
     </div>
-  </section>
+  </div>
 
   <AnalyticsPageEvent
     event="view_listing"
@@ -265,621 +405,455 @@ const ogImage = `${SITE_URL}/api/og.png?${ogParams.toString()}`;
 </BaseLayout>
 
 <style>
-  .page-background {
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: linear-gradient(135deg, #f8f9fa 0%, #fff1f2 100%);
-    z-index: 0;
-    pointer-events: none;
+  .page-wrap {
+    min-height: 85vh;
+    background-color: #f8f9fa;
+    padding: 2rem 0 5rem;
+    font-family: inherit;
   }
-  
-  .listing-page {
-    min-height: 80vh;
-    padding-top: 2rem;
-    padding-bottom: 4rem;
+
+  .page-container {
+    max-width: 1050px;
+    margin: 0 auto;
+    padding: 0 1.25rem;
   }
-  
-  .listing-wrap {
-    max-width: 1100px;
+
+  /* Top Navigation */
+  .top-nav {
+    margin-bottom: 1.5rem;
   }
-  
-  .back-link {
+
+  .back-btn {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    color: var(--color-brand-gray-600);
+    color: #495057;
+    font-size: 0.9rem;
     font-weight: 700;
-    font-size: 0.95rem;
     text-decoration: none;
-    padding: 0.5rem 1rem;
+    padding: 0.4rem 0.9rem;
+    background: #ffffff;
+    border: 1px solid #e9ecef;
     border-radius: 999px;
-    background: rgba(255,255,255,0.6);
-    backdrop-filter: blur(8px);
-    border: 1px solid var(--color-brand-gray-200);
     transition: all 0.2s ease;
   }
-  
-  .back-link:hover {
-    color: var(--color-brand-red);
-    background: white;
-    border-color: var(--color-brand-red-100);
-    box-shadow: 0 4px 12px rgba(227, 10, 23, 0.08);
+
+  .back-btn:hover {
+    color: #e30a17;
+    border-color: #e30a17;
+    transform: translateX(-2px);
   }
-  
-  .card-glass {
-    background: rgba(255, 255, 255, 0.85);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.5);
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255,255,255,1);
+
+  /* Hero Section */
+  .hero-card {
+    background: #ffffff;
+    border: 1px solid #e9ecef;
     border-radius: 1.25rem;
-  }
-  
-  .listing-hero {
     padding: 2rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 2rem;
-    flex-wrap: wrap;
-    margin-bottom: 2rem;
-    position: relative;
-    overflow: hidden;
-  }
-  
-  .listing-hero::before {
-    content: '';
-    position: absolute;
-    top: 0; right: 0;
-    width: 300px; height: 300px;
-    background: radial-gradient(circle, var(--color-brand-red-50) 0%, transparent 70%);
-    opacity: 0.6;
-    border-radius: 50%;
-    transform: translate(30%, -30%);
-    pointer-events: none;
-  }
-  
-  .hero-content {
     display: flex;
     align-items: center;
     gap: 1.5rem;
-    flex: 1 1 min-content;
-    z-index: 1;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
   }
-  
-  .icon-wrapper {
-    position: relative;
-    width: 80px;
-    height: 80px;
+
+  .hero-avatar {
+    width: 76px;
+    height: 76px;
     flex-shrink: 0;
+    border-radius: 1.25rem;
+    background: color-mix(in srgb, var(--branch-color, #e30a17) 12%, #f8f9fa);
     display: grid;
     place-items: center;
+    border: 1px solid rgba(0, 0, 0, 0.06);
   }
-  
-  .icon-bg {
-    position: absolute;
-    inset: 0;
-    background: var(--branch-color);
-    opacity: 0.15;
-    border-radius: 1.25rem;
-    transform: rotate(-3deg);
-    transition: transform 0.3s ease;
+
+  .hero-emoji {
+    font-size: 2.75rem;
+    line-height: 1;
   }
-  
-  .listing-hero:hover .icon-bg {
-    transform: rotate(3deg) scale(1.05);
+
+  .hero-content {
+    flex: 1;
+    min-width: 0;
   }
-  
-  .icon-emoji {
-    font-size: 2.5rem;
-    position: relative;
-    z-index: 2;
-    filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));
-  }
-  
-  .kicker {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    color: var(--color-brand-red);
-    font-size: 0.85rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    margin-bottom: 0.4rem;
-  }
-  
-  .pulse-dot {
-    width: 8px;
-    height: 8px;
-    background-color: var(--color-brand-red);
-    border-radius: 50%;
-    box-shadow: 0 0 0 0 rgba(227, 10, 23, 0.4);
-    animation: pulse-red 2s infinite;
-  }
-  
-  @keyframes pulse-red {
-    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(227, 10, 23, 0.7); }
-    70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(227, 10, 23, 0); }
-    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(227, 10, 23, 0); }
-  }
-  
-  .listing-title {
-    font-size: clamp(1.8rem, 4vw, 2.5rem);
+
+
+
+  .hero-title {
+    font-size: clamp(1.6rem, 3.2vw, 2.2rem);
     font-weight: 900;
-    color: var(--color-brand-gray-900);
-    line-height: 1.1;
-    margin-bottom: 1rem;
+    color: #212529;
+    margin: 0 0 0.25rem;
+    line-height: 1.2;
     letter-spacing: -0.02em;
   }
-  
-  .hero-badges-inline {
+
+  .hero-subtitle {
+    font-size: 1.05rem;
+    color: #6c757d;
+    font-weight: 600;
+    margin: 0 0 1rem;
+  }
+
+  .hero-pills {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.6rem;
+    gap: 0.5rem;
   }
-  
-  .badge-modern {
+
+  .pill {
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
-    padding: 0.4rem 0.8rem;
-    background: var(--color-brand-gray-50);
-    border: 1px solid var(--color-brand-gray-200);
+    padding: 0.35rem 0.85rem;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
     border-radius: 999px;
     font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--color-brand-gray-700);
-    transition: all 0.2s;
+    color: #495057;
   }
-  
-  .badge-modern:hover {
-    background: white;
-    border-color: var(--color-brand-gray-300);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-  }
-  
-  .badge-icon {
-    font-style: normal;
-    font-size: 1rem;
-  }
-  
-  .badge-highlight {
+
+  .pill-highlight {
     background: #f0fdf4;
     border-color: #bbf7d0;
     color: #166534;
   }
-  
-  /* Layout Grid */
-  .grid-layout {
+
+  /* 2-Column Content Layout */
+  .content-layout {
     display: grid;
     grid-template-columns: 1fr;
     gap: 2rem;
-  }
-  
-  .listing-summary-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
+    align-items: flex-start;
   }
 
-  @media (min-width: 640px) {
-    .listing-summary-grid { grid-template-columns: 1fr 1fr; }
+  @media (min-width: 960px) {
+    .content-layout {
+      grid-template-columns: 1fr 340px;
+    }
   }
 
-  .listing-summary-card {
-    padding: 1rem 1.15rem;
-    border-radius: 0.85rem;
-    background: var(--color-brand-gray-50);
-    border: 1px solid var(--color-brand-gray-200);
-  }
-
-  .listing-summary-card h3 {
-    margin: 0 0 0.5rem;
-    font-size: 0.78rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: var(--color-brand-gray-500);
-  }
-
-  .summary-lead {
-    margin: 0 0 0.65rem;
-    font-size: 1rem;
-    color: var(--color-brand-gray-900);
-  }
-
-  .summary-facts {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: grid;
-    gap: 0.45rem;
-  }
-
-  .summary-facts li {
+  .main-flow {
     display: flex;
     flex-direction: column;
-    gap: 0.1rem;
-    font-size: 0.88rem;
+    gap: 1.5rem;
   }
 
-  .summary-facts span {
-    color: var(--color-brand-gray-500);
-    font-weight: 600;
-    font-size: 0.75rem;
+  .info-card {
+    background: #ffffff;
+    border: 1px solid #e9ecef;
+    border-radius: 1.25rem;
+    padding: 1.75rem;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03);
   }
 
-  .summary-box-title {
-    margin: 0 0 0.5rem;
-    font-size: 0.95rem;
-    font-weight: 800;
-  }
-
-  .meta-grid--compact {
-    grid-template-columns: 1fr;
-  }
-  
-  .main-column, .sidebar-column {
+  .card-header {
     display: flex;
-    flex-direction: column;
-    gap: 2rem;
-  }
-  
-  .sticky-sidebar {
-    position: sticky;
-    top: 6rem;
-  }
-  
-  .content-card {
-    padding: 2rem;
-  }
-  
-  .card-title {
-    font-size: 1.3rem;
-    font-weight: 800;
-    color: var(--color-brand-gray-900);
-    margin-bottom: 1.5rem;
-    position: relative;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.25rem;
     padding-bottom: 0.75rem;
+    border-bottom: 1px solid #f1f3f5;
   }
-  
-  .card-title::after {
-    content: '';
-    position: absolute;
-    bottom: 0; left: 0;
-    width: 40px; height: 4px;
-    background: linear-gradient(90deg, var(--color-brand-red), #ff7a82);
-    border-radius: 2px;
+
+  .card-title {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: #212529;
+    margin: 0;
   }
-  
-  /* Meta Grid */
-  .meta-grid {
-    list-style: none;
-    margin: 0 0 2rem 0;
-    padding: 0;
+
+  .badge-status {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #6c757d;
+    background: #f1f3f5;
+    padding: 0.25rem 0.65rem;
+    border-radius: 999px;
+  }
+
+  /* Facility Photo / Verification */
+  .photo-gallery {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 1rem;
   }
-  
-  .meta-item {
+
+  .photo-item {
+    border-radius: 1rem;
+    overflow: hidden;
+    aspect-ratio: 16/9;
+    border: 1px solid #e9ecef;
+  }
+
+  .photo-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .facility-notice {
     display: flex;
     align-items: flex-start;
-    gap: 1rem;
-    background: white;
-    padding: 1rem;
+    gap: 1.25rem;
+    background: #fbfcfd;
+    border: 1px solid #e9ecef;
     border-radius: 1rem;
-    border: 1px solid var(--color-brand-gray-100);
-    transition: all 0.2s ease;
-  }
-  
-  .meta-item:hover {
-    border-color: var(--color-brand-red-100);
-    box-shadow: 0 4px 15px rgba(0,0,0,0.03);
-    transform: translateY(-2px);
-  }
-  
-  .meta-icon {
-    font-size: 1.5rem;
-    width: 40px; height: 40px;
-    background: var(--color-brand-gray-50);
-    border-radius: 0.75rem;
-    display: grid;
-    place-items: center;
-  }
-  
-  .meta-info {
-    display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
-  }
-  
-  .meta-label {
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: var(--color-brand-gray-500);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-  
-  .meta-value {
-    font-size: 1.05rem;
-    font-weight: 800;
-    color: var(--color-brand-gray-900);
+    padding: 1.5rem;
   }
 
-  .maps-link {
-    width: fit-content;
-    margin-top: 0.45rem;
-    padding: 0.35rem 0.65rem;
-    border-radius: 999px;
-    background: #111827;
-    color: white;
-    text-decoration: none;
-    font-size: 0.78rem;
+  .notice-icon {
+    font-size: 2.2rem;
+    line-height: 1;
+  }
+
+  .notice-text h3 {
+    margin: 0 0 0.4rem;
+    font-size: 1rem;
     font-weight: 800;
+    color: #212529;
   }
-  
-  .text-brand-red { color: var(--color-brand-red); }
-  
-  /* Content Text */
-  .summary-box {
-    background: var(--color-brand-red-50);
-    border-left: 4px solid var(--color-brand-red);
-    padding: 1.5rem;
-    border-radius: 0 1rem 1rem 0;
-    margin-bottom: 2rem;
-  }
-  
-  .summary-box p {
-    margin: 0;
-    font-size: 1.1rem;
-    color: var(--color-brand-gray-800);
-    font-weight: 600;
+
+  .notice-text p {
+    margin: 0 0 0.85rem;
+    font-size: 0.9rem;
+    color: #6c757d;
     line-height: 1.6;
   }
-  
-  .body-content {
-    padding: 1.25rem;
-    border: 1px solid var(--color-brand-gray-100);
-    border-radius: 1.1rem;
-    background: linear-gradient(180deg, #ffffff 0%, #fbfcfd 100%);
+
+  .notice-tip {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    background: #ffffff;
+    border: 1px solid #dee2e6;
+    border-radius: 0.75rem;
+    padding: 0.75rem 1rem;
+    font-size: 0.85rem;
+    color: #495057;
+    line-height: 1.5;
   }
 
-  .body-content h2,
-  .body-content h3 {
-    color: var(--color-brand-gray-900);
-    font-weight: 900;
-    letter-spacing: -0.02em;
-    margin: 1.1rem 0 0.6rem;
-  }
-
-  .body-content h2:first-child,
-  .body-content h3:first-child {
-    margin-top: 0;
-  }
-
-  .body-content p {
-    color: var(--color-brand-gray-700);
-    line-height: 1.8;
-    margin-bottom: 1.2rem;
-    font-size: 1.05rem;
-  }
-
-  .body-content ul,
-  .body-content ol {
-    margin: 0 0 1.2rem;
-    padding-left: 1.35rem;
-    color: var(--color-brand-gray-700);
-    line-height: 1.8;
-  }
-
-  .body-content li {
-    margin-bottom: 0.35rem;
-  }
-  
-  /* Gallery Grid */
-  .gallery-grid {
+  /* Meta Grid */
+  .meta-row-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 1rem;
+    margin-bottom: 1.25rem;
   }
-  
-  .gallery-item {
-    position: relative;
-    border-radius: 1rem;
-    overflow: hidden;
-    aspect-ratio: 4/3;
+
+  @media (min-width: 600px) {
+    .meta-row-grid {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+
+  .meta-cell {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 0.85rem;
+    padding: 0.85rem;
+  }
+
+  .cell-label {
     display: block;
-    border: 0;
-    padding: 0;
-    width: 100%;
-    cursor: zoom-in;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-  }
-  
-  .gallery-item img {
-    width: 100%; height: 100%;
-    object-fit: cover;
-    transition: transform 0.5s ease;
-  }
-  
-  .gallery-item:hover img {
-    transform: scale(1.1);
-  }
-  
-  .gallery-overlay {
-    position: absolute;
-    inset: 0;
-    background: rgba(0,0,0,0.4);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-  }
-  
-  .gallery-overlay span {
-    color: white;
+    font-size: 0.72rem;
     font-weight: 700;
-    padding: 0.5rem 1rem;
-    border: 2px solid white;
-    border-radius: 2rem;
-    transform: translateY(10px);
-    transition: transform 0.3s ease;
+    text-transform: uppercase;
+    color: #6c757d;
+    margin-bottom: 0.2rem;
   }
-  
-  .gallery-item:hover .gallery-overlay {
-    opacity: 1;
-  }
-  
-  .gallery-item:hover .gallery-overlay span {
-    transform: translateY(0);
-  }
-  
-  /* Empty States */
-  .empty-state {
-    text-align: center;
-    padding: 3rem 1.5rem;
-    background: var(--color-brand-gray-50);
-    border: 1px dashed var(--color-brand-gray-300);
-    border-radius: 1rem;
-  }
-  
-  .empty-state.sm {
-    padding: 2rem 1rem;
-  }
-  
-  .empty-icon {
-    font-size: 2.5rem;
-    margin-bottom: 1rem;
-    opacity: 0.5;
-  }
-  
-  .empty-state p {
-    color: var(--color-brand-gray-700);
-    margin-bottom: 0.5rem;
-    font-size: 1.05rem;
-  }
-  
-  .empty-hint {
-    display: inline-block;
-    font-size: 0.85rem;
-    color: var(--color-brand-gray-500);
-    background: white;
-    padding: 0.3rem 0.8rem;
-    border-radius: 999px;
-    border: 1px solid var(--color-brand-gray-200);
-  }
-  
-  /* CTA Box */
-  .cta-box {
-    background: linear-gradient(135deg, var(--color-brand-gray-900) 0%, #111827 100%);
-    padding: 1.5rem;
-    border-radius: 1rem;
-    color: white;
-    text-align: center;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-  }
-  
-  .cta-title {
-    font-size: 1.2rem;
+
+  .cell-value {
+    font-size: 0.95rem;
     font-weight: 800;
-    margin-bottom: 0.5rem;
-  }
-  
-  .cta-desc {
-    font-size: 0.9rem;
-    color: var(--color-brand-gray-300);
-    margin-bottom: 1.2rem;
+    color: #212529;
   }
 
-  .contact-list {
+  .text-green {
+    color: #166534 !important;
+  }
+
+  /* Schedule Box */
+  .schedule-box {
+    background: #fffbeb;
+    border: 1px solid #fef3c7;
+    border-radius: 0.85rem;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .schedule-title {
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: #92400e;
+    margin-bottom: 0.25rem;
+  }
+
+  .schedule-main {
+    font-size: 1rem;
+    font-weight: 800;
+    color: #78350f;
+  }
+
+  .schedule-sub {
+    font-size: 0.85rem;
+    color: #b45309;
+    margin-top: 0.2rem;
+  }
+
+  .description-text p {
+    font-size: 0.98rem;
+    line-height: 1.7;
+    color: #343a40;
     margin: 0;
-    padding: 0;
-    list-style: none;
-    display: grid;
-    gap: 0.5rem;
-    text-align: left;
+  }
+
+  .club-bio {
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px solid #f1f3f5;
+  }
+
+  .club-bio h4 {
+    margin: 0 0 0.35rem;
     font-size: 0.92rem;
-    color: var(--color-brand-gray-200);
+    font-weight: 800;
+    color: #495057;
   }
 
-  .contact-list strong {
-    color: white;
+  .club-bio p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #6c757d;
+    line-height: 1.6;
   }
 
-  .image-viewer {
-    position: fixed;
-    inset: 0;
-    z-index: 50;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s ease;
+  .address-text {
+    font-size: 0.95rem;
+    color: #343a40;
+    margin: 0 0 1rem;
   }
 
-  .image-viewer.is-open {
-    opacity: 1;
-    pointer-events: auto;
+  .maps-btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    background: #212529;
+    color: #ffffff;
+    font-size: 0.85rem;
+    font-weight: 700;
+    border-radius: 0.5rem;
+    text-decoration: none;
+    transition: background 0.2s;
   }
 
-  .image-viewer-backdrop {
-    position: absolute;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.78);
+  .maps-btn:hover {
+    background: #343a40;
   }
 
-  .image-viewer-dialog {
-    position: relative;
-    z-index: 1;
-    margin: auto;
-    max-width: min(960px, calc(100% - 2rem));
-    max-height: calc(100% - 2rem);
-    top: 50%;
-    transform: translateY(-50%);
+  /* Sidebar Contact Card */
+  .sidebar-flow {
+    position: sticky;
+    top: 5.5rem;
   }
 
-  .image-viewer-img {
-    display: block;
-    width: 100%;
-    max-height: calc(100vh - 2rem);
-    object-fit: contain;
+  .contact-card {
+    background: #ffffff;
+    border: 1px solid #e9ecef;
+    border-top: 4px solid #e30a17;
+    border-radius: 1.25rem;
+    padding: 1.75rem;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.05);
+  }
+
+  .contact-title {
+    font-size: 1.25rem;
+    font-weight: 900;
+    color: #212529;
+    margin: 0 0 0.4rem;
+  }
+
+  .contact-sub {
+    font-size: 0.85rem;
+    color: #6c757d;
+    line-height: 1.5;
+    margin: 0 0 1.25rem;
+  }
+
+  .contact-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .detail-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  .detail-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #adb5bd;
+  }
+
+  .detail-val {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #212529;
+  }
+
+  .detail-val.link {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #e30a17;
+    text-decoration: none;
+  }
+
+  .detail-val.link:hover {
+    text-decoration: underline;
+  }
+
+  .trust-box {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
     border-radius: 0.75rem;
-    background: #111;
+    padding: 0.85rem;
+    font-size: 0.78rem;
+    color: #6c757d;
+    line-height: 1.5;
   }
 
-  .image-viewer-close {
-    position: absolute;
-    top: 0.5rem;
-    right: 0.5rem;
-    width: 2.2rem;
-    height: 2.2rem;
-    border: 0;
-    border-radius: 999px;
-    background: rgba(17, 24, 39, 0.85);
-    color: white;
-    font-size: 1.5rem;
-    line-height: 1;
-    cursor: pointer;
+  .trust-box strong {
+    display: block;
+    color: #343a40;
+    margin-bottom: 0.2rem;
   }
-  
-  .w-full { width: 100%; }
-  .mt-6 { margin-top: 1.5rem; }
-  .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
-  .hover\:shadow-xl:hover { box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); }
-  .transition-all { transition-property: all; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 300ms; }
-  
+
+  .trust-box p {
+    margin: 0;
+  }
+
+  /* Responsive Mobile Tweaks */
   @media (max-width: 768px) {
-    .listing-hero {
+    .hero-card {
       flex-direction: column;
       align-items: flex-start;
       padding: 1.5rem;
     }
-    
-    .content-card {
-      padding: 1.5rem;
+
+    .info-card {
+      padding: 1.25rem;
+    }
+
+    .sidebar-flow {
+      position: static;
     }
   }
 </style>

@@ -18,6 +18,6 @@ export const POST: APIRoute = async ({ request }) => {
   const headers = new Headers();
   headers.append('Set-Cookie', buildSessionCookieDeletion());
   headers.append('Set-Cookie', buildSessionHintCookieDeletion());
-  headers.set('Location', '/admin');
+  headers.set('Location', '/merkez');
   return new Response(null, { status: 303, headers });
 };

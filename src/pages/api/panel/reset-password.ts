@@ -23,5 +23,5 @@ export const POST: APIRoute = async ({ request }) => {
   await updateUserPassword(consumed.userId, passwordHash, { forcePasswordChange: false });
   await deleteAllSessionsForUser(consumed.userId);
 
-  return Response.redirect(new URL('/admin?error=password_changed', request.url), 303);
+  return Response.redirect(new URL('/merkez?error=password_changed', request.url), 303);
 };

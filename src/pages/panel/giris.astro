@@ -1,6 +1,6 @@
 ---
-/** Eski üye girişi URL'si — gizli admin girişine yönlendirir. */
-const target = new URL('/admin', Astro.url);
+/** Eski üye girişi URL'si — merkez girişine yönlendirir. */
+const target = new URL('/merkez', Astro.url);
 Astro.url.searchParams.forEach((value, key) => {
   target.searchParams.set(key, value);
 });

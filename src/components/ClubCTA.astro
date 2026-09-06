@@ -73,8 +73,7 @@ const faydalar = [
           src={footwearImage.src}
           width={footwearImage.width}
           height={footwearImage.height}
-          alt=""
-          loading="lazy"
+          alt="Spor Kursu Başvuru"
           decoding="async"
         />
       </div>
@@ -83,8 +82,7 @@ const faydalar = [
           src={basketballImage.src}
           width={basketballImage.width}
           height={basketballImage.height}
-          alt=""
-          loading="lazy"
+          alt="Basketbol Kursu"
           decoding="async"
         />
       </div>
@@ -93,8 +91,7 @@ const faydalar = [
           src={voleyballImage.src}
           width={voleyballImage.width}
           height={voleyballImage.height}
-          alt=""
-          loading="lazy"
+          alt="Voleybol Kursu"
           decoding="async"
         />
       </div>
@@ -102,19 +99,26 @@ const faydalar = [
   </div>
 </section>
 
-<script>
-  const showcase = document.querySelector('[data-showcase]');
-  if (showcase) {
+<script is:inline>
+  function initCtaShowcase() {
+    const showcase = document.querySelector('[data-showcase]');
+    if (!showcase || showcase.dataset.running) return;
+    showcase.dataset.running = 'true';
     const slides = Array.from(showcase.querySelectorAll('.showcase-slide'));
-    let activeIndex = 0;
+    if (slides.length <= 1) return;
 
-    if (slides.length > 1) {
-      window.setInterval(() => {
-        slides[activeIndex]?.classList.remove('is-active');
-        activeIndex = (activeIndex + 1) % slides.length;
-        slides[activeIndex]?.classList.add('is-active');
-      }, 2400);
-    }
+    let activeIndex = 0;
+    setInterval(() => {
+      slides[activeIndex]?.classList.remove('is-active');
+      activeIndex = (activeIndex + 1) % slides.length;
+      slides[activeIndex]?.classList.add('is-active');
+    }, 3200);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initCtaShowcase);
+  } else {
+    initCtaShowcase();
   }
 </script>
 

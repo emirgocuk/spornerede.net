@@ -50,6 +50,12 @@ Sonraki adımlar: **Faz 13** (DebugView) → **Faz 14 → 15 → 16 → 17** →
 
 **Ana geliştirme sırası:** Faz **13** → **14** → **15** → **16** → **17**; **Faz 4** (harita, tam quiz, yorum) paralel veya sonrası. Checklist: `memory-bank/faz-gelistirme-checklist-tr.md`.
 
+### 🆕 Son Tamamlanan (Canlı Kurtarma & SSL Guardrail)
+
+- **Cloudflare 521 Olayı Giderildi:** Deploy sırasında Nginx vhost parsing hatasıyla 443 SSL portunun devre dışı kalması ve sitenin 521 vermesi sorunu çözüldü.
+- **Let's Encrypt SSL Fallback:** `deploy.sh` içerisine Let's Encrypt sertifikaları (`/etc/letsencrypt/live/spornerede.net/`) için otomatik fallback mekanizması eklendi; Nginx dosya adı `spornerede.net` olarak standartlaştırıldı.
+- **Canlı Doğrulama:** `https://spornerede.net` üzerinden smoke testleri ve deep health kontrolleri (veritabanı, SMTP, tüm rotalar) 200 OK ile doğrulandı.
+
 ### 🆕 Son Tamamlanan (UI Revizyon Paketi)
 
 - Header navigasyon sadeleştirildi (`Haberler`, `Hakkımızda`, `İletişim`)

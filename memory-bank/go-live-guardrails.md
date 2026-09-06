@@ -50,3 +50,10 @@ Use this file as the minimum safety policy before exposing new features to real 
   - validate panel/admin/public flows end-to-end
   - confirm mail + DB + health checks
   - verify no blocker-level UI defects on core routes
+
+## 7) Web Server & SSL Guardrail (Cloudflare 521 Prevention)
+
+- **Origin HTTPS Requirement:** Cloudflare is configured with SSL Full / Strict mode. Origin server (`45.155.19.82`) MUST always listen on both port 80 (HTTP redirect) and port 443 (HTTPS with valid Let's Encrypt certificates).
+- **No HTTP-Only Nginx Overwrite:** Deploy scripts (`deploy.sh`, `deploy.ps1`, `server-auto-update.sh`) MUST NOT overwrite `/etc/nginx/sites-available/spornerede.net` with HTTP-only configurations.
+- **SSL Fallback Protection:** If Nginx vhost parsing fails during deploy, deploy scripts must automatically fallback to `/etc/letsencrypt/live/spornerede.net/` certificates.
+- **Post-Deploy Smoke Check Verification:** Every deploy must run `npm run smoke:check` against the production domain (`https://spornerede.net`) to verify live HTTP 200 responses.

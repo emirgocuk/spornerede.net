@@ -404,6 +404,25 @@ npm run rollback:remote
 3. Sağlık kontrolünü tekrar çalıştır
 4. Olay notu bırak (sorun + çözüm)
 
+## Nginx & SSL Yönetim Kuralları (Cloudflare 521 Önleme)
+
+- Cloudflare SSL modu **Full (Strict)** olduğundan kaynak sunucu (45.155.19.82) üzerinde 443 SSL portu ve Let's Encrypt sertifikaları (`/etc/letsencrypt/live/spornerede.net/`) daima aktif olmalıdır.
+- `deploy.sh --update-nginx` çalıştırıldığında SSL satırları silinmemeli; script otomatik olarak `/etc/letsencrypt/live/spornerede.net/` dosyalarını tespit edip HTTPS bloğunu yapılandırmalıdır.
+- Vhost dosya adı standart olarak `/etc/nginx/sites-available/spornerede.net` ve `/etc/nginx/sites-enabled/spornerede.net` olmalıdır.
+
+## Olay Notları (Incident History)
+
+### 2026-08-19 / 2026-08-20: Cloudflare 521 (Web Server Is Down)
+- **Tarih/Saat:** 2026-08-19 17:08 UTC – 2026-08-19 21:11 UTC
+- **Hata Özeti:** `https://spornerede.net` isteklerinde Cloudflare 521 hatası alındı; siteye erişilemedi.
+- **Etkilenen Alan:** Canlı ortam (Production frontend & API).
+- **Kök Neden:** `deploy.sh --update-nginx` çalıştırıldığında Nginx vhost parsing hatası nedeniyle SSL bloğu üretilmedi, Nginx sadece 80 portunu dinler hale geldi. Cloudflare 443 portundan bağlanamadığı için 521 döndürdü.
+- **Uygulanan Geri Dönüş / Anlık Çözüm:** `/etc/nginx/sites-available/spornerede.net` vhost dosyası `/etc/nginx/sites-enabled/spornerede.net` olarak sembolik bağlandı ve Nginx reload edildi (`systemctl reload nginx`).
+- **Kalıcı Düzeltme Aksiyonu:**
+  1. `deploy.sh` içerisine Let's Encrypt doğrudan sertifika fallback kontrolü eklendi.
+  2. Nginx dosya adları `spornerede.net` olarak standartlaştırıldı.
+  3. Deploy ve rollback sonrası zorunlu HTTPS smoke check kuralı getirildi.
+
 ## Olay Notu Formatı
 
 - Tarih/Saat:
@@ -411,4 +430,5 @@ npm run rollback:remote
 - Etkilenen Alan:
 - Uygulanan Geri Dönüş:
 - Kalıcı Düzeltme Aksiyonu:
+
 

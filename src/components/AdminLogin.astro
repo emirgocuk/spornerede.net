@@ -10,13 +10,15 @@ const errorMessage =
     ? 'E-posta veya şifre hatalı.'
     : errorCode === 'missing'
       ? 'Lütfen e-posta ve şifre alanlarını doldurun.'
-      : errorCode === 'auth'
-        ? 'Bu sayfayı görmek için giriş yapmalısınız.'
-        : errorCode === 'forbidden'
-          ? 'Panele erişim için onaylı kulüp hesabı gerekir.'
-          : errorCode === 'password_changed'
-            ? 'Şifreniz güncellendi. Yeni şifrenizle giriş yapabilirsiniz.'
-            : '';
+      : errorCode === 'rate_limit'
+        ? 'Çok fazla hatalı giriş denemesi yapıldı. Güvenliğiniz için lütfen birkaç dakika sonra tekrar deneyin.'
+        : errorCode === 'auth'
+          ? 'Bu sayfayı görmek için giriş yapmalısınız.'
+          : errorCode === 'forbidden'
+            ? 'Panele erişim için onaylı kulüp hesabı gerekir.'
+            : errorCode === 'password_changed'
+              ? 'Şifreniz güncellendi. Yeni şifrenizle giriş yapabilirsiniz.'
+              : '';
 ---
 
 <section class="admin-login-page">
@@ -24,7 +26,7 @@ const errorMessage =
     <div class="admin-login-brand">
       <div class="admin-login-logo" aria-hidden="true">SN</div>
       <div>
-        <h1>Yönetim Paneli</h1>
+        <h1>Yönetim Merkezi</h1>
         <p>SporNerede.net başvuru ve kulüp yönetimi</p>
       </div>
     </div>
@@ -32,7 +34,7 @@ const errorMessage =
     {errorMessage && <p class="admin-login-error" role="alert">{errorMessage}</p>}
 
     <form class="admin-login-form" method="post" action="/api/panel/login">
-      <input type="hidden" name="redirectTo" value="/admin" />
+      <input type="hidden" name="redirectTo" value="/merkez" />
       <label>
         <span>E-posta</span>
         <input name="email" type="email" autocomplete="username" required />

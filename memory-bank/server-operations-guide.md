@@ -126,7 +126,7 @@ systemctl start spornerede-autoupdate.service
   - `/opt/spornerede/.env`
   - `/opt/spornerede/production-credentials.txt`
 
-## 8) Change Discipline
+## 8) Change Discipline & Incident Log
 
 - Infra changes should be documented in `memory-bank/deploy-runbook.md`.
 - Any production incident must record:
@@ -134,3 +134,14 @@ systemctl start spornerede-autoupdate.service
   - impact
   - rollback action
   - permanent fix
+
+### Incident 2026-08-19 / 2026-08-20: Cloudflare 521 (Web Server Is Down)
+- **Timestamp:** 2026-08-19 17:08 UTC – 2026-08-19 21:11 UTC
+- **Impact:** `https://spornerede.net` returned HTTP 521 error from Cloudflare; site unreachable for users.
+- **Root Cause:** Deploy script (`deploy.sh --update-nginx`) omitted port 443 SSL block because vhost detection skipped the active site file name. As a result, Nginx only listened on port 80. Since Cloudflare connects to origin via port 443 (Full SSL), Cloudflare origin connections were refused.
+- **Immediate Fix:** Re-linked `/etc/nginx/sites-available/spornerede.net` (containing Let's Encrypt SSL block) to `/etc/nginx/sites-enabled/spornerede.net` and reloaded Nginx (`systemctl reload nginx`).
+- **Permanent Fix:**
+  1. Updated `deploy.sh` to search all vhosts (`sites-enabled`, `sites-available`, `conf.d`) and added direct fallback to `/etc/letsencrypt/live/spornerede.net/`.
+  2. Standardized Nginx site name to `spornerede.net` (with `server_name spornerede.net www.spornerede.net`).
+  3. Ensured deploy scripts never generate an HTTP-only config when Let's Encrypt certificates exist.
+  4. Verified all production routes with `node scripts/smoke-check.mjs`.

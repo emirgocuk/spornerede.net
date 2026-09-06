@@ -5,6 +5,8 @@
 export const ROBOTS_TXT_BODY = `User-agent: *
 Allow: /
 Disallow: /api/
+Disallow: /merkez
+Disallow: /merkez/
 Disallow: /admin
 Disallow: /admin/
 Disallow: /panel

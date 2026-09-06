@@ -6,7 +6,12 @@ const branches = await getAllBranches();
 const tumKulupler = await searchClubs({});
 
 const branchCards = branches.map((branch) => {
-  const kulupSayisi = tumKulupler.filter((club) => club.bransSlug === branch.slug).length;
+  const kulupSayisi = tumKulupler.filter((club) => {
+    if (Array.isArray(club.allBranchSlugs) && club.allBranchSlugs.includes(branch.slug)) {
+      return true;
+    }
+    return club.bransSlug === branch.slug;
+  }).length;
   return { ...branch, kulupSayisi };
 });
 ---

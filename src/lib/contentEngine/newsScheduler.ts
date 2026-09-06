@@ -145,11 +145,15 @@ export function ensureNewsScheduler() {
   if (started || SCHEDULER_DISABLED) return;
   if (typeof process === 'undefined') return;
   if (process.env.NODE_ENV === 'test') return;
+  if (process.env.npm_lifecycle_event === 'build' || process.argv.some((a) => a.includes('build'))) return;
 
   started = true;
-  setInterval(() => {
+  const timer = setInterval(() => {
     void tick();
   }, TICK_MS);
+  if (typeof timer === 'object' && 'unref' in timer) {
+    timer.unref();
+  }
   void tick();
 }
 

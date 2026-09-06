@@ -87,10 +87,10 @@ EOF
 }
 
 UPDATE_NGINX="${UPDATE_NGINX:-0}"
-NGINX_SITE_PATH="${NGINX_SITE_PATH:-/etc/nginx/sites-available/spornerede-app}"
-NGINX_SITE_ENABLED="${NGINX_SITE_ENABLED:-/etc/nginx/sites-enabled/spornerede-app}"
+NGINX_SITE_PATH="${NGINX_SITE_PATH:-/etc/nginx/sites-available/spornerede.net}"
+NGINX_SITE_ENABLED="${NGINX_SITE_ENABLED:-/etc/nginx/sites-enabled/spornerede.net}"
 NGINX_TEMPLATE="${NGINX_TEMPLATE:-${ROOT_DIR}/deploy/nginx-spornerede.conf.tpl}"
-NGINX_SERVER_NAME="${NGINX_SERVER_NAME:-spornerede.net}"
+NGINX_SERVER_NAME="${NGINX_SERVER_NAME:-spornerede.net www.spornerede.net}"
 SKIP_BUILD="${SKIP_BUILD:-0}"
 
 while [[ $# -gt 0 ]]; do
@@ -349,18 +349,35 @@ else
 fi
 
 find_existing_vhost() {
-  local d f base
-  for d in /etc/nginx/sites-enabled /etc/nginx/conf.d; do
+  local d f base first_domain
+  first_domain="$(echo "${SERVER_NAME}" | awk '{print $1}')"
+  for d in /etc/nginx/sites-enabled /etc/nginx/sites-available /etc/nginx/conf.d; do
     if [[ ! -d "${d}" ]]; then
       continue
     fi
     shopt -s nullglob
     for f in "${d}"/*; do
       base="$(basename "${f}")"
-      if [[ -n "${SKIP_BASENAME}" && "${base}" == "${SKIP_BASENAME}" ]]; then
+      if [[ "${base}" == *.bak* || "${base}" == *disabled* || "${base}" == *~ ]]; then
         continue
       fi
-      if [[ -f "${f}" ]] && grep -Eq "server_name[[:space:]].*${SERVER_NAME}" "${f}" 2>/dev/null; then
+      if [[ -f "${f}" ]] && grep -Eq "ssl_certificate\s+" "${f}" 2>/dev/null; then
+        echo "${f}"
+        return 0
+      fi
+    done
+  done
+  for d in /etc/nginx/sites-enabled /etc/nginx/sites-available /etc/nginx/conf.d; do
+    if [[ ! -d "${d}" ]]; then
+      continue
+    fi
+    shopt -s nullglob
+    for f in "${d}"/*; do
+      base="$(basename "${f}")"
+      if [[ "${base}" == *.bak* || "${base}" == *disabled* || "${base}" == *~ ]]; then
+        continue
+      fi
+      if [[ -f "${f}" ]] && grep -Eq "server_name[[:space:]].*${first_domain}" "${f}" 2>/dev/null; then
         echo "${f}"
         return 0
       fi
@@ -418,8 +435,27 @@ if existing:
         if s.startswith("ssl_dhparam "):
             includes.append(s)
 
-    if ssl_cert and ssl_key and listen443:
+    if ssl_cert and ssl_key:
+        if not listen443:
+            listen443 = "  listen 443 ssl;\n  listen [::]:443 ssl;"
         has_ssl = 1
+
+if not has_ssl:
+    first_domain = server_name.split()[0]
+    for check_dir in [f"/etc/letsencrypt/live/{first_domain}", "/etc/letsencrypt/live/spornerede.net"]:
+        p_dir = Path(check_dir)
+        c = p_dir / "fullchain.pem"
+        k = p_dir / "privkey.pem"
+        if c.exists() and k.exists():
+            has_ssl = 1
+            listen443 = "  listen 443 ssl;\n  listen [::]:443 ssl;\n  absolute_redirect off;"
+            ssl_cert = f"  ssl_certificate {c};"
+            ssl_key = f"  ssl_certificate_key {k};"
+            if Path("/etc/letsencrypt/options-ssl-nginx.conf").exists():
+                includes.append("  include /etc/letsencrypt/options-ssl-nginx.conf;")
+            if Path("/etc/letsencrypt/ssl-dhparams.pem").exists():
+                includes.append("  ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;")
+            break
 
 print(f"UPSTREAM_HOST={upstream_host}")
 print(f"UPSTREAM_PORT={upstream_port}")
@@ -573,7 +609,7 @@ EXISTING="${4:-}"
 
 install -d "$(dirname "${DST}")" "$(dirname "${ENABLED}")"
 
-if [[ -n "${EXISTING}" && -f "${EXISTING}" ]]; then
+if [[ -n "${EXISTING}" && -f "${EXISTING}" && "${EXISTING}" != "${ENABLED}" && "${EXISTING}" != "${DST}" ]]; then
   ts="$(date -u +"%Y%m%dT%H%M%SZ")"
   dis="/etc/nginx/sites-enabled.disabled"
   install -d "${dis}"

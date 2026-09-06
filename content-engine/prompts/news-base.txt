@@ -21,7 +21,8 @@ Kurallar:
 
 PLATFORM VERISI (gercek; somut yazmak icin kullan):
 {{REAL_DATA}}
-- Yukaridaki gercek verilerden en az 2-3 somut detayi (semt, yas grubu, gun/saat, ucret, ornek program) metne dogal sekilde yedir.
+- Yukaridaki gercek verilerden en az 2-3 somut detayi (kulup adlari, semt, yas grubu, gun/saat, ucret, ornek program) metne dogal sekilde yedir.
+- Onayli kulup adlari verilmisse (orn. X Spor Kulubu), ailelerin bolgede bu gibi onayli kulup ve programlari SporNerede uzerinden inceleyebilecegini dogal olarak belirt.
 - Veri yoksa SAYI/ISIM UYDURMA; o zaman konuya ozgu, genel ama klise olmayan bir metin yaz.
 
 OZGUNLUK (cok onemli):

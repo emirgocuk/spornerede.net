@@ -33,7 +33,8 @@ export default defineConfig({
   integrations: [
     sitemap({
       filter: (page) => {
-        // Admin, panel, API ve form sayfalari sitemap'e girmesin
+        // Admin, merkez, panel, API ve form sayfalari sitemap'e girmesin
+        if (page.includes('/merkez')) return false;
         if (page.includes('/admin')) return false;
         if (page.includes('/panel')) return false;
         if (page.includes('/api/')) return false;

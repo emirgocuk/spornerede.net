@@ -44,6 +44,7 @@ const SSR_CACHE_PATHS: Array<{ test: RegExp; control: string }> = [
 ];
 
 const NEVER_CACHE_PATHS = [
+  '/merkez',
   '/admin',
   '/panel',
   '/basvuru',
@@ -59,6 +60,19 @@ function pickCacheControl(pathname: string): string | null {
   }
   return null;
 }
+
+import { isCsrfSafe } from './lib/security/csrf';
+
+const csrfProtection = defineMiddleware(async (context, next) => {
+  if (!isCsrfSafe(context.request)) {
+    console.warn(`[security] Blocked cross-origin request to ${context.url.pathname} from Origin: ${context.request.headers.get('origin')} Referer: ${context.request.headers.get('referer')}`);
+    return new Response(
+      JSON.stringify({ error: 'Geçersiz veya engellenen istek (CSRF/Origin hatası).' }),
+      { status: 403, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+  return next();
+});
 
 const cacheAndSecurityHeaders = defineMiddleware(async (context, next) => {
   const response = await next();
@@ -98,11 +112,16 @@ const cacheAndSecurityHeaders = defineMiddleware(async (context, next) => {
     }
   }
 
-  // Guvenlik header'lari (sadece HTML response'lara)
+  // Tum yanitlara MIME sniffing engeli ve HSTS
+  if (!response.headers.has('x-content-type-options')) {
+    response.headers.set('X-Content-Type-Options', 'nosniff');
+  }
+  if (!response.headers.has('strict-transport-security')) {
+    response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
+
+  // Sadece HTML yanitlarina ozel ek guvenlik basliklari
   if (contentType.includes('text/html')) {
-    if (!response.headers.has('x-content-type-options')) {
-      response.headers.set('X-Content-Type-Options', 'nosniff');
-    }
     if (!response.headers.has('x-frame-options')) {
       response.headers.set('X-Frame-Options', 'SAMEORIGIN');
     }
@@ -120,4 +139,5 @@ const cacheAndSecurityHeaders = defineMiddleware(async (context, next) => {
   return response;
 });
 
-export const onRequest = sequence(cacheAndSecurityHeaders);
+export const onRequest = sequence(csrfProtection, cacheAndSecurityHeaders);
+

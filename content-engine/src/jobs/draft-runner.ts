@@ -3,6 +3,7 @@ import { getAdminPb } from '../pb/client.js';
 import { generateArticleParsed } from '../llm/generate-article.js';
 import { buildInternalLinks, buildSiteContext } from '../lib/site-context.js';
 import { ensureContentEngineCollections } from '../lib/ensure-collections.js';
+import { injectFeaturedImageToHtml } from '../lib/sports-images.js';
 
 export type DraftRunResult =
   | {
@@ -113,13 +114,14 @@ export async function runDraftPipeline(): Promise<DraftRunResult> {
   }
 
   const uniqueSlug = await ensureUniqueSlug(pb, parsed.slug);
+  const icerik_html = injectFeaturedImageToHtml(parsed.icerik_html, anahtar || parsed.baslik);
 
   const record = await pb.collection('rehber_yazilari').create({
     baslik: parsed.baslik,
     slug: uniqueSlug,
     meta_title: parsed.meta_title,
     meta_description: parsed.meta_description,
-    icerik_html: parsed.icerik_html,
+    icerik_html,
     icerik_json: parsed.icerik_json,
     anahtar_kelime_id: keyword.id,
     ic_linkler: icLinkler.split('\n').filter(Boolean),

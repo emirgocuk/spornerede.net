@@ -7,6 +7,8 @@ import type { BasvuruIlanInput } from '../../lib/repositories/applicationProgram
 import { createClubApplication } from '../../lib/repositories/applications';
 import { enqueueMail, processMailQueue } from '../../lib/mail/service';
 import { buildApplicationNotificationMail } from '../../lib/mail/templates';
+import { checkRateLimit, getClientIp } from '../../lib/security/rateLimiter';
+import { isValidDocumentSignature } from '../../lib/security/fileValidation';
 
 export const prerender = false;
 
@@ -73,6 +75,16 @@ function parseIlanlarFromFormData(formData: FormData, branchCount: number): Basv
 
 export const POST: APIRoute = async ({ request }) => {
   try {
+    const clientIp = getClientIp(request);
+    const ipLimit = checkRateLimit(`basvuru:ip:${clientIp}`, {
+      max: 5,
+      windowSeconds: 600,
+      blockSeconds: 600,
+    });
+    if (!ipLimit.allowed) {
+      return redirectToForm(request, { error: 'rate_limit' });
+    }
+
     const formData = await request.formData();
 
     const kulupad = formData.get('kulupad')?.toString().trim() || '';
@@ -127,10 +139,14 @@ export const POST: APIRoute = async ({ request }) => {
       if (file.size > MAX_FILE_SIZE) continue;
       if (!ALLOWED_MIME_TYPES.has(file.type)) continue;
 
+      const bytes = Buffer.from(await file.arrayBuffer());
+      if (!isValidDocumentSignature(bytes)) {
+        continue;
+      }
+
       const safeName = sanitizeFilename(file.name);
       const diskFilename = `${Date.now()}-${randomUUID()}-${safeName}`;
       const diskPath = path.join(uploadRoot, diskFilename);
-      const bytes = Buffer.from(await file.arrayBuffer());
       await fs.writeFile(diskPath, bytes);
 
       await createApplicationDocument({

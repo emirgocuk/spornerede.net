@@ -11,6 +11,7 @@ type FieldDef = {
   type: string;
   required?: boolean;
   unique?: boolean;
+  max?: number;
 };
 
 const collections: Array<{ name: string; fields: FieldDef[] }> = [
@@ -34,7 +35,7 @@ const collections: Array<{ name: string; fields: FieldDef[] }> = [
       { name: 'slug', type: 'text', required: true, unique: true },
       { name: 'meta_title', type: 'text' },
       { name: 'meta_description', type: 'text' },
-      { name: 'icerik_html', type: 'text' },
+      { name: 'icerik_html', type: 'text', max: 200000 },
       { name: 'icerik_json', type: 'json' },
       { name: 'anahtar_kelime_id', type: 'text' },
       { name: 'ic_linkler', type: 'json' },

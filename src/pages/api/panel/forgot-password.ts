@@ -2,15 +2,36 @@ import type { APIRoute } from 'astro';
 import { createPasswordResetToken, findUserByEmail } from '../../../lib/repositories/auth';
 import { enqueueMail, processMailQueue } from '../../../lib/mail/service';
 import { buildPasswordResetMail } from '../../../lib/mail/templates';
+import { checkRateLimit, getClientIp } from '../../../lib/security/rateLimiter';
 
 export const prerender = false;
 
 export const POST: APIRoute = async ({ request }) => {
+  const successRedirect = new URL('/panel/sifremi-unuttum?sent=1', request.url);
+
+  const clientIp = getClientIp(request);
+  const ipLimit = checkRateLimit(`forgot-password:ip:${clientIp}`, {
+    max: 5,
+    windowSeconds: 1800, // 30 minutes
+    blockSeconds: 1800,
+  });
+  if (!ipLimit.allowed) {
+    return Response.redirect(successRedirect, 303);
+  }
+
   const formData = await request.formData().catch(() => null);
   const email = formData?.get('email')?.toString().trim().toLowerCase() ?? '';
 
-  const successRedirect = new URL('/panel/sifremi-unuttum?sent=1', request.url);
   if (!email) {
+    return Response.redirect(successRedirect, 303);
+  }
+
+  const emailLimit = checkRateLimit(`forgot-password:email:${email}`, {
+    max: 3,
+    windowSeconds: 1800,
+    blockSeconds: 1800,
+  });
+  if (!emailLimit.allowed) {
     return Response.redirect(successRedirect, 303);
   }
 

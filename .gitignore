@@ -17,6 +17,8 @@ pnpm-debug.log*
 
 # local backups (GitHub'a yuklenmez)
 backups/
+pocketbase/pb_data/*.db-wal
+pocketbase/pb_data/*.db-shm
 
 # environment variables (asla commit etmeyin)
 .env

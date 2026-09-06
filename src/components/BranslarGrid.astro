@@ -11,13 +11,24 @@ const ilanCountByBranch = new Map<string, number>();
 const clubCountByBranch = new Map<string, number>();
 
 for (const club of clubs) {
-  const branchSlug = String(club.bransSlug ?? '').trim();
-  if (!branchSlug) continue;
+  const clubBranchSlugs = new Set<string>();
+  if (Array.isArray(club.allBranchSlugs) && club.allBranchSlugs.length > 0) {
+    for (const s of club.allBranchSlugs) {
+      if (s && typeof s === 'string') clubBranchSlugs.add(s.trim());
+    }
+  }
+  if (club.bransSlug) {
+    clubBranchSlugs.add(String(club.bransSlug).trim());
+  }
+
   const ilanCount = Array.isArray(club.programlar) ? club.programlar.length : 0;
-  const current = ilanCountByBranch.get(branchSlug) ?? 0;
-  ilanCountByBranch.set(branchSlug, current + ilanCount);
-  const clubCurrent = clubCountByBranch.get(branchSlug) ?? 0;
-  clubCountByBranch.set(branchSlug, clubCurrent + 1);
+  for (const branchSlug of clubBranchSlugs) {
+    if (!branchSlug) continue;
+    const current = ilanCountByBranch.get(branchSlug) ?? 0;
+    ilanCountByBranch.set(branchSlug, current + ilanCount);
+    const clubCurrent = clubCountByBranch.get(branchSlug) ?? 0;
+    clubCountByBranch.set(branchSlug, clubCurrent + 1);
+  }
 }
 
 const sortByActivity = (a: (typeof branslar)[0], b: (typeof branslar)[0]) => {
@@ -32,8 +43,7 @@ const sortByActivity = (a: (typeof branslar)[0], b: (typeof branslar)[0]) => {
 
 const topBranslar = [...branslar]
   .filter((branch) => (clubCountByBranch.get(branch.slug) ?? 0) > 0)
-  .sort(sortByActivity)
-  .slice(0, 20);
+  .sort(sortByActivity);
 ---
 
 <section class="branslar-section section" aria-labelledby="branslar-baslik">
@@ -60,7 +70,7 @@ const topBranslar = [...branslar]
             <a
               href={`/ara?brans=${encodeURIComponent(brans.slug)}`}
               class="brans-kart animate-fade-in-up"
-              style={`animation-delay: ${index * 0.05}s`}
+              style={`animation-delay: ${(Math.min(index, 16) * 0.03).toFixed(2)}s`}
               role="listitem"
               aria-label={`${brans.isim} kurslarını ara`}
             >

@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro';
 import { createContactMessage } from '../../lib/repositories/contactMessages';
+import { checkRateLimit, getClientIp } from '../../lib/security/rateLimiter';
 
 export const prerender = false;
 
@@ -17,6 +18,16 @@ function redirectWith(request: Request, status: 'success' | 'error') {
 
 export const POST: APIRoute = async ({ request }) => {
   try {
+    const clientIp = getClientIp(request);
+    const ipLimit = checkRateLimit(`contact:ip:${clientIp}`, {
+      max: 5,
+      windowSeconds: 600,
+      blockSeconds: 600,
+    });
+    if (!ipLimit.allowed) {
+      return redirectWith(request, 'error');
+    }
+
     const formData = await request.formData();
     const adSoyad = formData.get('adsoyad')?.toString().trim() || '';
     const telefon = formData.get('telefon')?.toString().trim() || '';

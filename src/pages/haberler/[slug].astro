@@ -1,10 +1,8 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import ArticleDetail from '../../components/ArticleDetail.astro';
-import InternalLinksHub from '../../components/InternalLinksHub.astro';
 import { getActiveNews, getActiveNewsBySlug } from '../../lib/repositories/news';
-import { getPublishedGuides } from '../../lib/repositories/seoArticles';
-import { buildAraSearchFromNews, pickGuidesForNews, detectNewsBranchTags } from '../../lib/seo/internalLinks';
+import { detectNewsBranchTags } from '../../lib/seo/internalLinks';
 import { newsArticleSchema } from '../../lib/seo/jsonld';
 
 export const prerender = false;
@@ -19,9 +17,6 @@ if (!haber) {
 const allNews = await getActiveNews();
 const relatedNews = allNews.filter((item) => item.slug !== slug).slice(0, 4);
 
-const publishedGuides = haber ? await getPublishedGuides() : [];
-const relatedGuides = haber ? pickGuidesForNews(haber, publishedGuides, 3) : [];
-const araSearch = haber ? buildAraSearchFromNews(haber) : null;
 const branchTag = haber ? detectNewsBranchTags(haber) : null;
 
 const pageTitle = haber?.seoTitle || haber?.baslik || 'Haber Bulunamadı';
@@ -103,25 +98,6 @@ const breadcrumbs = haber
       </div>
 
       <div slot="aside">
-        <InternalLinksHub
-          title="İlgili Rehberler ve Bölgesel Kurs Aramaları"
-          araLink={
-            araSearch
-              ? {
-                  href: araSearch.href,
-                  title: araSearch.label,
-                  description: araSearch.description,
-                  chips: araSearch.chips,
-                }
-              : undefined
-          }
-          guideLinks={relatedGuides.map((g) => ({
-            href: `/rehber/${g.slug}`,
-            title: g.baslik,
-            description: g.metaDescription,
-          }))}
-        />
-
         {relatedNews.length > 0 && (
           <>
             <h2>Diğer Haberler & Güncel Duyurular</h2>

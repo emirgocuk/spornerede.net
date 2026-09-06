@@ -6,6 +6,7 @@ import {
   suggestNewsCategory,
   wrapOzetWithKonu,
 } from '../lib/news-draft-quality.js';
+import { injectFeaturedImageToHtml } from '../lib/sports-images.js';
 import { buildNewsSlug, stripHtml } from '../lib/slugify.js';
 
 export type NewsDraftInput = {
@@ -45,6 +46,7 @@ export async function createNewsDraft(pb: PocketBase, input: NewsDraftInput) {
 <h2>Kimler icin uygun?</h2><p>...</p>
 <h2>Program</h2><ul><li>...</li></ul>
 <h2>Kayit ve kayit sureci</h2><p>SporNerede ile kurs ara.</p>`;
+  body = injectFeaturedImageToHtml(body, konu);
   body = injectNewsInternalLinks(body, konu, cfg.siteUrl);
   const ozet = metaPrefix ? `${metaPrefix}\n${body}` : wrapOzetWithKonu(konu, body);
   const suggested = suggestNewsCategory(konu);

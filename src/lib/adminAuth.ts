@@ -1,4 +1,15 @@
+import crypto from 'node:crypto';
 import { getCurrentSessionUser } from './auth/session';
+
+function safeCompare(a: string, b: string): boolean {
+  if (!a || !b) return false;
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  if (bufA.length !== bufB.length) {
+    return false;
+  }
+  return crypto.timingSafeEqual(bufA, bufB);
+}
 
 export async function isAdminAuthorized(request: Request) {
   const session = await getCurrentSessionUser(request).catch(() => null);
@@ -12,13 +23,12 @@ export async function isAdminAuthorized(request: Request) {
   }
 
   const authHeader = request.headers.get('authorization') ?? '';
-  const tokenFromHeader = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
-  if (tokenFromHeader && tokenFromHeader === expected) {
+  const tokenFromHeader = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+  if (tokenFromHeader && safeCompare(tokenFromHeader, expected)) {
     return true;
   }
 
-  const url = new URL(request.url);
-  const tokenFromQuery = url.searchParams.get('token') ?? '';
-  return tokenFromQuery === expected;
+  return false;
 }
+
 
