@@ -60,6 +60,10 @@
 html {
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
+  overflow-x: hidden;
+  background-color: #0D0D0D; /* Hero ile uyumlu arka plan; subpixel üst boşluğu önler */
+  scrollbar-color: #343A40 #0D0D0D;
+  scrollbar-width: thin;
 }
 
 body {
@@ -69,6 +73,48 @@ body {
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* === ÖZEL MODERN SCROLLBAR (Windows varsayılan beyaz scrollbar şeridini yok eder) === */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0D0D0D;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #343A40;
+  border-radius: 5px;
+  border: 2px solid #0D0D0D;
+}
+
+/* === ERİŞİLEBİLİRLİK (Skip Link) === */
+.skip-link {
+  position: absolute !important;
+  top: -9999px !important;
+  left: -9999px !important;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  z-index: 99999;
+  padding: 0.75rem 1.5rem;
+  background-color: #E30A17;
+  color: #ffffff;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  border-radius: 0.5rem;
+  text-decoration: none;
+}
+
+.skip-link:focus {
+  top: 1rem !important;
+  left: 1rem !important;
+  width: auto;
+  height: auto;
+  overflow: visible;
 }
 
 img, video {
@@ -124,6 +170,24 @@ button {
 }
 
 .btn-primary:active {
+  transform: translateY(0);
+}
+
+.btn-secondary {
+  background-color: #F8F9FA;
+  color: #212529;
+  border-color: #DEE2E6;
+}
+
+.btn-secondary:hover {
+  background-color: #E9ECEF;
+  border-color: #CED4DA;
+  color: #000000;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+}
+
+.btn-secondary:active {
   transform: translateY(0);
 }
 

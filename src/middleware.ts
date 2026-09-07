@@ -64,6 +64,11 @@ function pickCacheControl(pathname: string): string | null {
 import { isCsrfSafe } from './lib/security/csrf';
 
 const csrfProtection = defineMiddleware(async (context, next) => {
+  // Public başvuru ve iletişim formları mobil WebViews, WhatsApp ve dış bağlantılardan engelsiz erişilebilir
+  if (context.url.pathname === '/api/basvuru' || context.url.pathname === '/api/contact') {
+    return next();
+  }
+
   if (!isCsrfSafe(context.request)) {
     console.warn(`[security] Blocked cross-origin request to ${context.url.pathname} from Origin: ${context.request.headers.get('origin')} Referer: ${context.request.headers.get('referer')}`);
     return new Response(

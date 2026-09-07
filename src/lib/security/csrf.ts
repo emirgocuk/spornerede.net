@@ -5,10 +5,21 @@
  */
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+const PUBLIC_MUTATING_PATHS = new Set(['/api/basvuru', '/api/contact']);
 
 export function isCsrfSafe(request: Request): boolean {
   if (SAFE_METHODS.has(request.method.toUpperCase())) {
     return true;
+  }
+
+  // Public lead capture endpoints are open to all visitors (mobile apps, WebViews, etc.)
+  try {
+    const urlPath = new URL(request.url).pathname;
+    if (PUBLIC_MUTATING_PATHS.has(urlPath)) {
+      return true;
+    }
+  } catch {
+    // URL parsing failed, proceed to header checks
   }
 
   // If request carries Bearer token or internal machine token, it's not a browser CSRF

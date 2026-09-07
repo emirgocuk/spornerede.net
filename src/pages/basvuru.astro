@@ -15,6 +15,7 @@ const errorMessages: Record<string, string> = {
   missing: 'Lütfen zorunlu alanları eksiksiz doldurun.',
   email: 'Lütfen geçerli bir e-posta adresi yazın.',
   server: 'Başvuru gönderilemedi. Lütfen tekrar deneyin.',
+  rate_limit: 'Çok fazla istek gönderildi. Lütfen biraz bekleyip tekrar deneyin.',
 };
 const errorMessage = errorMessages[errorCode] ?? '';
 
@@ -103,72 +104,219 @@ const adimlar = [
           <main class="basvuru-form-card" id="main-content">
 
             {success ? (
-              <!-- Başarı durumu -->
-              <div class="success-state" role="alert" aria-live="polite">
-                <div class="success-icon" aria-hidden="true">✅</div>
-                <h2 class="success-title">Başvurunuz Alındı!</h2>
-                <p class="success-desc">
-                  Başvurunuzu inceleyeceğiz ve en kısa sürede ilanlarınız ücretsiz olarak yayınlanacaktır.
-                </p>
-                <a href="/" class="btn btn-primary">Ana Sayfaya Dön</a>
-              </div>
-            ) : (
-              <form
-                id="basvuru-form"
-                method="post"
-                action="/api/basvuru"
-                novalidate
-                aria-label="Kulüp Başvuru Formu"
-              >
-
-                <BasvuruFormSections
-                  cities={CITIES}
-                  bransListesi={bransListesi}
-                  errorMessage={errorMessage || undefined}
-                />
-
-                <!-- Submit -->
-                <div class="form-submit-area">
-                  <p class="form-gizlilik">
-                    Başvurarak <a href="/gizlilik" class="gizlilik-link">Gizlilik Politikası</a>'nı kabul etmiş olursunuz. Bilgileriniz üçüncü taraflarla paylaşılmaz.
-                  </p>
-                  <button type="submit" class="btn btn-primary btn-lg submit-btn" id="basvuru-submit-btn">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <!-- Başarı durumu (SSR Fallback) -->
+              <div class="success-card" role="alert" aria-live="polite">
+                <div class="success-badge-wrapper">
+                  <div class="success-badge-glow"></div>
+                  <div class="success-badge-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                       <polyline points="20 6 9 17 4 12"/>
                     </svg>
-                    Ücretsiz Başvuruyu Gönder
-                  </button>
+                  </div>
                 </div>
 
-                <div class="form-contact-card">
-                  <h3 class="form-contact-title">Sorularınız mı var?</h3>
-                  <p class="form-contact-text">Başvuru süreciyle ilgili yardım için bize ulaşın:</p>
-                  <div class="form-contact-actions">
+                <span class="success-pill">🏆 Başvurunuz Alındı</span>
+                <h2 class="success-title">Tebrikler, Başvurunuz Başarıyla İletildi!</h2>
+                <p class="success-desc">
+                  Kulüp başvurunuz sisteme başarıyla kaydedildi. Editörlerimiz bilgilerinizi inceledikten sonra ilanınız ücretsiz olarak yayına alınacaktır.
+                </p>
+
+                <div class="success-steps-box">
+                  <h3 class="success-steps-title">Bundan sonra ne olacak?</h3>
+                  <div class="success-steps-list">
+                    <div class="success-step-item">
+                      <div class="success-step-num">1</div>
+                      <div class="success-step-info">
+                        <strong>Ön İnceleme</strong>
+                        <span>Kulüp ve branş bilgileriniz editörlerimizce incelenir.</span>
+                      </div>
+                    </div>
+                    <div class="success-step-item">
+                      <div class="success-step-num">2</div>
+                      <div class="success-step-info">
+                        <strong>İletişim & Teyit</strong>
+                        <span>Gerekli durumlarda yetkili telefonunuzdan teyit için bilgi alınır.</span>
+                      </div>
+                    </div>
+                    <div class="success-step-item">
+                      <div class="success-step-num">3</div>
+                      <div class="success-step-info">
+                        <strong>Ücretsiz Yayın</strong>
+                        <span>İlanınız vitrinde ailelerin ve sporcuların erişimine açılır.</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="success-actions">
+                  <a href="/" class="btn btn-primary btn-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                      <polyline points="9 22 9 12 15 22"/>
+                    </svg>
+                    Ana Sayfaya Dön
+                  </a>
+                  <a href="/basvuru" class="btn btn-secondary btn-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M12 5v14M5 12h14"/>
+                    </svg>
+                    Yeni Başvuru Yap
+                  </a>
+                </div>
+
+                <div class="success-whatsapp-box">
+                  <img src="/icons/whatsapp.svg" alt="" width="26" height="26" />
+                  <div class="success-whatsapp-text">
+                    <strong>Sorularınız veya acil talepleriniz mi var?</strong>
+                    <span>WhatsApp destek hattımız üzerinden doğrudan ekibimize ulaşabilirsiniz.</span>
+                  </div>
+                  <a
+                    href="https://wa.me/905362982218?text=Merhaba,%20kulüp%20başvurumuzu%20tamamladık,%20bilgi%20almak%20istiyoruz."
+                    class="btn-success-whatsapp"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    WhatsApp Destek
+                  </a>
+                </div>
+              </div>
+            ) : (
+              <>
+                <!-- İstemci tarafı (AJAX) dinamik başarı durumu -->
+                <div class="success-card" id="client-success-view" style="display:none;" role="alert" aria-live="polite">
+                  <div class="success-badge-wrapper">
+                    <div class="success-badge-glow"></div>
+                    <div class="success-badge-icon">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"/>
+                      </svg>
+                    </div>
+                  </div>
+
+                  <span class="success-pill">🏆 Başvurunuz Alındı</span>
+                  <h2 class="success-title">Tebrikler, Başvurunuz Başarıyla İletildi!</h2>
+                  <p class="success-desc">
+                    <strong id="success-club-name" class="success-highlight-club">Kulübünüzün</strong> başvurusu sisteme başarıyla kaydedildi. Editörlerimiz bilgilerinizi inceledikten sonra ilanınız ücretsiz olarak yayına alınacaktır.
+                  </p>
+
+                  <div class="success-steps-box">
+                    <h3 class="success-steps-title">Bundan sonra ne olacak?</h3>
+                    <div class="success-steps-list">
+                      <div class="success-step-item">
+                        <div class="success-step-num">1</div>
+                        <div class="success-step-info">
+                          <strong>Ön İnceleme</strong>
+                          <span>Kulüp ve branş bilgileriniz editörlerimizce incelenir.</span>
+                        </div>
+                      </div>
+                      <div class="success-step-item">
+                        <div class="success-step-num">2</div>
+                        <div class="success-step-info">
+                          <strong>İletişim & Teyit</strong>
+                          <span>Gerekli durumlarda yetkili telefonunuzdan teyit için bilgi alınır.</span>
+                        </div>
+                      </div>
+                      <div class="success-step-item">
+                        <div class="success-step-num">3</div>
+                        <div class="success-step-info">
+                          <strong>Ücretsiz Yayın</strong>
+                          <span>İlanınız vitrinde ailelerin ve sporcuların erişimine açılır.</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="success-actions">
+                    <a href="/" class="btn btn-primary btn-lg">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                        <polyline points="9 22 9 12 15 22"/>
+                      </svg>
+                      Ana Sayfaya Dön
+                    </a>
+                    <button type="button" class="btn btn-secondary btn-lg" id="btn-new-application">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M12 5v14M5 12h14"/>
+                      </svg>
+                      Yeni Başvuru Yap
+                    </button>
+                  </div>
+
+                  <div class="success-whatsapp-box">
+                    <img src="/icons/whatsapp.svg" alt="" width="26" height="26" />
+                    <div class="success-whatsapp-text">
+                      <strong>Sorularınız veya acil talepleriniz mi var?</strong>
+                      <span>WhatsApp destek hattımız üzerinden doğrudan ekibimize ulaşabilirsiniz.</span>
+                    </div>
                     <a
-                      href="https://wa.me/905362982218"
-                      class="form-contact-action form-contact-action--whatsapp"
+                      href="https://wa.me/905362982218?text=Merhaba,%20kulüp%20başvurumuzu%20tamamladık,%20bilgi%20almak%20istiyoruz."
+                      class="btn-success-whatsapp"
                       target="_blank"
                       rel="noopener noreferrer"
-                      aria-label="WhatsApp ile doğrudan mesaj gönder"
                     >
-                      <img src="/icons/whatsapp.svg" alt="" aria-hidden="true" width="16" height="16" />
-                      WhatsApp'tan Ulaş
-                    </a>
-                    <a
-                      href="mailto:info@spornerede.net"
-                      class="form-contact-action form-contact-action--email"
-                      aria-label="E-posta ile iletişime geç"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-                        <polyline points="22,6 12,13 2,6"/>
-                      </svg>
-                      info@spornerede.net
+                      WhatsApp Destek
                     </a>
                   </div>
                 </div>
 
-              </form>
+                <form
+                  id="basvuru-form"
+                  method="post"
+                  action="/api/basvuru"
+                  novalidate
+                  aria-label="Kulüp Başvuru Formu"
+                >
+                  <div id="form-error-banner" class="form-alert form-alert--error" style="display:none;" role="alert" aria-live="polite"></div>
+
+                  <BasvuruFormSections
+                    cities={CITIES}
+                    bransListesi={bransListesi}
+                    errorMessage={errorMessage || undefined}
+                  />
+
+                  <!-- Submit -->
+                  <div class="form-submit-area">
+                    <p class="form-gizlilik">
+                      Başvurarak <a href="/gizlilik" class="gizlilik-link">Gizlilik Politikası</a>'nı kabul etmiş olursunuz. Bilgileriniz üçüncü taraflarla paylaşılmaz.
+                    </p>
+                    <button type="submit" class="btn btn-primary btn-lg submit-btn" id="basvuru-submit-btn">
+                      <svg class="submit-btn-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <polyline points="20 6 9 17 4 12"/>
+                      </svg>
+                      <span class="submit-btn-text">Ücretsiz Başvuruyu Gönder</span>
+                    </button>
+                  </div>
+
+                  <div class="form-contact-card">
+                    <h3 class="form-contact-title">Sorularınız mı var?</h3>
+                    <p class="form-contact-text">Başvuru süreciyle ilgili yardım için bize ulaşın:</p>
+                    <div class="form-contact-actions">
+                      <a
+                        href="https://wa.me/905362982218"
+                        class="form-contact-action form-contact-action--whatsapp"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="WhatsApp ile doğrudan mesaj gönder"
+                      >
+                        <img src="/icons/whatsapp.svg" alt="" aria-hidden="true" width="16" height="16" />
+                        WhatsApp'tan Ulaş
+                      </a>
+                      <a
+                        href="mailto:info@spornerede.net"
+                        class="form-contact-action form-contact-action--email"
+                        aria-label="E-posta ile iletişime geç"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                          <polyline points="22,6 12,13 2,6"/>
+                        </svg>
+                        info@spornerede.net
+                      </a>
+                    </div>
+                  </div>
+
+                </form>
+              </>
             )}
           </main>
 
@@ -362,7 +510,179 @@ const adimlar = [
     }
     document.getElementById('basvuru-form')?.addEventListener('input', saveFormDraft);
     document.getElementById('basvuru-form')?.addEventListener('change', saveFormDraft);
-    document.getElementById('basvuru-form')?.addEventListener('submit', saveFormDraft);
+
+    // AJAX Form Submit Handler (Sayfa yönlendirmesi olmaksızın, yerinde işlem)
+    const formEl = document.getElementById('basvuru-form');
+    const submitBtn = document.getElementById('basvuru-submit-btn');
+    const errorBanner = document.getElementById('form-error-banner');
+    const clientSuccessView = document.getElementById('client-success-view');
+
+    function showError(message) {
+      if (!errorBanner) return;
+      errorBanner.innerHTML = `
+        <div class="form-alert-flex">
+          <div class="form-alert-msg-wrap">
+            <span class="form-alert-icon">⚠️</span>
+            <span class="form-alert-msg">${message}</span>
+          </div>
+          <a
+            href="https://wa.me/905362982218?text=${encodeURIComponent('Merhaba, siteden kulüp başvurusu yaparken bir sorun yaşadım. Yardımcı olabilir misiniz?')}"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="form-alert-wa-btn"
+          >
+            <img src="/icons/whatsapp.svg" alt="" width="14" height="14" />
+            WhatsApp'tan İlet
+          </a>
+        </div>
+      `;
+      errorBanner.style.display = 'block';
+      errorBanner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    function hideError() {
+      if (!errorBanner) return;
+      errorBanner.style.display = 'none';
+      errorBanner.innerHTML = '';
+    }
+
+    formEl?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      hideError();
+      saveFormDraft();
+
+      // İstemci tarafı temel doğrulamalar
+      const kulupAdVal = getDraftValue('kulup-ad').trim();
+      if (!kulupAdVal) {
+        showError('Lütfen kulüp veya kurs adınızı yazın.');
+        document.getElementById('kulup-ad')?.focus();
+        return;
+      }
+
+      const ilVal = (citySelect instanceof HTMLSelectElement ? citySelect.value : '').trim();
+      if (!ilVal) {
+        showError('Lütfen kulübünüzün bulunduğu ili seçin.');
+        citySelect?.focus();
+        return;
+      }
+
+      const ilceVal = (districtSelect instanceof HTMLSelectElement ? districtSelect.value : '').trim();
+      if (!ilceVal) {
+        showError('Lütfen ilçeyi seçin.');
+        districtSelect?.focus();
+        return;
+      }
+
+      const yetkiliVal = getDraftValue('yetkili-ad').trim();
+      if (!yetkiliVal) {
+        showError('Lütfen yetkili kişi ismini yazın.');
+        document.getElementById('yetkili-ad')?.focus();
+        return;
+      }
+
+      const telefonVal = getDraftValue('yetkili-telefon').trim();
+      if (!telefonVal) {
+        showError('Lütfen yetkili telefon numarasını yazın.');
+        document.getElementById('yetkili-telefon')?.focus();
+        return;
+      }
+
+      // Branş kontrolleri
+      const branchSections = Array.from(branchRoot?.querySelectorAll('[data-branch-section]') || []);
+      for (let i = 0; i < branchSections.length; i++) {
+        const bransEl = branchSections[i].querySelector('[data-field="brans"]');
+        if (bransEl instanceof HTMLSelectElement && !bransEl.value) {
+          showError(`Lütfen ${i + 1}. branş alanını seçin.`);
+          bransEl.focus();
+          return;
+        }
+      }
+
+      // Buton yükleniyor durumuna alınır (mükerrer tıklamayı önler)
+      const originalBtnContent = submitBtn ? submitBtn.innerHTML : '';
+      if (submitBtn instanceof HTMLButtonElement) {
+        submitBtn.disabled = true;
+        submitBtn.classList.add('is-loading');
+        submitBtn.innerHTML = `
+          <svg class="spinner" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle>
+            <path d="M12 2a10 10 0 0 1 10 10" stroke="#ffffff"></path>
+          </svg>
+          <span class="submit-btn-text">Başvurunuz Gönderiliyor...</span>
+        `;
+      }
+
+      try {
+        const formData = new FormData(formEl);
+        const response = await fetch('/api/basvuru', {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'Accept': 'application/json',
+          },
+        });
+
+        const data = await response.json().catch(() => null);
+
+        if (response.ok && data?.success) {
+          // Başarılı gönderim!
+          window.localStorage.removeItem(formDraftKey);
+          if (typeof window.spornereedeTrack === 'function') {
+            window.spornereedeTrack('application_success');
+          }
+
+          // Formu gizle, başarı ekranını göster
+          formEl.style.display = 'none';
+          if (clientSuccessView) {
+            const clubNameEl = document.getElementById('success-club-name');
+            if (clubNameEl) clubNameEl.textContent = kulupAdVal;
+            clientSuccessView.style.display = 'flex';
+            clientSuccessView.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        } else {
+          // Sunucu hatası
+          const msg = data?.message || 'Başvuru kaydedilirken bir hata oluştu. Lütfen tekrar deneyin.';
+          showError(msg);
+          if (submitBtn instanceof HTMLButtonElement) {
+            submitBtn.disabled = false;
+            submitBtn.classList.remove('is-loading');
+            submitBtn.innerHTML = originalBtnContent;
+          }
+        }
+      } catch (err) {
+        console.error('Başvuru gönderme hatası:', err);
+        showError('İnternet bağlantınızda bir sorun oluştu veya istek zaman aşımına uğradı. Lütfen tekrar deneyin veya doğrudan WhatsApp hattımızdan bize iletin.');
+        if (submitBtn instanceof HTMLButtonElement) {
+          submitBtn.disabled = false;
+          submitBtn.classList.remove('is-loading');
+          submitBtn.innerHTML = originalBtnContent;
+        }
+      }
+    });
+
+    document.getElementById('btn-new-application')?.addEventListener('click', () => {
+      if (clientSuccessView) clientSuccessView.style.display = 'none';
+      if (formEl) {
+        formEl.reset();
+        fillDistricts('');
+        hideError();
+        window.localStorage.removeItem(formDraftKey);
+        formEl.style.display = 'block';
+        syncBranchCount(1);
+        if (submitBtn instanceof HTMLButtonElement) {
+          submitBtn.disabled = false;
+          submitBtn.classList.remove('is-loading');
+          submitBtn.innerHTML = `
+            <svg class="submit-btn-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+            <span class="submit-btn-text">Ücretsiz Başvuruyu Gönder</span>
+          `;
+        }
+        formEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+
     if (new URLSearchParams(window.location.search).get('success') === '1') {
       window.localStorage.removeItem(formDraftKey);
       window.addEventListener('load', function () {
@@ -1208,31 +1528,328 @@ const adimlar = [
     .submit-btn { align-self: center; }
   }
 
-  /* ===== BAŞARI DURUMU ===== */
-  .success-state {
+  /* ===== BAŞARI KARTI (MODERN MOBİL ODAKLI) ===== */
+  .success-card {
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
-    padding: 3rem 1rem;
+    padding: 2.5rem 1.5rem;
     gap: 1.25rem;
+    animation: successFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  .success-icon {
-    font-size: 3.5rem;
+  @keyframes successFadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .success-badge-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0.5rem;
+  }
+
+  .success-badge-glow {
+    position: absolute;
+    width: 84px;
+    height: 84px;
+    border-radius: 50%;
+    background: rgba(34, 197, 94, 0.25);
+    filter: blur(16px);
+    animation: pulseGlow 2s infinite ease-in-out;
+  }
+
+  @keyframes pulseGlow {
+    0%, 100% { transform: scale(1); opacity: 0.6; }
+    50% { transform: scale(1.18); opacity: 0.9; }
+  }
+
+  .success-badge-icon {
+    position: relative;
+    width: 68px;
+    height: 68px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+    box-shadow: 0 10px 24px rgba(22, 163, 74, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+  }
+
+  .success-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.35rem 0.9rem;
+    background: #ecfdf5;
+    color: #065f46;
+    border: 1px solid #a7f3d0;
+    border-radius: 9999px;
+    font-size: 0.85rem;
+    font-weight: 700;
   }
 
   .success-title {
-    font-size: 1.75rem;
+    font-size: clamp(1.4rem, 3.5vw, 1.85rem);
     font-weight: 900;
-    color: #212529;
+    color: #111827;
+    margin: 0;
+    line-height: 1.25;
   }
 
   .success-desc {
-    font-size: 0.95rem;
-    color: #6C757D;
-    max-width: 400px;
+    font-size: 1rem;
+    color: #4b5563;
+    max-width: 520px;
     line-height: 1.6;
+    margin: 0;
+  }
+
+  .success-highlight-club {
+    color: #111827;
+    font-weight: 800;
+  }
+
+  .success-steps-box {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 1rem;
+    padding: 1.5rem;
+    width: 100%;
+    max-width: 560px;
+    text-align: left;
+    margin-top: 0.75rem;
+  }
+
+  .success-steps-title {
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: #1e293b;
+    margin: 0 0 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .success-steps-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+  }
+
+  .success-step-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .success-step-num {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #e0f2fe;
+    color: #0369a1;
+    font-size: 0.78rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 0.1rem;
+  }
+
+  .success-step-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    font-size: 0.88rem;
+    line-height: 1.45;
+  }
+
+  .success-step-info strong {
+    color: #1e293b;
+  }
+
+  .success-step-info span {
+    color: #64748b;
+  }
+
+  .success-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.85rem;
+    justify-content: center;
+    align-items: center;
+    margin-top: 0.75rem;
+    width: 100%;
+  }
+
+  .success-actions .btn {
+    min-width: 200px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    padding: 0.85rem 1.6rem;
+    border-radius: 0.75rem;
+    font-size: 1rem;
+    font-weight: 700;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .btn-secondary {
+    background-color: #F8F9FA;
+    color: #212529;
+    border: 2px solid #DEE2E6;
+  }
+
+  .btn-secondary:hover {
+    background-color: #E9ECEF;
+    border-color: #CED4DA;
+    color: #000000;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  }
+
+  .btn-secondary:active {
+    transform: translateY(0);
+  }
+
+  .success-whatsapp-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 1rem;
+    padding: 1.25rem 1.5rem;
+    width: 100%;
+    max-width: 560px;
+    text-align: center;
+    margin-top: 0.5rem;
+  }
+
+  @media (min-width: 540px) {
+    .success-whatsapp-box {
+      flex-direction: row;
+      text-align: left;
+    }
+  }
+
+  .success-whatsapp-text {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    font-size: 0.88rem;
+  }
+
+  .success-whatsapp-text strong {
+    color: #166534;
+  }
+
+  .success-whatsapp-text span {
+    color: #15803d;
+  }
+
+  .btn-success-whatsapp {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: #25D366;
+    color: #ffffff;
+    padding: 0.65rem 1.1rem;
+    border-radius: 0.75rem;
+    font-size: 0.88rem;
+    font-weight: 700;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+  }
+
+  .btn-success-whatsapp:hover {
+    background: #1fb957;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(37, 211, 102, 0.35);
+  }
+
+  /* ===== BUTTON LOADING & SPINNER ===== */
+  .submit-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-width: 280px;
+    transition: all 0.25s ease;
+  }
+
+  .submit-btn.is-loading {
+    opacity: 0.88;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  .spinner {
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  /* Form Alert Flex & Fallback Button */
+  .form-alert-flex {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: flex-start;
+  }
+
+  @media (min-width: 600px) {
+    .form-alert-flex {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+    }
+  }
+
+  .form-alert-msg-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .form-alert-wa-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: #25D366;
+    color: #ffffff;
+    font-size: 0.85rem;
+    font-weight: 700;
+    padding: 0.45rem 0.85rem;
+    border-radius: 0.6rem;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+  }
+
+  .form-alert-wa-btn:hover {
+    background: #1fb957;
+    color: #ffffff;
+    transform: translateY(-1px);
   }
 
   /* ===== SIDEBAR ===== */

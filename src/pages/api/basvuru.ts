@@ -7,7 +7,7 @@ import type { BasvuruIlanInput } from '../../lib/repositories/applicationProgram
 import { createClubApplication } from '../../lib/repositories/applications';
 import { enqueueMail, processMailQueue } from '../../lib/mail/service';
 import { buildApplicationNotificationMail } from '../../lib/mail/templates';
-import { checkRateLimit, getClientIp } from '../../lib/security/rateLimiter';
+import { getClientIp } from '../../lib/security/rateLimiter';
 import { isValidDocumentSignature } from '../../lib/security/fileValidation';
 
 export const prerender = false;
@@ -21,6 +21,7 @@ const ALLOWED_MIME_TYPES = new Set([
   'application/zip',
   'application/x-zip-compressed',
 ]);
+
 function getAppOrigin(request: Request) {
   const forwardedHost = request.headers.get('x-forwarded-host')?.split(',')[0]?.trim();
   if (forwardedHost) {
@@ -28,14 +29,42 @@ function getAppOrigin(request: Request) {
     return `${forwardedProto}://${forwardedHost}`;
   }
 
+  const hostHeader = request.headers.get('host')?.split(',')[0]?.trim();
+  if (hostHeader) {
+    const proto = request.url.startsWith('https') ? 'https' : 'http';
+    return `${proto}://${hostHeader}`;
+  }
+
   const configuredSiteUrl = process.env.SITE_URL ?? import.meta.env.SITE_URL;
   return configuredSiteUrl ? new URL(configuredSiteUrl).origin : new URL(request.url).origin;
 }
 
-function redirectToForm(request: Request, params: Record<string, string>) {
+function wantsJson(request: Request): boolean {
+  const accept = request.headers.get('accept') || '';
+  const xRequestedWith = request.headers.get('x-requested-with') || '';
+  return accept.includes('application/json') || xRequestedWith.toLowerCase() === 'xmlhttprequest';
+}
+
+function createApiResponse(
+  request: Request,
+  status: number,
+  data: { success: boolean; error?: string; message?: string }
+) {
+  if (wantsJson(request)) {
+    return new Response(JSON.stringify(data), {
+      status,
+      headers: {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Cache-Control': 'no-store',
+      },
+    });
+  }
+
   const url = new URL('/basvuru', getAppOrigin(request));
-  for (const [key, value] of Object.entries(params)) {
-    url.searchParams.set(key, value);
+  if (data.success) {
+    url.searchParams.set('success', '1');
+  } else if (data.error) {
+    url.searchParams.set('error', data.error);
   }
   return Response.redirect(url, 303);
 }
@@ -76,14 +105,7 @@ function parseIlanlarFromFormData(formData: FormData, branchCount: number): Basv
 export const POST: APIRoute = async ({ request }) => {
   try {
     const clientIp = getClientIp(request);
-    const ipLimit = checkRateLimit(`basvuru:ip:${clientIp}`, {
-      max: 5,
-      windowSeconds: 600,
-      blockSeconds: 600,
-    });
-    if (!ipLimit.allowed) {
-      return redirectToForm(request, { error: 'rate_limit' });
-    }
+    // Rate limit engeli kaldırıldı (başvurular tek tek manuel inceleniyor; mobil CGNAT/ortak IP'de bloklanma önlendi).
 
     const formData = await request.formData();
 
@@ -102,16 +124,28 @@ export const POST: APIRoute = async ({ request }) => {
     const ilanlar = parseIlanlarFromFormData(formData, bransSayisi);
 
     if (!kulupad || !il || !ilce || !yetkili || !telefon) {
-      return redirectToForm(request, { error: 'missing' });
+      return createApiResponse(request, 400, {
+        success: false,
+        error: 'missing',
+        message: 'Lütfen zorunlu alanları eksiksiz doldurun.',
+      });
     }
 
     if (ilanlar.length !== bransSayisi) {
-      return redirectToForm(request, { error: 'missing' });
+      return createApiResponse(request, 400, {
+        success: false,
+        error: 'missing',
+        message: 'Lütfen seçtiğiniz branş bilgilerini doldurun.',
+      });
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (email && !emailRegex.test(email)) {
-      return redirectToForm(request, { error: 'email' });
+      return createApiResponse(request, 400, {
+        success: false,
+        error: 'email',
+        message: 'Lütfen geçerli bir e-posta adresi yazın.',
+      });
     }
 
     const applicationResult = await createClubApplication({
@@ -173,19 +207,33 @@ export const POST: APIRoute = async ({ request }) => {
         paket,
         aciklama,
       });
-      await enqueueMail({
+
+      // E-posta kuyruğa atılır; istemci yanıtını geciktirmemek için arka planda işlenir.
+      enqueueMail({
         kind: 'application_notification',
         toEmail: ownerEmail,
         subject: template.subject,
         html: template.html,
         replyTo: email,
-      });
-      await processMailQueue(3).catch(() => undefined);
+      })
+        .then(() => processMailQueue(3))
+        .catch((mailErr) => {
+          console.error('[/api/basvuru] E-posta bildirim hatası (arka plan):', mailErr);
+        });
     }
 
-    return Response.redirect(new URL('/basvuru?success=1', getAppOrigin(request)), 303);
+    console.log(`[/api/basvuru] Yeni başvuru alındı: ID=${applicationResult.id}, Kulüp="${kulupad}", IP=${clientIp}`);
+
+    return createApiResponse(request, 200, {
+      success: true,
+      message: 'Başvurunuz başarıyla alındı.',
+    });
   } catch (err) {
     console.error('[/api/basvuru] Hata:', err);
-    return redirectToForm(request, { error: 'server' });
+    return createApiResponse(request, 500, {
+      success: false,
+      error: 'server',
+      message: 'Başvuru kaydedilirken bir hata oluştu. Lütfen tekrar deneyin.',
+    });
   }
 };
