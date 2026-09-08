@@ -23,14 +23,17 @@ export const cfg = {
   openrouterApiKey: opt('OPENROUTER_API_KEY'),
   openrouterModel: opt(
     'SEO_OPENROUTER_MODEL',
-    'minimax/minimax-m3:free',
+    'nvidia/nemotron-3-super-120b-a12b:free',
   ),
   openrouterModelFallback: opt(
     'SEO_OPENROUTER_MODEL_FALLBACK',
-    'nvidia/nemotron-3.5-lightning:free',
+    'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free',
   ),
   /** Virgulle ayrilmis ek :free modeller */
-  openrouterExtraModels: opt('SEO_OPENROUTER_MODELS', 'nvidia/nemotron-3-ultra-550b-a55b:free,nvidia/nemotron-3-super-120b-a12b:free')
+  openrouterExtraModels: opt(
+    'SEO_OPENROUTER_MODELS',
+    'nvidia/nemotron-3.5-lightning:free,nvidia/nemotron-3-ultra-550b-a55b:free',
+  )
     .split(',')
     .map((m) => m.trim())
     .filter(Boolean),
@@ -38,7 +41,7 @@ export const cfg = {
   openrouterMaxModelTries: Math.max(1, Number(opt('SEO_OPENROUTER_MAX_MODEL_TRIES', '3')) || 3),
   openrouterRequestTimeoutMs: Math.max(
     10_000,
-    Number(opt('SEO_OPENROUTER_REQUEST_TIMEOUT_MS', '25000')) || 25_000,
+    Number(opt('SEO_OPENROUTER_REQUEST_TIMEOUT_MS', '45000')) || 45_000,
   ),
   draftFailSoft: opt('SEO_DRAFT_FAIL_SOFT', 'true') !== 'false',
   llmProvider: opt('SEO_LLM_PROVIDER', 'openrouter'),

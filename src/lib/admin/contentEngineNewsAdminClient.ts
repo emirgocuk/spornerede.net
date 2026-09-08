@@ -44,6 +44,7 @@ export function mountContentEngineNews(deps: ApiDeps) {
   const schedTime = document.getElementById('ce-sched-time') as HTMLInputElement | null;
   const schedAutoPub = document.getElementById('ce-sched-autopub') as HTMLInputElement | null;
   const schedSave = document.getElementById('ce-sched-save');
+  const schedRunNow = document.getElementById('ce-sched-run-now');
   const schedNext = document.getElementById('ce-scheduler-next');
   const schedLast = document.getElementById('ce-sched-last');
 
@@ -62,6 +63,7 @@ export function mountContentEngineNews(deps: ApiDeps) {
     manualBtn?.toggleAttribute('disabled', on);
     loadNewsBtn?.toggleAttribute('disabled', on);
     schedSave?.toggleAttribute('disabled', on);
+    schedRunNow?.toggleAttribute('disabled', on);
   }
 
   function renderSchedule(data: ScheduleData) {
@@ -250,9 +252,50 @@ export function mountContentEngineNews(deps: ApiDeps) {
     }
   }
 
+  async function runScheduleNow() {
+    if (busy) return;
+    setBusy(true);
+    setStatus('Zamanlanmış içerik motoru çalıştırılıyor (otonom haber üretimi)…', 'busy');
+    try {
+      const payload = (await fetch('/api/admin/content-engine/schedule', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      }).then(async (res) => {
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error((err as { error?: string }).error || 'İşlem başarısız');
+        }
+        return res.json();
+      })) as {
+        data?: ScheduleData;
+        result?: { ok: boolean; baslik?: string; message?: string; autoPublished?: boolean };
+      };
+
+      if (payload?.data) renderSchedule(payload.data);
+
+      if (payload?.result?.ok) {
+        const pub = payload.result.autoPublished ? ' (yayında)' : ' (taslak)';
+        setStatus(`Haber üretildi: ${payload.result.baslik}${pub}`, 'ok');
+        await loadKeywordCalendar();
+        await deps.loadNews();
+      } else {
+        const msg = payload?.result?.message || 'Zamanlayıcı çalışması tamamlanamadı.';
+        setStatus(msg, 'warn');
+        alert(msg);
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Çalıştırma hatası';
+      setStatus(msg, 'warn');
+      alert(msg);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   generateBtn?.addEventListener('click', () => generateNews());
   manualBtn?.addEventListener('click', () => manualNews());
   schedSave?.addEventListener('click', () => saveSchedule());
+  schedRunNow?.addEventListener('click', () => void runScheduleNow());
   schedEnabled?.addEventListener('change', () => {
     if (schedNext) {
       schedNext.textContent = schedEnabled.checked ? 'Kaydedilmedi' : 'Kapalı';

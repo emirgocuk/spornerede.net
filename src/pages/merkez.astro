@@ -347,9 +347,10 @@ const adminLocationData = {
                   </label>
                 </div>
 
-                <div class="ce-scheduler-footer">
+                <div class="ce-scheduler-footer" style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
                   <button id="ce-sched-save" class="btn btn-primary shadow-sm" type="button">Kaydet</button>
-                  <p id="ce-sched-last" class="ce-scheduler-last"></p>
+                  <button id="ce-sched-run-now" class="btn btn-outline shadow-sm" type="button" title="Zamanlanmış içerik üretimini hemen çalıştırır">⚡ Şimdi Çalıştır</button>
+                  <p id="ce-sched-last" class="ce-scheduler-last" style="flex: 1 1 100%;"></p>
                 </div>
                 <p class="ce-scheduler-footnote section-help">
                   Günlük haber: seçtiğiniz saatte otomatik üretilir — <strong>zamanlayıcı açık kaldığı sürece her gün tekrarlar</strong> (kapatana kadar). GSC skorları ve yeni arama kelimeleri <strong>Pazartesi 04:00</strong> (TR) otomatik güncellenir; düşük CTR’li yayın haberler haftada en fazla <strong>2</strong> kez <strong>Pazartesi 04:10</strong>’da otomatik iyileştirilir — GSC API bağlantısı gerekir.

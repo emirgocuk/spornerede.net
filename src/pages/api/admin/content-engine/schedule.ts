@@ -56,3 +56,36 @@ export const PUT: APIRoute = async ({ request }) => {
     headers: { 'Content-Type': 'application/json' },
   });
 };
+
+export const POST: APIRoute = async ({ request }) => {
+  if (!(await isAdminAuthorized(request))) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+  }
+
+  const { runScheduledNewsDraft } = await import('../../../../lib/contentEngine/runScheduledNewsDraft');
+  const { getOrCreateContentEngineSchedule } = await import(
+    '../../../../lib/repositories/contentEngineSchedule'
+  );
+
+  const schedule = await getOrCreateContentEngineSchedule();
+  const result = await runScheduledNewsDraft({ autoPublish: schedule.autoPublish });
+  if (result.ok) {
+    await updateContentEngineSchedule({
+      lastRunAt: new Date().toISOString(),
+      lastRunStatus: 'ok',
+      lastRunMessage: `${result.baslik} · ${result.autoPublished ? 'yayında' : 'taslak'}`,
+    });
+  } else {
+    await updateContentEngineSchedule({
+      lastRunAt: new Date().toISOString(),
+      lastRunStatus: result.code === 'daily_limit' ? 'skipped' : 'error',
+      lastRunMessage: result.message.slice(0, 500),
+    });
+  }
+
+  const data = await getSchedulerStatusForAdmin();
+  return new Response(JSON.stringify({ data, result }), {
+    headers: { 'Content-Type': 'application/json' },
+  });
+};
+

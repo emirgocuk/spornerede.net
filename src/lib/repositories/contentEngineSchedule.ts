@@ -211,7 +211,13 @@ export function shouldRunScheduleNow(schedule: ContentEngineSchedule, now = new 
   if (!schedule.enabled) return false;
   const parts = getIstanbulNowParts(now);
   if (parts.hour !== schedule.runHour || parts.minute !== schedule.runMinute) return false;
-  if (schedule.lastRunAt && sameIstanbulDay(schedule.lastRunAt, now)) return false;
+  if (
+    schedule.lastRunAt &&
+    schedule.lastRunStatus !== 'error' &&
+    sameIstanbulDay(schedule.lastRunAt, now)
+  ) {
+    return false;
+  }
   return true;
 }
 
@@ -221,8 +227,11 @@ export function describeNextRun(schedule: ContentEngineSchedule, now = new Date(
   const todayRunPassed =
     parts.hour > schedule.runHour ||
     (parts.hour === schedule.runHour && parts.minute >= schedule.runMinute);
-  const ranToday = schedule.lastRunAt ? sameIstanbulDay(schedule.lastRunAt, now) : false;
-  if (!todayRunPassed && !ranToday) {
+  const ranTodaySuccessfully =
+    schedule.lastRunAt &&
+    schedule.lastRunStatus !== 'error' &&
+    sameIstanbulDay(schedule.lastRunAt, now);
+  if (!todayRunPassed && !ranTodaySuccessfully) {
     return `Bugün ${formatScheduleTime(schedule.runHour, schedule.runMinute)}`;
   }
   return `Yarın ${formatScheduleTime(schedule.runHour, schedule.runMinute)}`;
