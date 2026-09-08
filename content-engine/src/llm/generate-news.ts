@@ -91,7 +91,8 @@ export async function generateNewsParsed(
       break;
     } catch (e) {
       lastError = e;
-      console.warn(`[llm:news] attempt ${attempt + 1} failed`);
+      console.warn(`[llm:news] model zinciri basarisiz:`, e instanceof Error ? e.message : e);
+      break;
     }
   }
 

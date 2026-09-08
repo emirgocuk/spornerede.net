@@ -38,10 +38,10 @@ export const cfg = {
     .map((m) => m.trim())
     .filter(Boolean),
   /** Bos yanit/429 sonrasi en fazla kac model denensin */
-  openrouterMaxModelTries: Math.max(1, Number(opt('SEO_OPENROUTER_MAX_MODEL_TRIES', '3')) || 3),
+  openrouterMaxModelTries: Math.max(1, Number(opt('SEO_OPENROUTER_MAX_MODEL_TRIES', '2')) || 2),
   openrouterRequestTimeoutMs: Math.max(
     10_000,
-    Number(opt('SEO_OPENROUTER_REQUEST_TIMEOUT_MS', '25000')) || 25_000,
+    Number(opt('SEO_OPENROUTER_REQUEST_TIMEOUT_MS', '18000')) || 18_000,
   ),
   draftFailSoft: opt('SEO_DRAFT_FAIL_SOFT', 'true') !== 'false',
   llmProvider: opt('SEO_LLM_PROVIDER', 'openrouter'),
