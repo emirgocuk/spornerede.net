@@ -26,7 +26,8 @@ const kategoriStilleri: Record<string, string> = {
   gray: 'badge-gray',
 };
 
-const listeHaberleri = haberler.slice(1);
+const featuredHaberler = haberler.slice(0, 5);
+const listeHaberleri = haberler;
 ---
 
 <BaseLayout
@@ -53,7 +54,7 @@ const listeHaberleri = haberler.slice(1);
       </div>
 
       <section class="news-featured-slider" aria-label="Öne çıkan haberler">
-        {haberler.map((haber, index) => (
+        {featuredHaberler.map((haber, index) => (
           <article class={`news-featured-slide ${index === 0 ? 'is-active' : ''}`} data-featured-slide>
             <div class="featured-copy">
               <div class="news-meta">
@@ -71,10 +72,10 @@ const listeHaberleri = haberler.slice(1);
             </div>
           </article>
         ))}
-        {haberler.length > 1 && (
+        {featuredHaberler.length > 1 && (
           <div class="slider-dots" aria-hidden="true">
-            {haberler.map((_, index) => (
-              <button type="button" class={`slider-dot ${index === 0 ? 'is-active' : ''}`} data-featured-dot={index}></button>
+            {featuredHaberler.map((_, index) => (
+              <button type="button" class={`slider-dot ${index === 0 ? 'is-active' : ''}`} data-featured-dot={index} aria-label={`Öne çıkan haber ${index + 1}`}></button>
             ))}
           </div>
         )}

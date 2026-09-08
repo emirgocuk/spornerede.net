@@ -69,6 +69,7 @@ const BRANCH_NAMES = [
   'Rüzgar Sörfü',
   'Kitesurf',
   'Sörf',
+  'SUP',
   'Wakeboard',
   'Su Kayağı',
   'Triatlon',

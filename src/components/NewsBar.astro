@@ -6,7 +6,7 @@
  */
 import { getActiveNews } from '../lib/repositories/news';
 
-const haberler = (await getActiveNews()).slice(0, 3);
+const haberler = await getActiveNews(3);
 
 const kategoriRenkler: Record<string, string> = {
   red:    'badge-red',

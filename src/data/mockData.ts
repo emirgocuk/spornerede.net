@@ -55,6 +55,7 @@ export const BRANCHES: Branch[] = [
   { slug: 'okculuk', isim: 'Okçuluk', emoji: '🏹', renk: '#65A30D', aciklama: 'Odaklanma, duruş ve isabet' },
   { slug: 'boks', isim: 'Boks', emoji: '🥊', renk: '#EF4444', aciklama: 'Çeviklik, güç ve savunma sanatı' },
   { slug: 'kurek', isim: 'Kürek', emoji: '🚣', renk: '#0284C7', aciklama: 'Su sporları, dayanıklılık ve takım ruhu' },
+  { slug: 'sup', isim: 'SUP', emoji: '🏄', renk: '#06B6D4', aciklama: 'Stand Up Paddleboarding (kürekli sörf), denge ve su sporu' },
 ];
 
 export const CLUBS: Club[] = [

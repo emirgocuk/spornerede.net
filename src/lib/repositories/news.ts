@@ -1,5 +1,5 @@
 import { getDb, hasDatabaseUrl } from '../../db/client';
-import { parseNewsTarihMs } from '../newsTarih';
+import { parseNewsTarihMs, resolveNewsInstant } from '../newsTarih';
 import { sanitizeArticleHtml } from '../html/sanitizeArticleHtml';
 import {
   assessNewsDraft,
@@ -66,7 +66,7 @@ function buildNewsSlug(title: string, legacyId: number) {
   return `${titlePart}-${legacyId}`;
 }
 
-export async function getActiveNews() {
+export async function getActiveNews(limit?: number) {
   if (!hasDatabaseUrl()) {
     return [];
   }
@@ -80,49 +80,53 @@ export async function getActiveNews() {
     return [];
   }
 
-  return items
-    .filter((row) => Boolean(row.aktif))
-    .sort((a, b) => {
-      const aTime = new Date(String(a.tarih ?? '')).getTime();
-      const bTime = new Date(String(b.tarih ?? '')).getTime();
-      if (Number.isNaN(aTime) && Number.isNaN(bTime)) return 0;
-      if (Number.isNaN(aTime)) return 1;
-      if (Number.isNaN(bTime)) return -1;
-      return bTime - aTime;
-    })
-    .slice(0, 10)
-    .map((row) => {
-      const id = Number(row.legacyId ?? 0);
-      const baslik = String(row.baslik ?? '');
-      const rawSummary = String(row.ozet ?? '');
-      const seoTitle = String(row.seoTitle ?? '').trim();
-      const seoDescriptionRaw = String(row.seoDescription ?? '').trim();
-      const kartOzet = buildNewsCardExcerpt({
-        ozet: rawSummary,
-        seoDescription: seoDescriptionRaw,
-        baslik,
-      });
-      const slug = String(row.slug ?? '').trim() || buildNewsSlug(baslik, id);
-      return {
-        id,
-        kategori: String(row.kategori ?? 'Genel'),
-        kategoriRenk: String(row.kategoriRenk ?? 'gray'),
-        tarihIso: String(row.tarih ?? ''),
-        tarih: new Date(String(row.tarih ?? '')).toLocaleDateString('tr-TR', {
+  const activeItems = items.filter((row) => Boolean(row.aktif));
+  activeItems.sort((a, b) => {
+    const aTime = parseNewsTarihMs(String(a.tarih ?? ''), String(a.created ?? ''), Number(a.legacyId ?? 0));
+    const bTime = parseNewsTarihMs(String(b.tarih ?? ''), String(b.created ?? ''), Number(b.legacyId ?? 0));
+    return bTime - aTime;
+  });
+
+  const sliced = typeof limit === 'number' && limit > 0 ? activeItems.slice(0, limit) : activeItems;
+
+  return sliced.map((row) => {
+    const id = Number(row.legacyId ?? 0);
+    const baslik = String(row.baslik ?? '');
+    const rawSummary = String(row.ozet ?? '');
+    const seoTitle = String(row.seoTitle ?? '').trim();
+    const seoDescriptionRaw = String(row.seoDescription ?? '').trim();
+    const kartOzet = buildNewsCardExcerpt({
+      ozet: rawSummary,
+      seoDescription: seoDescriptionRaw,
+      baslik,
+    });
+    const slug = String(row.slug ?? '').trim() || buildNewsSlug(baslik, id);
+    const dateObj = resolveNewsInstant(String(row.tarih ?? ''), String(row.created ?? ''), id);
+    const tarih = dateObj
+      ? dateObj.toLocaleDateString('tr-TR', {
           day: 'numeric',
           month: 'long',
           year: 'numeric',
-        }),
-        baslik,
-        ozet: rawSummary,
-        kartOzet,
-        link: String(row.link ?? '#'),
-        aktif: Boolean(row.aktif),
-        slug,
-        seoTitle: seoTitle || baslik,
-        seoDescription: seoDescriptionRaw || kartOzet,
-      };
-    });
+        })
+      : String(row.tarih ?? '');
+    const tarihIso = dateObj ? dateObj.toISOString() : String(row.tarih ?? '');
+
+    return {
+      id,
+      kategori: String(row.kategori ?? 'Genel'),
+      kategoriRenk: String(row.kategoriRenk ?? 'gray'),
+      tarihIso,
+      tarih,
+      baslik,
+      ozet: rawSummary,
+      kartOzet,
+      link: String(row.link ?? '#'),
+      aktif: Boolean(row.aktif),
+      slug,
+      seoTitle: seoTitle || baslik,
+      seoDescription: seoDescriptionRaw || kartOzet,
+    };
+  });
 }
 
 export async function getAllNewsAdmin() {
