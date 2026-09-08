@@ -210,28 +210,70 @@ export function sameIstanbulDay(a: Date | string, b: Date = new Date()) {
 export function shouldRunScheduleNow(schedule: ContentEngineSchedule, now = new Date()) {
   if (!schedule.enabled) return false;
   const parts = getIstanbulNowParts(now);
-  if (parts.hour !== schedule.runHour || parts.minute !== schedule.runMinute) return false;
+
+  // Scheduled time arrived or passed today?
+  const targetPassedToday =
+    parts.hour > schedule.runHour ||
+    (parts.hour === schedule.runHour && parts.minute >= schedule.runMinute);
+
+  if (!targetPassedToday) {
+    return false;
+  }
+
+  // Already succeeded today?
   if (
     schedule.lastRunAt &&
-    schedule.lastRunStatus !== 'error' &&
+    schedule.lastRunStatus === 'ok' &&
     sameIstanbulDay(schedule.lastRunAt, now)
   ) {
     return false;
   }
+
+  // Already skipped today (e.g. daily limit)?
+  if (
+    schedule.lastRunAt &&
+    schedule.lastRunStatus === 'skipped' &&
+    sameIstanbulDay(schedule.lastRunAt, now)
+  ) {
+    return false;
+  }
+
+  // If there was an error today:
+  // If exact minute matches: run.
+  // Otherwise, only retry if at least 15 minutes have elapsed since the error to prevent tight loops.
+  if (
+    schedule.lastRunAt &&
+    schedule.lastRunStatus === 'error' &&
+    sameIstanbulDay(schedule.lastRunAt, now)
+  ) {
+    const isExactMinute = parts.hour === schedule.runHour && parts.minute === schedule.runMinute;
+    if (!isExactMinute) {
+      const lastRunMs = new Date(schedule.lastRunAt).getTime();
+      const minRetryMs = 15 * 60 * 1000;
+      if (!Number.isNaN(lastRunMs) && now.getTime() - lastRunMs < minRetryMs) {
+        return false;
+      }
+    }
+  }
+
   return true;
 }
 
 export function describeNextRun(schedule: ContentEngineSchedule, now = new Date()) {
   if (!schedule.enabled) return 'Kapalı';
   const parts = getIstanbulNowParts(now);
-  const todayRunPassed =
+  const targetPassedToday =
     parts.hour > schedule.runHour ||
     (parts.hour === schedule.runHour && parts.minute >= schedule.runMinute);
   const ranTodaySuccessfully =
     schedule.lastRunAt &&
-    schedule.lastRunStatus !== 'error' &&
+    schedule.lastRunStatus === 'ok' &&
     sameIstanbulDay(schedule.lastRunAt, now);
-  if (!todayRunPassed && !ranTodaySuccessfully) {
+
+  if (targetPassedToday && !ranTodaySuccessfully) {
+    return `Bugün ${formatScheduleTime(schedule.runHour, schedule.runMinute)} (beklemede / çalışacak)`;
+  }
+  if (!targetPassedToday && !ranTodaySuccessfully) {
     return `Bugün ${formatScheduleTime(schedule.runHour, schedule.runMinute)}`;
   }
   return `Yarın ${formatScheduleTime(schedule.runHour, schedule.runMinute)}`;

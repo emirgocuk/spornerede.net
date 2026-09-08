@@ -389,6 +389,10 @@ export async function runNewsDraftPipeline(input?: {
     let result: NewsDraftRunResult;
     if (cfg.newsMode === 'llm') {
       result = await createFromLlmPipeline(pb, konu, keywordCtx);
+      if (!result.ok && result.code !== 'duplicate' && cfg.draftFailSoft) {
+        console.warn('[news] LLM haber uretimi basarisiz, sablon yedegine geciliyor:', result.message);
+        result = await createFromTemplatePipeline(pb, konu, keywordCtx);
+      }
     } else if (useTemplatePipeline()) {
       result = await createFromTemplatePipeline(pb, konu, keywordCtx);
       if (!result.ok && cfg.newsMode !== 'template' && cfg.newsMode !== 'template_llm') {
@@ -397,6 +401,10 @@ export async function runNewsDraftPipeline(input?: {
       }
     } else {
       result = await createFromLlmPipeline(pb, konu, keywordCtx);
+      if (!result.ok && result.code !== 'duplicate' && cfg.draftFailSoft) {
+        console.warn('[news] LLM haber uretimi basarisiz, sablon yedegine geciliyor:', result.message);
+        result = await createFromTemplatePipeline(pb, konu, keywordCtx);
+      }
     }
 
     if (result.ok) return result;

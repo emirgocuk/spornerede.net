@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 import { cfg, getOpenRouterModelChain, requireOpenRouter } from '../config.js';
 
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const RETRY_DELAYS_MS = [0, 8_000, 18_000];
+const RETRY_DELAYS_MS = [0, 2_000];
 
 export type ChatMessage = { role: 'system' | 'user' | 'assistant'; content: string };
 
