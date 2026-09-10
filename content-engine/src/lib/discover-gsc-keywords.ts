@@ -25,6 +25,8 @@ const SPORT_HINTS = [
   'boks',
   'judo',
   'karate',
+  'krav maga',
+  'kravmaga',
 ];
 
 const MIN_IMPRESSIONS = 15;

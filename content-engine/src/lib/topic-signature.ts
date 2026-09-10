@@ -25,6 +25,9 @@ const BRANSLAR = [
   'satranç',
   'gures',
   'güreş',
+  'krav maga',
+  'krav-maga',
+  'kravmaga',
 ];
 
 export function topicSignature(konu: string): string {

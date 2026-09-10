@@ -7,7 +7,8 @@
   },
   "scripts": {
     "dev": "astro dev",
-    "prebuild": "npm run fonts:copy",
+    "prebuild": "npm run fonts:copy && npm run logo:email",
+    "logo:email": "node -e \"const sharp = require('sharp'); sharp('public/logo-spornerede-header-markup-light.svg', { density: 400 }).resize({ width: 320 }).png().toFile('public/logo-email.png');\"",
     "build": "astro build",
     "release:gate": "node scripts/release-gate.mjs",
     "smoke:check": "node scripts/smoke-check.mjs",
@@ -57,6 +58,7 @@
     "mail:up": "docker compose -f docker-compose.mailpit.yml up -d",
     "mail:down": "docker compose -f docker-compose.mailpit.yml down",
     "mail:queue": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"Invoke-RestMethod -Uri 'http://localhost:4321/api/internal/mail-queue' -Method POST -Headers @{ 'x-mail-queue-token' = 'local-test-token' }\"",
+    "mail:test": "tsx scripts/test-mail-delivery.ts",
     "user:create": "tsx scripts/create-user.ts",
     "user:assign-club": "tsx scripts/assign-user-club.ts",
     "deploy:remote": "bash deploy.sh",

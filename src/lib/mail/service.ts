@@ -1,8 +1,10 @@
 import nodemailer from 'nodemailer';
+import fs from 'node:fs';
+import path from 'node:path';
 import { getDb, hasDatabaseUrl } from '../../db/client';
 
 type QueueMailInput = {
-  kind: 'application_notification' | 'password_reset';
+  kind: 'application_notification' | 'password_reset' | 'club_announcement' | 'test_mail' | string;
   toEmail: string;
   subject: string;
   html: string;
@@ -27,16 +29,12 @@ const MAIL_STATUS_SENT = 'sent';
 const MAIL_STATUS_FAILED = 'failed';
 const MAX_RETRY = 3;
 
-function env(name: string) {
-  return process.env[name] ?? import.meta.env[name];
-}
-
 function getSmtpConfig() {
-  const host = env('SMTP_HOST');
-  const portRaw = env('SMTP_PORT') ?? '587';
+  const host = process.env.SMTP_HOST ?? import.meta.env.SMTP_HOST;
+  const portRaw = process.env.SMTP_PORT ?? import.meta.env.SMTP_PORT ?? '587';
   const port = Number(portRaw);
-  const user = env('SMTP_USER');
-  const pass = env('SMTP_PASS');
+  const user = process.env.SMTP_USER ?? import.meta.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS ?? import.meta.env.SMTP_PASS;
   const secure = String(portRaw) === '465';
 
   if (!host || !user || !pass) {
@@ -47,11 +45,59 @@ function getSmtpConfig() {
 }
 
 function getFromAddress() {
-  return env('MAIL_FROM') || env('SMTP_USER') || 'no-reply@spornerede.net';
+  return (
+    process.env.MAIL_FROM ??
+    import.meta.env.MAIL_FROM ??
+    process.env.SMTP_USER ??
+    import.meta.env.SMTP_USER ??
+    'no-reply@spornerede.net'
+  );
 }
 
 export function isMailEnabled() {
   return Boolean(getSmtpConfig()) && hasDatabaseUrl();
+}
+
+export async function sendDirectMail(input: {
+  toEmail: string;
+  subject: string;
+  html: string;
+  replyTo?: string;
+  attachments?: Array<{ filename: string; path?: string; cid?: string; content?: any }>;
+}) {
+  const smtp = getSmtpConfig();
+  if (!smtp) {
+    throw new Error('SMTP ayarları eksik. Lütfen .env dosyasında SMTP_HOST, SMTP_USER ve SMTP_PASS ayarlarını kontrol edin.');
+  }
+
+  const transporter = nodemailer.createTransport({
+    host: smtp.host,
+    port: smtp.port,
+    secure: smtp.secure,
+    auth: {
+      user: smtp.user,
+      pass: smtp.pass,
+    },
+  });
+
+  const attachments = [...(input.attachments || [])];
+  const logoPath = path.resolve(process.cwd(), 'public/logo-email.png');
+  if (input.html.includes('cid:spornerede-logo') && fs.existsSync(logoPath)) {
+    attachments.push({
+      filename: 'logo-email.png',
+      path: logoPath,
+      cid: 'spornerede-logo',
+    });
+  }
+
+  return await transporter.sendMail({
+    from: `"SporNerede.net" <${getFromAddress()}>`,
+    to: input.toEmail,
+    subject: input.subject,
+    html: input.html,
+    replyTo: input.replyTo || undefined,
+    attachments,
+  });
 }
 
 export async function enqueueMail(input: QueueMailInput) {
@@ -74,27 +120,11 @@ export async function enqueueMail(input: QueueMailInput) {
 }
 
 async function sendQueuedMail(record: QueuedRecord) {
-  const smtp = getSmtpConfig();
-  if (!smtp) {
-    throw new Error('SMTP ayarlari eksik.');
-  }
-
-  const transporter = nodemailer.createTransport({
-    host: smtp.host,
-    port: smtp.port,
-    secure: smtp.secure,
-    auth: {
-      user: smtp.user,
-      pass: smtp.pass,
-    },
-  });
-
-  await transporter.sendMail({
-    from: `"SporNerede.net" <${getFromAddress()}>`,
-    to: record.toEmail,
+  await sendDirectMail({
+    toEmail: record.toEmail,
     subject: record.subject,
     html: record.html,
-    replyTo: record.replyTo || undefined,
+    replyTo: record.replyTo,
   });
 }
 

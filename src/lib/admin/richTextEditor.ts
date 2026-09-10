@@ -29,12 +29,13 @@ function ensureMount(textareaId: string) {
 }
 
 export async function destroyRichTextEditor(textareaId: string) {
-  const quill = instances.get(textareaId);
-  if (quill) {
-    const mount = document.getElementById(mountId(textareaId));
-    if (mount) mount.innerHTML = '';
-    instances.delete(textareaId);
+  const mount = document.getElementById(mountId(textareaId));
+  if (mount && mount.parentNode) {
+    const toolbars = mount.parentNode.querySelectorAll('.ql-toolbar');
+    toolbars.forEach((tb) => tb.remove());
+    mount.innerHTML = '';
   }
+  instances.delete(textareaId);
 }
 
 export async function initRichTextEditor(
@@ -117,3 +118,17 @@ export function getRichTextContent(textareaId: string): string {
   const textarea = document.getElementById(textareaId);
   return textarea instanceof HTMLTextAreaElement ? textarea.value : '';
 }
+
+export function setRichTextContent(textareaId: string, html: string): void {
+  const quill = instances.get(textareaId);
+  const textarea = document.getElementById(textareaId);
+  if (quill) {
+    quill.clipboard.dangerouslyPasteHTML(html ?? '');
+    if (textarea instanceof HTMLTextAreaElement) {
+      textarea.value = quill.root.innerHTML;
+    }
+  } else if (textarea instanceof HTMLTextAreaElement) {
+    textarea.value = html ?? '';
+  }
+}
+

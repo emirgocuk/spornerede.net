@@ -25,6 +25,7 @@ const BRANSLAR = [
   'yoga',
   'bisiklet',
   'okculuk',
+  'krav-maga',
 ];
 
 // Ebeveyn karar süreçleri ve genel yüksek niyetli rehber anahtar kelimeler

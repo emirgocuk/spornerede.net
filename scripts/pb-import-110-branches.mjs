@@ -101,6 +101,7 @@ const BRANCH_NAMES = [
   'Aikido',
   'Jiu Jitsu',
   'Wushu',
+  'Krav Maga',
   'Eskrim',
   'Güreş',
   'Yağlı Güreş',

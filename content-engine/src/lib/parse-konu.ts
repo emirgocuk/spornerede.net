@@ -3,6 +3,7 @@ const BRANSLAR = [
   'voleybol', 'basketbol', 'yuzme', 'yüzme', 'tenis', 'futbol', 'jimnastik', 'cimnastik', 'atletizm',
   'boks', 'judo', 'karate', 'hentbol', 'badminton', 'pilates', 'yoga', 'bisiklet',
   'oryantiring', 'satranc', 'satranç', 'gures', 'güreş', 'okculuk', 'okçuluk',
+  'krav maga', 'krav-maga', 'kravmaga',
 ];
 
 const SEHIR_LABEL: Record<string, string> = {
@@ -40,6 +41,9 @@ const BRANS_LABEL: Record<string, string> = {
   güreş: 'Güreş',
   okculuk: 'Okçuluk',
   okçuluk: 'Okçuluk',
+  'krav maga': 'Krav Maga',
+  'krav-maga': 'Krav Maga',
+  kravmaga: 'Krav Maga',
 };
 
 const ILCE_MAP: Record<string, { slug: string; label: string; sehir: string }> = {

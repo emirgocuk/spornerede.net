@@ -56,6 +56,7 @@ export const BRANCHES: Branch[] = [
   { slug: 'boks', isim: 'Boks', emoji: '🥊', renk: '#EF4444', aciklama: 'Çeviklik, güç ve savunma sanatı' },
   { slug: 'kurek', isim: 'Kürek', emoji: '🚣', renk: '#0284C7', aciklama: 'Su sporları, dayanıklılık ve takım ruhu' },
   { slug: 'sup', isim: 'SUP', emoji: '🏄', renk: '#06B6D4', aciklama: 'Stand Up Paddleboarding (kürekli sörf), denge ve su sporu' },
+  { slug: 'krav-maga', isim: 'Krav Maga', emoji: '🥋', renk: '#DC2626', aciklama: 'Yakın dövüş, taktik savunma ve refleks' },
 ];
 
 export const CLUBS: Club[] = [
@@ -210,6 +211,25 @@ export const CLUBS: Club[] = [
     yorumSayisi: 51,
     emoji: '🥊',
     renk: '#6366F1',
+  },
+  {
+    id: 9,
+    ad: 'Krav Maga Savunma Akademisi',
+    il: 'Ankara',
+    ilSlug: 'ankara',
+    brans: 'Krav Maga',
+    bransSlug: 'krav-maga',
+    ilce: 'Cankaya',
+    adres: 'Tunalı Hilmi Cad. No:82, Çankaya, Ankara',
+    yasAraligi: '12-50',
+    fiyat: '850 TL/ay',
+    telefon: '0312 468 00 11',
+    aciklama: 'Sertifikalı eğitmenler eşliğinde yakın dövüş, taktik savunma ve refleks geliştirme programları.',
+    oneCikan: true,
+    puan: 4.9,
+    yorumSayisi: 32,
+    emoji: '🥋',
+    renk: '#DC2626',
   },
 ];
 

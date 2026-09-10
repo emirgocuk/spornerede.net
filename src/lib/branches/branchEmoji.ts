@@ -71,7 +71,7 @@ set(SLUG_VISUAL, ['Badminton'], '🏸', '#10B981');
 set(SLUG_VISUAL, ['Boks', 'Kick Boks', 'Muay Thai'], '🥊', '#EF4444');
 set(
   SLUG_VISUAL,
-  ['Karate', 'Taekwondo', 'Judo', 'Aikido', 'Jiu Jitsu', 'Wushu', 'Capoeira'],
+  ['Karate', 'Taekwondo', 'Judo', 'Aikido', 'Jiu Jitsu', 'Wushu', 'Capoeira', 'Krav Maga'],
   '🥋',
   '#DC2626',
 );
@@ -163,7 +163,7 @@ function matchByPattern(slug: string, name: string): BranchVisual | null {
   if (/masa-tenis|masa tenis|pickleball/.test(haystack)) return { emoji: '🏓', renk: '#F59E0B' };
   if (/badminton/.test(haystack)) return { emoji: '🏸', renk: '#10B981' };
   if (/boks|muay|kick/.test(haystack)) return { emoji: '🥊', renk: '#EF4444' };
-  if (/karate|taekwondo|judo|aikido|jiu|wushu|capoeira|dojo/.test(haystack)) return { emoji: '🥋', renk: '#DC2626' };
+  if (/karate|taekwondo|judo|aikido|jiu|wushu|capoeira|dojo|krav.*maga|kravmaga/.test(haystack)) return { emoji: '🥋', renk: '#DC2626' };
   if (/eskrim/.test(haystack)) return { emoji: '🤺', renk: '#7C3AED' };
   if (/gures|güreş|sambo/.test(haystack)) return { emoji: '🤼', renk: '#B45309' };
   if (/halter|crossfit/.test(haystack)) return { emoji: '🏋️', renk: '#78716C' };
