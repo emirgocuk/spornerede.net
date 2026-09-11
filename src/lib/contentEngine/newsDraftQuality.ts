@@ -16,6 +16,7 @@ const BRANSLAR = [
   'boks', 'judo', 'karate', 'hentbol', 'badminton', 'pilates', 'yoga', 'bisiklet', 'oryantiring',
   'satranc', 'satranç', 'gures', 'güreş', 'okculuk', 'okçuluk', 'kurek', 'kürek',
   'krav maga', 'krav-maga', 'kravmaga',
+  'sualti hokeyi', 'sualtı hokeyi', 'sualti-hokeyi',
 ];
 
 const INCOMPLETE_TAIL = /\b(ve|ile|icin|için|olan|olarak|kayit|kayıt|den|da|de|bir|the)\s*$/i;

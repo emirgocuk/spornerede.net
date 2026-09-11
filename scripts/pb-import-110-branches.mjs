@@ -70,6 +70,7 @@ const BRANCH_NAMES = [
   'Kitesurf',
   'Sörf',
   'SUP',
+  'Sualtı Hokeyi',
   'Wakeboard',
   'Su Kayağı',
   'Triatlon',

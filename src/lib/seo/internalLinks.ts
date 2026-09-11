@@ -36,6 +36,10 @@ const BRANS_MAP: Record<string, { slug: string; name: string }> = {
   'krav-maga': { slug: 'krav-maga', name: 'Krav Maga' },
   'krav maga': { slug: 'krav-maga', name: 'Krav Maga' },
   kravmaga: { slug: 'krav-maga', name: 'Krav Maga' },
+  'sualti-hokeyi': { slug: 'sualti-hokeyi', name: 'Sualtı Hokeyi' },
+  sualti_hokeyi: { slug: 'sualti-hokeyi', name: 'Sualtı Hokeyi' },
+  'sualti hokeyi': { slug: 'sualti-hokeyi', name: 'Sualtı Hokeyi' },
+  sualtihokeyi: { slug: 'sualti-hokeyi', name: 'Sualtı Hokeyi' },
 };
 
 function normalize(text: string) {

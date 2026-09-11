@@ -26,11 +26,58 @@ const pageTitle = `${title} | SporNerede`;
 </html>
 
 <style is:global>
-  .admin-body {
+  html,
+  body.admin-body,
+  html:has(.admin-body) {
     margin: 0;
     min-height: 100vh;
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
     background: #f1f5f9;
     font-family: 'Outfit', system-ui, sans-serif;
     color: #0f172a;
+  }
+
+  .admin-body *,
+  .admin-body *::before,
+  .admin-body *::after {
+    box-sizing: border-box;
+  }
+
+  /* Admin Paneli Açık / Beyaz Tema Scrollbar Düzenlemesi */
+  html:has(.admin-body),
+  .admin-body,
+  .admin-body * {
+    scrollbar-color: #cbd5e1 #f8fafc !important;
+    scrollbar-width: thin !important;
+  }
+
+  html:has(.admin-body)::-webkit-scrollbar,
+  .admin-body ::-webkit-scrollbar,
+  .admin-body::-webkit-scrollbar {
+    width: 6px !important;
+    height: 6px !important;
+  }
+
+  html:has(.admin-body)::-webkit-scrollbar-track,
+  .admin-body ::-webkit-scrollbar-track,
+  .admin-body::-webkit-scrollbar-track {
+    background: #f8fafc !important;
+    border-radius: 8px !important;
+  }
+
+  html:has(.admin-body)::-webkit-scrollbar-thumb,
+  .admin-body ::-webkit-scrollbar-thumb,
+  .admin-body::-webkit-scrollbar-thumb {
+    background: #cbd5e1 !important;
+    border-radius: 8px !important;
+    border: 1px solid #f8fafc !important;
+  }
+
+  html:has(.admin-body)::-webkit-scrollbar-thumb:hover,
+  .admin-body ::-webkit-scrollbar-thumb:hover,
+  .admin-body::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8 !important;
   }
 </style>

@@ -148,7 +148,7 @@ export function getSportsImageForTopic(topicOrTitle: string): SportsImageMeta {
   const t = (topicOrTitle || '').toLowerCase();
   let pool: SportsImageMeta[] = SPORTS_IMAGE_MAP.genel;
 
-  if (t.includes('yuz') || t.includes('yüz') || t.includes('havuz')) {
+  if (t.includes('yuz') || t.includes('yüz') || t.includes('havuz') || t.includes('sualti') || t.includes('sualtı')) {
     pool = SPORTS_IMAGE_MAP.yuzme;
   } else if (t.includes('basket')) {
     pool = SPORTS_IMAGE_MAP.basketbol;

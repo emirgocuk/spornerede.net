@@ -27,6 +27,8 @@ const SPORT_HINTS = [
   'karate',
   'krav maga',
   'kravmaga',
+  'sualti hokeyi',
+  'sualtihokeyi',
 ];
 
 const MIN_IMPRESSIONS = 15;

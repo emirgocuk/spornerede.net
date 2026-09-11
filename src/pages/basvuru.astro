@@ -460,7 +460,7 @@ const adimlar = [
         'kulup-ad': draft.kulupad,
         'kulup-adres': draft.adres,
         'yetkili-ad': draft.yetkili,
-        'yetkili-telefon': draft.telefon,
+        'yetkili-telefon': draft.telefon ? formatPhoneTR(draft.telefon) : '',
         'yetkili-email': draft.email,
       };
       Object.entries(simpleFields).forEach(([id, value]) => {
@@ -493,6 +493,85 @@ const adimlar = [
       applyBranchDraft(preservedIlanlar);
     }
 
+    // Telefon numarası otomatik formatlama (+90 531 707 26 96)
+    const telefonInput = document.getElementById('yetkili-telefon');
+
+    function formatPhoneTR(value) {
+      if (!value) return '';
+      let digits = value.replace(/\D/g, '');
+      if (digits.startsWith('90')) {
+        digits = digits.slice(2);
+      } else if (digits.startsWith('0')) {
+        digits = digits.slice(1);
+      }
+      digits = digits.slice(0, 10);
+      if (!digits.length) return '';
+
+      let res = '+90 ' + digits.slice(0, 3);
+      if (digits.length > 3) res += ' ' + digits.slice(3, 6);
+      if (digits.length > 6) res += ' ' + digits.slice(6, 8);
+      if (digits.length > 8) res += ' ' + digits.slice(8, 10);
+      return res;
+    }
+
+    function handlePhoneInput(e) {
+      const el = e.target;
+      if (!(el instanceof HTMLInputElement)) return;
+
+      const oldVal = el.value;
+      const oldCursor = el.selectionEnd || 0;
+
+      let digitsBefore = oldVal.slice(0, oldCursor).replace(/\D/g, '');
+      if (digitsBefore.startsWith('90')) digitsBefore = digitsBefore.slice(2);
+      else if (digitsBefore.startsWith('0')) digitsBefore = digitsBefore.slice(1);
+      const targetCount = digitsBefore.length;
+
+      const formatted = formatPhoneTR(oldVal);
+      el.value = formatted;
+
+      if (formatted) {
+        if (oldCursor >= oldVal.length) {
+          el.setSelectionRange(formatted.length, formatted.length);
+        } else {
+          let count = 0;
+          let newPos = formatted.length;
+          for (let i = 4; i < formatted.length; i++) {
+            if (/\d/.test(formatted[i])) {
+              count++;
+              if (count === targetCount) {
+                newPos = i + 1;
+                break;
+              }
+            }
+          }
+          el.setSelectionRange(newPos, newPos);
+        }
+      }
+    }
+
+    telefonInput?.addEventListener('input', handlePhoneInput);
+
+    telefonInput?.addEventListener('keydown', (e) => {
+      if (e.key === 'Backspace' && telefonInput instanceof HTMLInputElement) {
+        const cursor = telefonInput.selectionStart;
+        const end = telefonInput.selectionEnd;
+        if (cursor === end && cursor && cursor > 0) {
+          const charBefore = telefonInput.value[cursor - 1];
+          if (charBefore === ' ') {
+            e.preventDefault();
+            const val = telefonInput.value;
+            const updated = val.slice(0, cursor - 2) + val.slice(cursor);
+            telefonInput.value = formatPhoneTR(updated);
+            const newPos = Math.max(0, cursor - 2);
+            telefonInput.setSelectionRange(newPos, newPos);
+            telefonInput.dispatchEvent(new Event('input'));
+          } else if (cursor <= 5 && telefonInput.value.replace(/\D/g, '').length <= 1) {
+            telefonInput.value = '';
+          }
+        }
+      }
+    });
+
     kulupInput?.addEventListener('input', () => {
       saveFormDraft();
     });
@@ -507,6 +586,9 @@ const adimlar = [
     syncBranchCount(1);
     if (new URLSearchParams(window.location.search).has('error')) {
       applyFormDraft(readFormDraft());
+    }
+    if (telefonInput instanceof HTMLInputElement && telefonInput.value) {
+      telefonInput.value = formatPhoneTR(telefonInput.value);
     }
     document.getElementById('basvuru-form')?.addEventListener('input', saveFormDraft);
     document.getElementById('basvuru-form')?.addEventListener('change', saveFormDraft);
@@ -581,8 +663,19 @@ const adimlar = [
       }
 
       const telefonVal = getDraftValue('yetkili-telefon').trim();
-      if (!telefonVal) {
+      const phoneDigits = telefonVal.replace(/\D/g, '');
+      const nationalDigits = phoneDigits.startsWith('90')
+        ? phoneDigits.slice(2)
+        : (phoneDigits.startsWith('0') ? phoneDigits.slice(1) : phoneDigits);
+
+      if (!telefonVal || nationalDigits.length === 0) {
         showError('Lütfen yetkili telefon numarasını yazın.');
+        document.getElementById('yetkili-telefon')?.focus();
+        return;
+      }
+
+      if (nationalDigits.length < 10) {
+        showError('Lütfen geçerli bir telefon numarası girin (+90 5XX XXX XX XX).');
         document.getElementById('yetkili-telefon')?.focus();
         return;
       }

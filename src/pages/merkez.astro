@@ -2,8 +2,7 @@
 import AdminLayout from '../layouts/AdminLayout.astro';
 import AdminLogin from '../components/AdminLogin.astro';
 import { getCurrentSessionUser } from '../lib/auth/session';
-import { getAdminClubSummary, getAllBranches, getAllCities, getAllDistrictsWithCities } from '../lib/repositories/catalog';
-import { getPendingGuidesCount } from '../lib/repositories/seoArticles';
+import { getAdminClubSummary, getDashboardAnalytics, getAllBranches, getAllCities, getAllDistrictsWithCities } from '../lib/repositories/catalog';
 
 const session = await getCurrentSessionUser(Astro.request).catch(() => null);
 if (session?.role === 'club') {
@@ -16,7 +15,7 @@ const isLoggedInAdmin = session?.role === 'admin';
 const loginError = Astro.url.searchParams.get('error') ?? '';
 
 const summary = await getAdminClubSummary();
-const pendingGuidesCount = isLoggedInAdmin ? await getPendingGuidesCount() : 0;
+const { topNews, topListings } = isLoggedInAdmin ? await getDashboardAnalytics() : { topNews: [], topListings: [] };
 const branchRows = await getAllBranches();
 const adminBransList = [...branchRows.map((b) => b.isim).sort((a, b) => a.localeCompare(b, 'tr')), 'Diğer'];
 const [cityRows, districtRows] = await Promise.all([getAllCities(), getAllDistrictsWithCities()]);
@@ -41,19 +40,99 @@ const adminLocationData = {
 ) : (
   <div class="admin-dashboard">
     <!-- Modern Header Layout with Integrated Navigation -->
+    <!-- Soldan Açılan Mobil Yan Menü (Drawer) & Backdrop -->
+    <div id="admin-drawer-backdrop" class="admin-drawer-backdrop" aria-hidden="true"></div>
+    <aside id="admin-drawer" class="admin-drawer" aria-label="Mobil Yönetim Menüsü" aria-hidden="true">
+      <div class="admin-drawer-header">
+        <div class="drawer-brand">
+          <a href="/" class="admin-logo-link" title="SporNerede.net">
+            <img src="/logo-spornerede-header-markup.svg" alt="Spor Nerede?" class="drawer-logo-img" width="88" height="35" />
+          </a>
+          <span class="drawer-panel-badge">Merkez</span>
+        </div>
+        <button type="button" id="admin-drawer-close" class="admin-drawer-close" aria-label="Menüyü Kapat">
+          ✕
+        </button>
+      </div>
+
+      <nav class="admin-drawer-nav">
+        <div class="drawer-nav-section-title">YÖNETİM MENÜSÜ</div>
+        <button type="button" class="drawer-nav-item is-active" data-drawer-tab-target="dashboard">
+          <span class="drawer-item-icon">🏠</span>
+          <span class="drawer-item-text">Ana Sayfa</span>
+        </button>
+        <button type="button" class="drawer-nav-item" data-drawer-tab-target="applications">
+          <span class="drawer-item-icon">📥</span>
+          <span class="drawer-item-text">Başvurular</span>
+          <span id="drawer-apps-badge" class="drawer-badge">{summary.pending}</span>
+        </button>
+        <button type="button" class="drawer-nav-item" data-drawer-tab-target="clubs">
+          <span class="drawer-item-icon">🏢</span>
+          <span class="drawer-item-text">Onaylı Kulüpler</span>
+        </button>
+        <button type="button" class="drawer-nav-item" data-drawer-tab-target="contact">
+          <span class="drawer-item-icon">✉️</span>
+          <span class="drawer-item-text">İletişim Formu</span>
+          <span id="drawer-contact-badge" class="drawer-badge is-hidden">0</span>
+        </button>
+        <button type="button" class="drawer-nav-item" data-drawer-tab-target="feedback">
+          <span class="drawer-item-icon">💬</span>
+          <span class="drawer-item-text">Geribildirimler</span>
+          <span id="drawer-feedback-badge" class="drawer-badge is-hidden">0</span>
+        </button>
+        <button type="button" class="drawer-nav-item" data-drawer-tab-target="mail-service">
+          <span class="drawer-item-icon">📬</span>
+          <span class="drawer-item-text">Mail Servisi</span>
+        </button>
+        <button type="button" class="drawer-nav-item" data-drawer-tab-target="news">
+          <span class="drawer-item-icon">📰</span>
+          <span class="drawer-item-text">Content Engine</span>
+        </button>
+        <button type="button" class="drawer-nav-item" data-drawer-tab-target="backups">
+          <span class="drawer-item-icon">💾</span>
+          <span class="drawer-item-text">Yedekler</span>
+        </button>
+      </nav>
+
+      <div class="admin-drawer-footer">
+        <a href="/" target="_blank" class="drawer-footer-link">
+          <span>🌐</span> Siteyi Görüntüle ↗
+        </a>
+        <form method="post" action="/api/panel/logout" class="drawer-logout-form">
+          <button type="submit" class="drawer-logout-btn">
+            <span>🚪</span> Çıkış Yap
+          </button>
+        </form>
+      </div>
+    </aside>
+
+    <!-- Modern Header Layout with Integrated Navigation -->
     <header class="admin-header">
       <div class="header-top">
         <div class="header-container">
-          <div class="brand">
-            <div class="brand-logo">SN</div>
-            <div>
-              <h1 class="admin-title">Yönetim Paneli</h1>
-              <p class="admin-subtitle">Sistem, başvuru ve içerik süreçlerini yönetin</p>
+          <div class="header-left">
+            <button type="button" id="admin-menu-toggle" class="admin-menu-toggle" aria-label="Yönetim Menüsünü Aç" aria-expanded="false" aria-controls="admin-drawer">
+              <span class="hamburger-box">
+                <span class="hamburger-inner"></span>
+              </span>
+            </button>
+            <div class="brand">
+              <a href="/" class="admin-logo-link" title="SporNerede.net Ana Sayfa">
+                <img src="/logo-spornerede-header-markup.svg" alt="Spor Nerede?" class="admin-logo-img" width="94" height="38" />
+              </a>
+              <div class="brand-divider"></div>
+              <div class="brand-text">
+                <div class="brand-title-row">
+                  <h1 class="admin-title">Yönetim Paneli</h1>
+                  <span class="admin-panel-badge">Merkez</span>
+                </div>
+                <p class="admin-subtitle">Sistem, başvuru ve içerik süreçlerini yönetin</p>
+              </div>
             </div>
           </div>
           <form method="post" action="/api/panel/logout" class="admin-logout-form">
             <button type="submit" class="admin-logout-btn">
-              <span>🚪</span> Çıkış Yap
+              <span>🚪</span> <span class="logout-text">Çıkış Yap</span>
             </button>
           </form>
         </div>
@@ -87,12 +166,6 @@ const adminLocationData = {
             <button type="button" class="admin-tab" data-tab-target="news">
               <span class="tab-icon">📰</span> Content Engine
             </button>
-            <button type="button" class="admin-tab" data-tab-target="guides">
-              <span class="tab-icon">📚</span> SEO Rehber
-              <span id="guides-tab-badge" class:list={['tab-badge', { 'is-hidden': pendingGuidesCount === 0 }]}>
-                {pendingGuidesCount}
-              </span>
-            </button>
             <button type="button" class="admin-tab is-hidden" data-tab-target="pricing" hidden>
               <span class="tab-icon">💰</span> Üyelik Fiyatları
             </button>
@@ -114,7 +187,12 @@ const adminLocationData = {
               <div class="stat-icon bg-blue">📊</div>
               <div class="stat-content">
                 <h3>Toplam Kulüp</h3>
-                <p class="stat-value">{summary.total}</p>
+                <div class="stat-value-group">
+                  <p class="stat-value">{summary.total}</p>
+                  <span class="stat-sub-pill" title={`${summary.totalBranches || 129} branş arasından ${summary.branchCount || 0} branşta aktif kulüp var`}>
+                    🎯 {summary.branchCount || 0} Branş Çeşidi
+                  </span>
+                </div>
               </div>
             </div>
             <div class="stat-card">
@@ -139,11 +217,113 @@ const adminLocationData = {
               </div>
             </div>
           </div>
+
+          <!-- Analytics & Popular Content Section -->
+          <div class="dashboard-analytics-grid">
+            <!-- Sol Kart: En Çok Tıklanan Haberler (GSC) -->
+            <div class="dashboard-panel-card">
+              <div class="dashboard-panel-header">
+                <div class="dashboard-panel-title-wrap">
+                  <div class="panel-icon-badge bg-blue">📰</div>
+                  <div>
+                    <h2 class="dashboard-panel-title">En Çok Tıklanan Haberler</h2>
+                    <p class="dashboard-panel-sub">Google Search Console (GSC) organik performans verileri</p>
+                  </div>
+                </div>
+                <button type="button" class="dashboard-jump-link" data-jump-to-tab="news">
+                  Content Engine →
+                </button>
+              </div>
+
+              <div class="dashboard-panel-body">
+                {topNews.length === 0 ? (
+                  <div class="dashboard-empty-panel">
+                    <p>Henüz GSC verisi senkronize edilmiş haber bulunmuyor.</p>
+                  </div>
+                ) : (
+                  <ul class="dashboard-ranked-list">
+                    {topNews.map((news, idx) => (
+                      <li class="dashboard-ranked-item">
+                        <span class={`rank-badge rank-${idx + 1}`}>{idx + 1}</span>
+                        <div class="ranked-item-info">
+                          <a href={`/haberler/${news.slug}`} target="_blank" rel="noopener noreferrer" class="ranked-item-title">
+                            {news.baslik}
+                          </a>
+                          <div class="ranked-item-meta">
+                            <span class="meta-tag tag-clicks">🎯 {news.clicks} Tıklama</span>
+                            <span class="meta-tag tag-views">👁️ {news.impressions} Gösterim</span>
+                            <span class="meta-tag tag-category">🏷️ {news.kategori}</span>
+                          </div>
+                        </div>
+                        <a href={`/haberler/${news.slug}`} target="_blank" rel="noopener noreferrer" class="ranked-item-action" title="Haberi Gör" aria-label="Haberi Gör">
+                          ↗
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+
+            <!-- Sağ Kart: En Çok Ziyaret Edilen İlanlar -->
+            <div class="dashboard-panel-card">
+              <div class="dashboard-panel-header">
+                <div class="dashboard-panel-title-wrap">
+                  <div class="panel-icon-badge bg-green">📈</div>
+                  <div>
+                    <h2 class="dashboard-panel-title">En Çok Ziyaret Edilen İlanlar</h2>
+                    <p class="dashboard-panel-sub">Sitedeki kurs ve program ilanlarının ziyaret & görünüm verileri</p>
+                  </div>
+                </div>
+                <button type="button" class="dashboard-jump-link" data-jump-to-tab="clubs">
+                  Kulüpleri Yönet →
+                </button>
+              </div>
+
+              <div class="dashboard-panel-body">
+                {topListings.length === 0 ? (
+                  <div class="dashboard-empty-panel">
+                    <p>Henüz yayında bir kurs ilanı bulunmuyor.</p>
+                  </div>
+                ) : (
+                  <ul class="dashboard-ranked-list">
+                    {topListings.map((listing, idx) => (
+                      <li class="dashboard-ranked-item">
+                        <span class="rank-badge rank-listing">#{idx + 1}</span>
+                        <div class="ranked-item-info">
+                          <a href={listing.url} target="_blank" rel="noopener noreferrer" class="ranked-item-title">
+                            {listing.ad}
+                          </a>
+                          <div class="ranked-item-meta">
+                            <span class="meta-tag tag-club">🏢 {listing.kulupAd}</span>
+                            <span class="meta-tag tag-location">📍 {listing.il} / {listing.ilce}</span>
+                            {listing.clicks > 0 && <span class="meta-tag tag-clicks">🎯 {listing.clicks} Tık</span>}
+                            {listing.ucret && <span class="meta-tag tag-price">💰 {listing.ucret}</span>}
+                          </div>
+                        </div>
+                        <a href={listing.url} target="_blank" rel="noopener noreferrer" class="ranked-item-action" title="İlanı Gör" aria-label="İlanı Gör">
+                          ↗
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          </div>
         </section>
 
         <!-- Applications Tab Panel -->
         <section class="admin-shell is-hidden animate-fade-in-up delay-200" data-tab-panel="applications">
-          <div class="admin-columns">
+          <div class="mobile-pane-switcher" role="tablist">
+            <button type="button" class="mobile-pane-btn is-active" data-view-target="list">
+              <span>📋</span> Liste
+            </button>
+            <button type="button" class="mobile-pane-btn" data-view-target="detail">
+              <span>📄</span> Başvuru Detayı
+            </button>
+          </div>
+          <div class="admin-columns" data-mobile-view="list">
             <aside class="admin-list-container">
               <div class="list-header">
                 <h2>Başvuru Listesi</h2>
@@ -169,11 +349,16 @@ const adminLocationData = {
             </aside>
 
             <article class="admin-detail-container">
+              <div class="mobile-detail-nav">
+                <button type="button" class="mobile-back-btn" data-action="back-to-list">
+                  <span>←</span> Listeye Dön
+                </button>
+              </div>
               <div id="application-detail" class="detail-content">
                 <div class="empty-state">
                   <div class="empty-icon">👈</div>
                   <h3>Başvuru Seçin</h3>
-                  <p>Detayları görüntülemek ve işlem yapmak için sol taraftaki listeden bir başvuru seçin.</p>
+                  <p>Detayları görüntülemek ve işlem yapmak için listeden bir başvuru seçin.</p>
                 </div>
               </div>
             </article>
@@ -182,7 +367,15 @@ const adminLocationData = {
 
         <!-- Clubs Tab Panel -->
         <section class="admin-shell is-hidden" data-tab-panel="clubs">
-          <div class="admin-columns">
+          <div class="mobile-pane-switcher" role="tablist">
+            <button type="button" class="mobile-pane-btn is-active" data-view-target="list">
+              <span>📋</span> Kulüp Listesi
+            </button>
+            <button type="button" class="mobile-pane-btn" data-view-target="detail">
+              <span>🏢</span> Kulüp Düzenle
+            </button>
+          </div>
+          <div class="admin-columns" data-mobile-view="list">
             <aside class="admin-list-container">
               <div class="list-header">
                 <h2>Onaylı Kulüpler</h2>
@@ -203,6 +396,11 @@ const adminLocationData = {
             </aside>
 
             <article class="admin-detail-container">
+              <div class="mobile-detail-nav">
+                <button type="button" class="mobile-back-btn" data-action="back-to-list">
+                  <span>←</span> Listeye Dön
+                </button>
+              </div>
               <div id="club-detail" class="detail-content">
                 <div class="empty-state">
                   <div class="empty-icon">🏢</div>
@@ -237,7 +435,15 @@ const adminLocationData = {
             <button id="load-contact-messages" class="btn btn-primary shadow-sm" type="button">🔄 Yenile</button>
           </div>
 
-          <div class="admin-columns">
+          <div class="mobile-pane-switcher" role="tablist">
+            <button type="button" class="mobile-pane-btn is-active" data-view-target="list">
+              <span>📋</span> Mesaj Listesi
+            </button>
+            <button type="button" class="mobile-pane-btn" data-view-target="detail">
+              <span>✉️</span> Mesaj Detayı
+            </button>
+          </div>
+          <div class="admin-columns" data-mobile-view="list">
             <aside class="admin-list-container">
               <div class="list-header">
                 <h2 id="contact-list-title">İletişim Mesajları</h2>
@@ -248,6 +454,11 @@ const adminLocationData = {
             </aside>
 
             <article class="admin-detail-container">
+              <div class="mobile-detail-nav">
+                <button type="button" class="mobile-back-btn" data-action="back-to-list">
+                  <span>←</span> Listeye Dön
+                </button>
+              </div>
               <div id="contact-message-detail" class="detail-content">
                 <div class="empty-state">
                   <div class="empty-icon">✉️</div>
@@ -277,7 +488,15 @@ const adminLocationData = {
             <button id="load-feedbacks" class="btn btn-primary shadow-sm" type="button">🔄 Yenile</button>
           </div>
 
-          <div class="admin-columns">
+          <div class="mobile-pane-switcher" role="tablist">
+            <button type="button" class="mobile-pane-btn is-active" data-view-target="list">
+              <span>📋</span> Geribildirim Listesi
+            </button>
+            <button type="button" class="mobile-pane-btn" data-view-target="detail">
+              <span>💬</span> Geribildirim Detayı
+            </button>
+          </div>
+          <div class="admin-columns" data-mobile-view="list">
             <aside class="admin-list-container">
               <div class="list-header">
                 <h2>Geribildirimler</h2>
@@ -287,6 +506,11 @@ const adminLocationData = {
             </aside>
 
             <article class="admin-detail-container">
+              <div class="mobile-detail-nav">
+                <button type="button" class="mobile-back-btn" data-action="back-to-list">
+                  <span>←</span> Listeye Dön
+                </button>
+              </div>
               <div id="feedback-detail" class="detail-content">
                 <div class="empty-state">
                   <div class="empty-icon">💬</div>
@@ -571,7 +795,15 @@ const adminLocationData = {
             </section>
           </div>
 
-          <div class="admin-columns">
+          <div class="mobile-pane-switcher" role="tablist">
+            <button type="button" class="mobile-pane-btn is-active" data-view-target="list">
+              <span>📋</span> Haber Listesi
+            </button>
+            <button type="button" class="mobile-pane-btn" data-view-target="detail">
+              <span>📰</span> Haber Editörü
+            </button>
+          </div>
+          <div class="admin-columns" data-mobile-view="list">
             <aside class="admin-list-container">
               <div class="list-header">
                 <h2>Haberler / Duyurular</h2>
@@ -581,6 +813,11 @@ const adminLocationData = {
             </aside>
 
             <article class="admin-detail-container">
+              <div class="mobile-detail-nav">
+                <button type="button" class="mobile-back-btn" data-action="back-to-list">
+                  <span>←</span> Listeye Dön
+                </button>
+              </div>
               <div id="news-detail" class="detail-content">
                 <div class="empty-state">
                   <div class="empty-icon">📰</div>
@@ -593,40 +830,6 @@ const adminLocationData = {
           </div>
         </section>
 
-        <section class="admin-shell is-hidden" data-tab-panel="guides">
-          <div class="admin-toolbar admin-toolbar--wrap">
-            <div class="admin-toolbar-actions">
-              <button id="guide-generate-llm" class="btn btn-success shadow-sm" type="button">✨ SEO rehber yaz</button>
-              <button id="guide-manual-draft" class="btn btn-secondary shadow-sm" type="button">📝 Manuel şablon</button>
-              <button id="load-guides" class="btn btn-primary shadow-sm" type="button">🔄 Yenile</button>
-            </div>
-            <span id="guide-generate-status" class="ce-status" role="status"></span>
-          </div>
-          <p class="section-help guides-tab-help">
-            Uzun SEO makalesi (<code>/rehber/[slug]</code>) — keyword kuyruğundan LLM üretir veya şablon açar.
-            Onayladıktan sonra <strong>Habere yayınla</strong> ile <code>/haberler/[slug]</code> olur.
-            <strong>Otomatik değil</strong>; günlük haber üretimi Content Engine sekmesindedir.
-          </p>
-          <div class="admin-columns">
-            <aside class="admin-list-container">
-              <div class="list-header">
-                <h2>Rehber yazilari</h2>
-                <span id="guides-list-count" class="badge badge-gray">0</span>
-              </div>
-              <div id="guides-filters" class="guide-filters" role="tablist" aria-label="Rehber filtreleri"></div>
-              <ul id="guides-list" class="admin-list custom-scrollbar"></ul>
-            </aside>
-            <article class="admin-detail-container">
-              <div id="guides-detail" class="detail-content">
-                <div class="empty-state">
-                  <div class="empty-icon">📚</div>
-                  <h3>Rehber secin</h3>
-                  <p>SEO metinlerini duzenleyip haber olarak yayinlayin.</p>
-                </div>
-              </div>
-            </article>
-          </div>
-        </section>
 
         <!-- Pricing Tab Panel -->
         <section class="admin-shell is-hidden" data-tab-panel="pricing">
@@ -678,7 +881,6 @@ const adminLocationData = {
   <script>
     // @ts-nocheck
     import { buildClubProgramsSectionHtml, bindClubProgramEditor } from '../lib/admin/clubProgramEditorClient';
-    import { mountGuidesAdminTab } from '../lib/admin/guidesAdminClient';
     import { mountContentEngineNews } from '../lib/admin/contentEngineNewsAdminClient';
     import { createMailServiceAdminClient } from '../lib/admin/mailServiceAdminClient';
     import {
@@ -727,6 +929,15 @@ const adminLocationData = {
     const feedbackTabBadge = document.getElementById('feedback-tab-badge');
     const tabButtons = Array.from(document.querySelectorAll('.admin-tab'));
     const tabPanels = Array.from(document.querySelectorAll('[data-tab-panel]'));
+
+    const drawerEl = document.getElementById('admin-drawer');
+    const drawerBackdropEl = document.getElementById('admin-drawer-backdrop');
+    const drawerToggleBtn = document.getElementById('admin-menu-toggle');
+    const drawerCloseBtn = document.getElementById('admin-drawer-close');
+    const drawerNavButtons = Array.from(document.querySelectorAll('.drawer-nav-item[data-drawer-tab-target]'));
+    const drawerAppsBadge = document.getElementById('drawer-apps-badge');
+    const drawerContactBadge = document.getElementById('drawer-contact-badge');
+    const drawerFeedbackBadge = document.getElementById('drawer-feedback-badge');
 
     const loadNewsBtn = document.getElementById('load-news');
     const addNewsBtn = document.getElementById('add-news-btn');
@@ -1110,8 +1321,9 @@ const adminLocationData = {
         .join('');
     }
 
-    function renderList() {
+    function renderList(preserveScroll = false) {
       if (!listEl) return;
+      const prevScrollTop = preserveScroll ? listEl.scrollTop : 0;
       const filteredApps = getFilteredApps();
       if (!filteredApps.length) {
         listEl.innerHTML = '<li class="empty-list">Kayıt bulunamadı.</li>';
@@ -1123,8 +1335,8 @@ const adminLocationData = {
           return `<li>
             <button class="list-item ${activeClass}" data-id="${item.id}">
               <div class="item-main">
-                <span class="item-title">${item.ad}</span>
-                <span class="item-meta">📍 ${item.il || '-'} / ${item.ilce || '-'}</span>
+                <span class="item-title">${escapeHtml(item.ad || '')}</span>
+                <span class="item-meta">📍 ${escapeHtml(item.il || '-')} / ${escapeHtml(item.ilce || '-')}</span>
               </div>
               <div class="item-side">
                 ${statusBadge(item.durum)}
@@ -1133,6 +1345,22 @@ const adminLocationData = {
           </li>`;
         })
         .join('');
+
+      if (preserveScroll && prevScrollTop > 0) {
+        listEl.scrollTop = prevScrollTop;
+      } else if (selectedAppId) {
+        const activeBtn = listEl.querySelector(`button[data-id="${selectedAppId}"]`);
+        activeBtn?.scrollIntoView({ block: 'nearest', behavior: 'instant' });
+      }
+    }
+
+    function updateActiveAppInList(appId) {
+      if (!listEl) return;
+      listEl.querySelectorAll('.list-item.is-active').forEach((el) => el.classList.remove('is-active'));
+      const targetBtn = listEl.querySelector(`button[data-id="${appId}"]`);
+      if (targetBtn) {
+        targetBtn.classList.add('is-active');
+      }
     }
 
     function getFilteredApps() {
@@ -1164,16 +1392,28 @@ const adminLocationData = {
         applicationsTabBadge.textContent = String(pendingApps);
         applicationsTabBadge.classList.toggle('is-hidden', pendingApps === 0);
       }
+      if (drawerAppsBadge) {
+        drawerAppsBadge.textContent = String(pendingApps);
+        drawerAppsBadge.classList.toggle('is-hidden', pendingApps === 0);
+      }
 
       if (contactTabBadge) {
         contactTabBadge.textContent = String(contactInboxUnreadCount);
         contactTabBadge.classList.toggle('is-hidden', contactInboxUnreadCount === 0);
+      }
+      if (drawerContactBadge) {
+        drawerContactBadge.textContent = String(contactInboxUnreadCount);
+        drawerContactBadge.classList.toggle('is-hidden', contactInboxUnreadCount === 0);
       }
 
       const unreadFeedbacks = cachedFeedbacks.filter((item) => item.durum === 'yeni').length;
       if (feedbackTabBadge) {
         feedbackTabBadge.textContent = String(unreadFeedbacks);
         feedbackTabBadge.classList.toggle('is-hidden', unreadFeedbacks === 0);
+      }
+      if (drawerFeedbackBadge) {
+        drawerFeedbackBadge.textContent = String(unreadFeedbacks);
+        drawerFeedbackBadge.classList.toggle('is-hidden', unreadFeedbacks === 0);
       }
     }
 
@@ -1364,14 +1604,43 @@ const adminLocationData = {
       }
     }
 
+    function switchMobilePane(panelEl, view) {
+      if (!panelEl) return;
+      const columns = panelEl.querySelector('.admin-columns');
+      if (!columns) return;
+      columns.setAttribute('data-mobile-view', view);
+      const switcherBtns = panelEl.querySelectorAll('.mobile-pane-btn');
+      switcherBtns.forEach((btn) => {
+        btn.classList.toggle('is-active', btn.getAttribute('data-view-target') === view);
+      });
+      if (view === 'detail') {
+        const detailContainer = columns.querySelector('.admin-detail-container');
+        if (detailContainer && window.innerWidth < 1024) {
+          detailContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      } else if (view === 'list') {
+        const listContainer = columns.querySelector('.admin-list-container');
+        if (listContainer && window.innerWidth < 1024) {
+          listContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }
+    }
+
     function switchTab(tabKey) {
       tabButtons.forEach((button) => {
         const isActive = button.getAttribute('data-tab-target') === tabKey;
         button.classList.toggle('is-active', isActive);
       });
+      drawerNavButtons.forEach((button) => {
+        const isActive = button.getAttribute('data-drawer-tab-target') === tabKey;
+        button.classList.toggle('is-active', isActive);
+      });
       tabPanels.forEach((panel) => {
         const isCurrent = panel.getAttribute('data-tab-panel') === tabKey;
         panel.classList.toggle('is-hidden', !isCurrent);
+        if (isCurrent && window.innerWidth < 1024) {
+          switchMobilePane(panel, 'list');
+        }
       });
     }
 
@@ -1397,10 +1666,12 @@ const adminLocationData = {
       </ul>`;
     }
 
-    async function renderDetail(appId) {
+    async function renderDetail(appId, options = {}) {
       selectedAppId = appId;
-      renderList();
-      renderDetailLoading();
+      updateActiveAppInList(appId);
+      if (!options.silent) {
+        renderDetailLoading();
+      }
       try {
         const app = await apiGet(`/api/admin/applications?id=${appId}`);
         const docsHtml = await loadDocuments(appId);
@@ -1633,8 +1904,17 @@ const adminLocationData = {
             try {
               saveFieldsBtn.textContent = 'Kaydediliyor...';
               saveFieldsBtn.disabled = true;
-              await apiPost('/api/admin/applications', collectApplicationEditPayload(app));
-              await renderDetail(appId);
+              const payload = collectApplicationEditPayload(app);
+              await apiPost('/api/admin/applications', payload);
+              saveFieldsBtn.textContent = '✓ Değişiklikler Kaydedildi';
+              saveFieldsBtn.classList.add('btn-save-success');
+              await loadApplications({ silent: true, preserveScroll: true });
+              await renderDetail(appId, { silent: true });
+              setTimeout(() => {
+                saveFieldsBtn.textContent = 'Kulüp ve Branş Bilgilerini Kaydet';
+                saveFieldsBtn.disabled = false;
+                saveFieldsBtn.classList.remove('btn-save-success');
+              }, 1800);
             } catch (error) {
               alert(error.message);
               saveFieldsBtn.textContent = 'Kulüp ve Branş Bilgilerini Kaydet';
@@ -1813,9 +2093,13 @@ const adminLocationData = {
       }
     }
 
-    async function loadApplications() {
+    async function loadApplications(options = {}) {
       if (!listEl) return;
-      listEl.innerHTML = '<li class="loading-state"><div class="spinner-small"></div> Yükleniyor...</li>';
+      const silent = options.silent === true;
+      const prevScrollTop = listEl.scrollTop;
+      if (!silent) {
+        listEl.innerHTML = '<li class="loading-state"><div class="spinner-small"></div> Yükleniyor...</li>';
+      }
       try {
         const rows = await apiGet('/api/admin/applications');
         cachedApps = rows || [];
@@ -1837,8 +2121,11 @@ const adminLocationData = {
               </div>`;
           }
         }
-        renderList();
-        if (selectedAppId) {
+        renderList(silent || options.preserveScroll !== false);
+        if (silent && prevScrollTop > 0) {
+          listEl.scrollTop = prevScrollTop;
+        }
+        if (selectedAppId && !silent) {
           await renderDetail(selectedAppId);
         }
       } catch (error) {
@@ -2053,8 +2340,9 @@ const adminLocationData = {
       });
     }
 
-    function renderClubsList() {
+    function renderClubsList(preserveScroll = false) {
       if (!clubsListEl) return;
+      const prevScrollTop = preserveScroll ? clubsListEl.scrollTop : 0;
       const filtered = getFilteredClubs();
       if (!filtered.length) {
         clubsListEl.innerHTML = '<li class="empty-list">Kulüp bulunamadı.</li>';
@@ -2066,13 +2354,29 @@ const adminLocationData = {
           return `<li>
             <button class="list-item ${activeClass}" data-club-id="${club.id}">
               <div class="item-main">
-                <span class="item-title">${club.ad}</span>
-                <span class="item-meta">📍 ${club.il || '-'} / ${club.ilce || '-'}</span>
+                <span class="item-title">${escapeHtml(club.ad || '')}</span>
+                <span class="item-meta">📍 ${escapeHtml(club.il || '-')} / ${escapeHtml(club.ilce || '-')}</span>
               </div>
             </button>
           </li>`;
         })
         .join('');
+
+      if (preserveScroll && prevScrollTop > 0) {
+        clubsListEl.scrollTop = prevScrollTop;
+      } else if (selectedClubId) {
+        const activeBtn = clubsListEl.querySelector(`button[data-club-id="${selectedClubId}"]`);
+        activeBtn?.scrollIntoView({ block: 'nearest', behavior: 'instant' });
+      }
+    }
+
+    function updateActiveClubInList(clubId) {
+      if (!clubsListEl) return;
+      clubsListEl.querySelectorAll('.list-item.is-active').forEach((el) => el.classList.remove('is-active'));
+      const targetBtn = clubsListEl.querySelector(`button[data-club-id="${clubId}"]`);
+      if (targetBtn) {
+        targetBtn.classList.add('is-active');
+      }
     }
 
     function renderClubDetailLoading() {
@@ -2084,10 +2388,12 @@ const adminLocationData = {
       return buildClubProgramsSectionHtml(programs, adminBransList);
     }
 
-    async function renderClubDetail(clubId) {
+    async function renderClubDetail(clubId, options = {}) {
       selectedClubId = clubId;
-      renderClubsList();
-      renderClubDetailLoading();
+      updateActiveClubInList(clubId);
+      if (!options.silent) {
+        renderClubDetailLoading();
+      }
       try {
         const club = await apiGet(`/api/admin/clubs?id=${clubId}`);
         const docsHtml = await loadDocuments(clubId);
@@ -2355,12 +2661,60 @@ const adminLocationData = {
 
         const saveClubUpdate = async (button, loadingText, resetText) => {
           try {
-            if (button) button.textContent = loadingText;
-            await apiPost('/api/admin/clubs', collectClubUpdatePayload());
-            await loadClubs();
-            await renderClubDetail(clubId);
+            if (button) {
+              button.textContent = loadingText;
+              button.disabled = true;
+            }
+            const payload = collectClubUpdatePayload();
+            await apiPost('/api/admin/clubs', payload);
+
+            // Başarılı görsel geri bildirim (yeşil buton)
+            if (button) {
+              button.textContent = '✓ Değişiklikler Kaydedildi';
+              button.classList.add('btn-save-success');
+            }
+
+            // Önbellekteki kulübü yerinde güncelle
+            const cached = cachedClubs.find((c) => c.id === clubId);
+            if (cached) {
+              cached.ad = payload.ad;
+              cached.il = payload.il;
+              cached.ilce = payload.ilce;
+              cached.telefon = payload.telefon;
+              cached.email = payload.email;
+              cached.yasAraligi = payload.yasAraligi;
+              cached.fiyatBilgisi = payload.fiyatBilgisi;
+              cached.adres = payload.adres;
+              cached.aciklama = payload.aciklama;
+            }
+
+            // Sol listedeki başlık ve il/ilçe bilgisini DOM'da yerinde güncelle (sıfır zıplama)
+            const listItemBtn = clubsListEl?.querySelector(`button[data-club-id="${clubId}"]`);
+            if (listItemBtn) {
+              const titleEl = listItemBtn.querySelector('.item-title');
+              const metaEl = listItemBtn.querySelector('.item-meta');
+              if (titleEl) titleEl.textContent = payload.ad;
+              if (metaEl) metaEl.textContent = `📍 ${payload.il || '-'} / ${payload.ilce || '-'}`;
+            }
+
+            // Sol listeyi kaydırma konumunu ve sırayı KORUYARAK sessizce senkronize et
+            await loadClubs({ silent: true, preserveScroll: true });
+
+            // Sadece işlem geçmişi zaman çizelgesini yenile (formu ve scroll'u sıfırlamadan)
+            await renderClubLogTimeline();
+
+            setTimeout(() => {
+              if (button) {
+                button.textContent = resetText;
+                button.disabled = false;
+                button.classList.remove('btn-save-success');
+              }
+            }, 1800);
           } catch (error) {
-            if (button) button.textContent = resetText;
+            if (button) {
+              button.textContent = resetText;
+              button.disabled = false;
+            }
             alert(error.message);
           }
         };
@@ -2514,23 +2868,32 @@ const adminLocationData = {
       }
     }
 
-    async function loadClubs() {
+    async function loadClubs(options = {}) {
       if (!clubsListEl) return;
-      clubsListEl.innerHTML = '<li class="loading-state"><div class="spinner-small"></div> Yükleniyor...</li>';
+      const silent = options.silent === true;
+      const prevScrollTop = clubsListEl.scrollTop;
+      if (!silent) {
+        clubsListEl.innerHTML = '<li class="loading-state"><div class="spinner-small"></div> Yükleniyor...</li>';
+      }
       try {
         const rows = await apiGet('/api/admin/clubs');
         cachedClubs = rows || [];
         if (!selectedClubId && cachedClubs.length) {
           selectedClubId = cachedClubs[0].id;
         }
-        renderClubsList();
-        if (selectedClubId) {
+        renderClubsList(silent || options.preserveScroll !== false);
+        if (silent && prevScrollTop > 0) {
+          clubsListEl.scrollTop = prevScrollTop;
+        }
+        if (selectedClubId && !silent) {
           await renderClubDetail(selectedClubId);
         }
       } catch (error) {
-        clubsListEl.innerHTML = `<li class="error-state">${error.message}</li>`;
-        if (clubDetailEl) {
-          clubDetailEl.innerHTML = '<div class="error-state">Kulüp listesi yüklenemedi.</div>';
+        if (!silent) {
+          clubsListEl.innerHTML = `<li class="error-state">${error.message}</li>`;
+          if (clubDetailEl) {
+            clubDetailEl.innerHTML = '<div class="error-state">Kulüp listesi yüklenemedi.</div>';
+          }
         }
       }
     }
@@ -2993,6 +3356,9 @@ const adminLocationData = {
       if (!button) return;
       const id = Number(button.getAttribute('data-id'));
       if (!id) return;
+      if (window.innerWidth < 1024) {
+        switchMobilePane(listEl.closest('[data-tab-panel]'), 'detail');
+      }
       await renderDetail(id);
     });
 
@@ -3003,6 +3369,9 @@ const adminLocationData = {
       if (!button) return;
       const id = Number(button.getAttribute('data-club-id'));
       if (!id) return;
+      if (window.innerWidth < 1024) {
+        switchMobilePane(clubsListEl.closest('[data-tab-panel]'), 'detail');
+      }
       await renderClubDetail(id);
     });
 
@@ -3013,6 +3382,9 @@ const adminLocationData = {
       if (!button) return;
       const id = Number(button.getAttribute('data-contact-id'));
       if (!id) return;
+      if (window.innerWidth < 1024) {
+        switchMobilePane(contactListEl.closest('[data-tab-panel]'), 'detail');
+      }
       await renderContactMessageDetail(id);
     });
 
@@ -3023,6 +3395,9 @@ const adminLocationData = {
       if (!button) return;
       const id = Number(button.getAttribute('data-feedback-id'));
       if (!id) return;
+      if (window.innerWidth < 1024) {
+        switchMobilePane(feedbacksListEl.closest('[data-tab-panel]'), 'detail');
+      }
       await renderFeedbackDetail(id);
     });
 
@@ -3092,18 +3467,7 @@ const adminLocationData = {
       }
     }
 
-    const guidesAdmin = mountGuidesAdminTab({
-      apiGet,
-      apiPut,
-      apiPost,
-      apiDelete,
-      escapeHtml,
-      initGuideEditor: (html) => {
-        void initRichTextEditor('guide-icerik', html, { height: 520, uploadImage: uploadNewsImage });
-      },
-      destroyGuideEditor: () => destroyRichTextEditor('guide-icerik'),
-      getGuideEditorHtml: () => getRichTextContent('guide-icerik'),
-    });
+
 
     mountContentEngineNews({
       apiGet,
@@ -3140,10 +3504,7 @@ const adminLocationData = {
         } else {
           await mailServiceAdmin.destroy();
         }
-        if (tabKey === 'guides') {
-          await guidesAdmin?.loadGuides();
-        } else {
-          await destroyRichTextEditor('guide-icerik');
+        if (tabKey !== 'news') {
           await destroyRichTextEditor('news-editor');
         }
         if (tabKey === 'pricing') {
@@ -3153,6 +3514,14 @@ const adminLocationData = {
     });
 
     loadPricingBtn?.addEventListener('click', () => loadMembershipPlansAdmin());
+
+    document.querySelectorAll('[data-jump-to-tab]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const target = btn.getAttribute('data-jump-to-tab');
+        const tabBtn = document.querySelector(`.admin-tab[data-tab-target="${target}"]`);
+        tabBtn?.click();
+      });
+    });
 
     loadButton?.addEventListener('click', async () => {
       await loadApplications();
@@ -3180,6 +3549,9 @@ const adminLocationData = {
 
     addNewsBtn?.addEventListener('click', () => {
       selectedNewsId = 0;
+      if (window.innerWidth < 1024) {
+        switchMobilePane(addNewsBtn.closest('[data-tab-panel]'), 'detail');
+      }
       renderNewsList();
       renderNewsDetail(0);
     });
@@ -3199,6 +3571,9 @@ const adminLocationData = {
       if (!button) return;
       const id = Number(button.getAttribute('data-news-id'));
       if (id !== undefined) {
+        if (window.innerWidth < 1024) {
+          switchMobilePane(newsListEl.closest('[data-tab-panel]'), 'detail');
+        }
         await renderNewsDetail(id);
       }
     });
@@ -3245,6 +3620,27 @@ const adminLocationData = {
       renderFeedbacksList();
     });
 
+    // Mobil Segment / Detay Geri Dön Dinleyicisi
+    document.addEventListener('click', (e) => {
+      const target = e.target;
+      if (!(target instanceof HTMLElement)) return;
+
+      const paneBtn = target.closest('.mobile-pane-btn');
+      if (paneBtn) {
+        const viewTarget = paneBtn.getAttribute('data-view-target') || 'list';
+        const panelEl = paneBtn.closest('[data-tab-panel]');
+        switchMobilePane(panelEl, viewTarget);
+        return;
+      }
+
+      const backBtn = target.closest('[data-action="back-to-list"]');
+      if (backBtn) {
+        const panelEl = backBtn.closest('[data-tab-panel]');
+        switchMobilePane(panelEl, 'list');
+        return;
+      }
+    });
+
     // Ana Sayfa hızlı işlem kısayolları (data-switch-to)
     document.querySelectorAll('[data-switch-to]').forEach((btn) => {
       btn.addEventListener('click', () => {
@@ -3255,6 +3651,56 @@ const adminLocationData = {
           tabBtn.click();
         } else {
           switchTab(target);
+        }
+      });
+    });
+
+    // Mobil Drawer (Sandviç Menü) Fonksiyonları ve Dinleyicileri
+    function openAdminDrawer() {
+      if (!drawerEl || !drawerBackdropEl) return;
+      drawerEl.classList.add('is-open');
+      drawerBackdropEl.classList.add('is-open');
+      drawerEl.setAttribute('aria-hidden', 'false');
+      drawerBackdropEl.setAttribute('aria-hidden', 'false');
+      drawerToggleBtn?.setAttribute('aria-expanded', 'true');
+      document.body.classList.add('admin-drawer-open');
+    }
+
+    function closeAdminDrawer() {
+      if (!drawerEl || !drawerBackdropEl) return;
+      drawerEl.classList.remove('is-open');
+      drawerBackdropEl.classList.remove('is-open');
+      drawerEl.setAttribute('aria-hidden', 'true');
+      drawerBackdropEl.setAttribute('aria-hidden', 'true');
+      drawerToggleBtn?.setAttribute('aria-expanded', 'false');
+      document.body.classList.remove('admin-drawer-open');
+    }
+
+    drawerToggleBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = drawerEl?.classList.contains('is-open');
+      if (isOpen) {
+        closeAdminDrawer();
+      } else {
+        openAdminDrawer();
+      }
+    });
+
+    drawerCloseBtn?.addEventListener('click', closeAdminDrawer);
+    drawerBackdropEl?.addEventListener('click', closeAdminDrawer);
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && drawerEl?.classList.contains('is-open')) {
+        closeAdminDrawer();
+      }
+    });
+
+    drawerNavButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        const target = button.getAttribute('data-drawer-tab-target');
+        if (target) {
+          switchTab(target);
+          closeAdminDrawer();
         }
       });
     });
@@ -3292,11 +3738,17 @@ const adminLocationData = {
       top: 0;
       z-index: 40;
       box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+      width: 100%;
+      max-width: 100vw;
+      overflow-x: clip;
     }
 
     .header-top {
       padding: 0.85rem 0;
       border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
     }
 
     .header-container {
@@ -3306,27 +3758,364 @@ const adminLocationData = {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      min-width: 0;
     }
 
     .brand {
       display: flex;
       align-items: center;
       gap: 1rem;
+      min-width: 0;
     }
 
-    .brand-logo {
-      width: 44px;
-      height: 44px;
-      background: linear-gradient(135deg, var(--admin-primary), #ff4d4d);
-      color: white;
-      border-radius: 12px;
+    .admin-logo-link {
+      display: flex;
+      align-items: center;
+      text-decoration: none;
+      flex-shrink: 0;
+    }
+
+    .admin-logo-img {
+      height: 38px;
+      width: auto;
+      max-width: 140px;
+      object-fit: contain;
+      display: block;
+    }
+
+    .brand-divider {
+      width: 1px;
+      height: 28px;
+      background: #e2e8f0;
+      flex-shrink: 0;
+    }
+
+    .brand-title-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .admin-panel-badge,
+    .drawer-panel-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.15rem 0.5rem;
+      background: #fee2e2;
+      color: #b91c1c;
+      font-size: 0.72rem;
+      font-weight: 700;
+      border-radius: 6px;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      line-height: 1.2;
+    }
+
+    /* Sandviç (Hamburger) Menü Butonu */
+    .admin-menu-toggle {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      padding: 0;
+      background: #f8fafc;
+      border: 1px solid var(--admin-border);
+      border-radius: 10px;
+      cursor: pointer;
+      color: var(--admin-text-main);
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    .admin-menu-toggle:hover {
+      background: #f1f5f9;
+      border-color: #cbd5e1;
+    }
+
+    .admin-menu-toggle:active {
+      transform: scale(0.95);
+    }
+
+    .hamburger-box {
+      width: 20px;
+      height: 14px;
+      display: inline-block;
+      position: relative;
+    }
+
+    .hamburger-inner,
+    .hamburger-inner::before,
+    .hamburger-inner::after {
+      width: 20px;
+      height: 2px;
+      background-color: #1e293b;
+      border-radius: 2px;
+      position: absolute;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+    }
+
+    .hamburger-inner {
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    .hamburger-inner::before {
+      content: '';
+      top: -6px;
+      left: 0;
+    }
+
+    .hamburger-inner::after {
+      content: '';
+      bottom: -6px;
+      left: 0;
+    }
+
+    .admin-menu-toggle[aria-expanded="true"] .hamburger-inner {
+      background-color: transparent;
+    }
+
+    .admin-menu-toggle[aria-expanded="true"] .hamburger-inner::before {
+      transform: translateY(6px) rotate(45deg);
+    }
+
+    .admin-menu-toggle[aria-expanded="true"] .hamburger-inner::after {
+      transform: translateY(-6px) rotate(-45deg);
+    }
+
+    /* Mobil Drawer (Soldan Açılan Yan Menü) */
+    .admin-drawer-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.55);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      z-index: 998;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .admin-drawer-backdrop.is-open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .admin-drawer {
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      width: 290px;
+      max-width: 84vw;
+      background: #ffffff;
+      z-index: 999;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 4px 0 24px rgba(0, 0, 0, 0.18);
+      transform: translateX(-100%);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      overflow: hidden;
+    }
+
+    .admin-drawer.is-open {
+      transform: translateX(0);
+    }
+
+    body.admin-drawer-open {
+      overflow: hidden !important;
+    }
+
+    .admin-drawer-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.15rem 1.25rem;
+      border-bottom: 1px solid var(--admin-border);
+      background: #ffffff;
+    }
+
+    .drawer-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+    }
+
+    .drawer-logo-img {
+      height: 34px;
+      width: auto;
+      max-width: 120px;
+      object-fit: contain;
+      display: block;
+    }
+
+    .admin-drawer-close {
+      width: 36px;
+      height: 36px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-weight: 900;
-      font-size: 1.2rem;
-      letter-spacing: -1px;
-      box-shadow: 0 4px 10px rgba(227, 10, 23, 0.2);
+      border: 1px solid var(--admin-border);
+      background: #f8fafc;
+      color: #64748b;
+      border-radius: 8px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .admin-drawer-close:hover {
+      background: #fee2e2;
+      color: #b91c1c;
+      border-color: #fca5a5;
+    }
+
+    .admin-drawer-nav {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem 0.85rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .drawer-nav-section-title {
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      color: #94a3b8;
+      padding: 0.35rem 0.75rem 0.45rem;
+    }
+
+    .drawer-nav-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      width: 100%;
+      padding: 0.75rem 0.95rem;
+      background: transparent;
+      border: none;
+      border-radius: 10px;
+      color: #334155;
+      font-size: 0.92rem;
+      font-weight: 600;
+      text-align: left;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      position: relative;
+    }
+
+    .drawer-nav-item:hover {
+      background: #f1f5f9;
+      color: #0f172a;
+    }
+
+    .drawer-nav-item.is-active {
+      background: #fef2f2;
+      color: var(--admin-primary);
+      font-weight: 700;
+    }
+
+    .drawer-nav-item.is-active .drawer-item-icon {
+      transform: scale(1.1);
+    }
+
+    .drawer-item-icon {
+      font-size: 1.15rem;
+      line-height: 1;
+      transition: transform 0.15s ease;
+    }
+
+    .drawer-item-text {
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .drawer-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 20px;
+      height: 20px;
+      padding: 0 0.4rem;
+      background: var(--admin-primary);
+      color: #ffffff;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 800;
+      line-height: 1;
+    }
+
+    .drawer-badge.is-hidden {
+      display: none !important;
+    }
+
+    .admin-drawer-footer {
+      padding: 1rem 1.15rem;
+      border-top: 1px solid var(--admin-border);
+      background: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+    }
+
+    .drawer-footer-link {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: #475569;
+      text-decoration: none;
+      font-size: 0.88rem;
+      font-weight: 600;
+      padding: 0.5rem 0.65rem;
+      border-radius: 8px;
+      transition: all 0.15s ease;
+    }
+
+    .drawer-footer-link:hover {
+      background: #e2e8f0;
+      color: #0f172a;
+    }
+
+    .drawer-logout-form {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+    }
+
+    .drawer-logout-btn {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.65rem 1rem;
+      background: #ffffff;
+      border: 1px solid #fecaca;
+      color: var(--admin-primary);
+      border-radius: 8px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .drawer-logout-btn:hover {
+      background: #fef2f2;
     }
 
     .admin-title {
@@ -3356,6 +4145,7 @@ const adminLocationData = {
       font-size: 0.85rem;
       transition: all 0.2s ease;
       cursor: pointer;
+      flex-shrink: 0;
     }
 
     .admin-logout-btn:hover {
@@ -3367,6 +4157,10 @@ const adminLocationData = {
     /* Header Navigation Tabs */
     .header-nav-wrapper {
       background: #fafbfc;
+      width: 100%;
+      max-width: 100%;
+      overflow: hidden;
+      box-sizing: border-box;
     }
 
     .header-nav-container {
@@ -3376,7 +4170,11 @@ const adminLocationData = {
       display: flex;
       align-items: center;
       overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
       scrollbar-width: none;
+      width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
     }
     .header-nav-container::-webkit-scrollbar {
       display: none;
@@ -3404,6 +4202,7 @@ const adminLocationData = {
       cursor: pointer;
       white-space: nowrap;
       transition: all 0.15s ease;
+      flex-shrink: 0;
     }
 
     .admin-tab:hover {
@@ -3421,12 +4220,19 @@ const adminLocationData = {
     /* Main Container */
     .admin-main {
       padding: 1.75rem 0 3rem;
+      width: 100%;
+      max-width: 100vw;
+      overflow-x: hidden;
+      box-sizing: border-box;
     }
 
     .container {
       max-width: 1400px;
       margin: 0 auto;
       padding: 0 1.5rem;
+      width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
     }
 
     /* Dashboard Hero */
@@ -3612,6 +4418,280 @@ const adminLocationData = {
     .text-green { color: #16a34a; }
     .text-red { color: #dc2626; }
     .text-blue { color: #2563eb; }
+
+    .stat-value-group {
+      display: flex;
+      align-items: baseline;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+    }
+
+    .stat-sub-pill {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #2563eb;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      padding: 0.2rem 0.55rem;
+      border-radius: 9999px;
+      line-height: 1.2;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      letter-spacing: -0.01em;
+    }
+
+    /* Dashboard Analytics Grid */
+    .dashboard-analytics-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 1.25rem;
+      margin-top: 1.5rem;
+      width: 100%;
+      min-width: 0;
+    }
+    @media (min-width: 900px) {
+      .dashboard-analytics-grid {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      }
+    }
+
+    .dashboard-panel-card {
+      background: var(--admin-surface);
+      border: 1px solid var(--admin-border);
+      border-radius: 1.25rem;
+      padding: 1.5rem;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.02);
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
+      overflow: hidden;
+    }
+
+    .dashboard-panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 1.15rem;
+      border-bottom: 1px solid var(--admin-border);
+      margin-bottom: 1.15rem;
+      gap: 1rem;
+      width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
+    }
+
+    .dashboard-panel-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      min-width: 0;
+      flex: 1 1 0%;
+    }
+
+    .dashboard-panel-title-wrap > div {
+      min-width: 0;
+      flex: 1 1 0%;
+    }
+
+    .panel-icon-badge {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.35rem;
+      flex-shrink: 0;
+    }
+
+    .dashboard-panel-title {
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: var(--admin-text-main);
+      margin: 0;
+      line-height: 1.25;
+      word-break: break-word;
+    }
+
+    .dashboard-panel-sub {
+      font-size: 0.78rem;
+      color: var(--admin-text-muted);
+      margin: 0.2rem 0 0 0;
+      word-break: break-word;
+      line-height: 1.3;
+    }
+
+    .dashboard-jump-link {
+      background: transparent;
+      border: 1px solid #e2e8f0;
+      color: #3b82f6;
+      font-size: 0.82rem;
+      font-weight: 700;
+      padding: 0.45rem 0.85rem;
+      border-radius: 0.65rem;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+      text-decoration: none;
+      flex-shrink: 0;
+      box-sizing: border-box;
+    }
+
+    .dashboard-jump-link:hover {
+      background: #eff6ff;
+      border-color: #bfdbfe;
+      color: #1d4ed8;
+    }
+
+    .dashboard-ranked-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+      width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
+    }
+
+    .dashboard-ranked-item {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      padding: 0.75rem 0.85rem;
+      border-radius: 0.85rem;
+      background: #f8fafc;
+      border: 1px solid #f1f5f9;
+      transition: all 0.15s ease;
+      width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
+    }
+
+    .dashboard-ranked-item:hover {
+      background: #ffffff;
+      border-color: #cbd5e1;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+    }
+
+    .rank-badge {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.78rem;
+      font-weight: 800;
+      flex-shrink: 0;
+      background: #e2e8f0;
+      color: #475569;
+    }
+
+    .rank-1 { background: #fef3c7; color: #b45309; }
+    .rank-2 { background: #f1f5f9; color: #334155; }
+    .rank-3 { background: #ffedd5; color: #c2410c; }
+    .rank-listing { background: #ecfdf5; color: #059669; }
+
+    .ranked-item-info {
+      flex: 1 1 0%;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      overflow: hidden;
+    }
+
+    .ranked-item-title {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--admin-text-main);
+      text-decoration: none;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: block;
+    }
+
+    .ranked-item-title:hover {
+      color: #2563eb;
+    }
+
+    .ranked-item-meta {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      flex-wrap: wrap;
+    }
+
+    .meta-tag {
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 0.15rem 0.45rem;
+      border-radius: 6px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      color: #64748b;
+    }
+
+    .tag-clicks {
+      color: #2563eb;
+      background: #eff6ff;
+      border-color: #dbeafe;
+      font-weight: 700;
+    }
+
+    .tag-views {
+      color: #475569;
+    }
+
+    .tag-category {
+      color: #7c3aed;
+      background: #f5f3ff;
+      border-color: #ddd6fe;
+    }
+
+    .tag-club {
+      color: #0f766e;
+      background: #f0fdfa;
+      border-color: #ccfbf1;
+      font-weight: 600;
+    }
+
+    .tag-location {
+      color: #475569;
+    }
+
+    .tag-price {
+      color: #b45309;
+      background: #fffbeb;
+      border-color: #fde68a;
+    }
+
+    .ranked-item-action {
+      font-size: 1.1rem;
+      color: #94a3b8;
+      text-decoration: none;
+      padding: 0.25rem;
+      border-radius: 6px;
+      transition: color 0.15s ease;
+      line-height: 1;
+    }
+
+    .ranked-item-action:hover {
+      color: #2563eb;
+    }
+
+    .dashboard-empty-panel {
+      padding: 2rem 1rem;
+      text-align: center;
+      color: var(--admin-text-muted);
+      font-size: 0.9rem;
+    }
 
     /* Dashboard Section Heads */
     .dashboard-section-head {
@@ -4835,8 +5915,13 @@ const adminLocationData = {
 
     .info-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr;
       gap: 1rem;
+    }
+    @media (min-width: 1024px) {
+      .info-grid {
+        grid-template-columns: 1fr 1fr;
+      }
     }
 
     .info-item {
@@ -4889,8 +5974,13 @@ const adminLocationData = {
 
     .form-row-2 {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr;
       gap: 1rem;
+    }
+    @media (min-width: 1024px) {
+      .form-row-2 {
+        grid-template-columns: 1fr 1fr;
+      }
     }
 
     .modern-input, .modern-textarea {
@@ -4943,6 +6033,7 @@ const adminLocationData = {
     
     .btn-success { background: #22c55e; color: white; }
     .btn-success:hover { background: #16a34a; }
+    .btn-save-success { background: #16a34a !important; border-color: #16a34a !important; color: #ffffff !important; }
 
     .btn-danger { background: #dc2626; color: white; }
     .btn-danger:hover { background: #b91c1c; transform: translateY(-1px); }
@@ -5252,11 +6343,36 @@ const adminLocationData = {
     .empty-list, .empty-hint { color: var(--admin-text-muted); font-size: 0.9rem; text-align: center; padding: 1rem; }
     .error-text { color: #dc2626; font-weight: 600; }
     .section-help { color: var(--admin-text-muted); line-height: 1.4; }
-    .text-sm { font-size: 0.85rem; }
-    .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-    .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 8px; }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
-    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    .custom-scrollbar,
+    .admin-list,
+    .detail-content {
+      scrollbar-color: #cbd5e1 #f8fafc;
+      scrollbar-width: thin;
+    }
+    .custom-scrollbar::-webkit-scrollbar,
+    .admin-list::-webkit-scrollbar,
+    .detail-content::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track,
+    .admin-list::-webkit-scrollbar-track,
+    .detail-content::-webkit-scrollbar-track {
+      background: #f8fafc;
+      border-radius: 8px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb,
+    .admin-list::-webkit-scrollbar-thumb,
+    .detail-content::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 8px;
+      border: 1px solid #f8fafc;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover,
+    .admin-list::-webkit-scrollbar-thumb:hover,
+    .detail-content::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
     
     .spinner-small {
       display: inline-block;
@@ -5279,7 +6395,7 @@ const adminLocationData = {
       grid-template-columns: 1fr;
       gap: 0.75rem;
     }
-    @media (min-width: 640px) {
+    @media (min-width: 1024px) {
       .form-row-inline { grid-template-columns: 1fr 1fr; }
     }
 
@@ -5432,8 +6548,13 @@ const adminLocationData = {
     }
     .mail-cta-fields {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 1fr;
       gap: 0.75rem;
+    }
+    @media (min-width: 1024px) {
+      .mail-cta-fields {
+        grid-template-columns: 1fr 1fr;
+      }
     }
     .device-toggles {
       display: flex;
@@ -5742,6 +6863,548 @@ const adminLocationData = {
     .btn-otp-confirm:hover {
       opacity: 0.95;
       transform: translateY(-1px);
+    }
+
+    /* ==========================================================================
+       MOBILE RESPONSIVE OVERHAUL (Tüm Admin Paneli Mobil Uyumluluk İyileştirmeleri)
+       ========================================================================== */
+
+    /* 1. Global Taşıma Önleme & Kutu Modeli */
+    .admin-shell,
+    .admin-main,
+    .container,
+    .card-section,
+    .content-engine-panel,
+    .mail-service-container {
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
+    }
+
+    input, select, textarea, button {
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+
+    /* Desktop View Defaults */
+    @media (min-width: 1024px) {
+      .admin-menu-toggle,
+      .admin-drawer,
+      .admin-drawer-backdrop {
+        display: none !important;
+      }
+      .header-nav-wrapper {
+        display: block !important;
+      }
+      .mobile-pane-switcher,
+      .mobile-detail-nav,
+      .mobile-back-btn {
+        display: none !important;
+      }
+      .admin-columns[data-mobile-view="list"] .admin-list-container,
+      .admin-columns[data-mobile-view="list"] .admin-detail-container,
+      .admin-columns[data-mobile-view="detail"] .admin-list-container,
+      .admin-columns[data-mobile-view="detail"] .admin-detail-container {
+        display: flex !important;
+      }
+    }
+
+    /* 2. Tablet & Mobil (Max 1023px) — Master-Detail Segmented Architecture & Mobil Header */
+    @media (max-width: 1023px) {
+      .admin-menu-toggle {
+        display: flex !important;
+      }
+
+      .header-nav-wrapper {
+        display: none !important;
+      }
+
+      .brand-divider {
+        display: none !important;
+      }
+
+      .admin-subtitle {
+        display: none !important;
+      }
+
+      .admin-columns {
+        grid-template-columns: 1fr !important;
+        gap: 1rem !important;
+      }
+
+      /* Segmented Pane Switcher */
+      .mobile-pane-switcher {
+        display: flex !important;
+        gap: 0.4rem;
+        margin-bottom: 1rem;
+        background: #e2e8f0;
+        padding: 0.3rem;
+        border-radius: 0.75rem;
+        width: 100%;
+        box-sizing: border-box;
+      }
+
+      .mobile-pane-btn {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4rem;
+        padding: 0.65rem 0.85rem;
+        border: none;
+        background: transparent;
+        border-radius: 0.55rem;
+        font-size: 0.88rem;
+        font-weight: 700;
+        color: #475569;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        box-shadow: none;
+      }
+
+      .mobile-pane-btn.is-active {
+        background: #ffffff;
+        color: #0f172a;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      }
+
+      /* Liste Görünümü: Liste tüm genişlikte ve doğal sayfa akışında akar (Scroll-trap YOK!) */
+      .admin-columns[data-mobile-view="list"] .admin-list-container {
+        display: flex !important;
+        width: 100% !important;
+        height: auto !important;
+        max-height: none !important;
+        min-height: unset !important;
+        overflow: visible !important;
+      }
+
+      .admin-columns[data-mobile-view="list"] .admin-list {
+        height: auto !important;
+        max-height: none !important;
+        overflow-y: visible !important;
+        overflow-x: hidden !important;
+      }
+
+      .admin-columns[data-mobile-view="list"] .admin-detail-container {
+        display: none !important;
+      }
+
+      /* Detay Görünümü: Detay kartı tüm ekranda, liste gizli */
+      .admin-columns[data-mobile-view="detail"] .admin-list-container {
+        display: none !important;
+      }
+
+      .admin-columns[data-mobile-view="detail"] .admin-detail-container {
+        display: flex !important;
+        width: 100% !important;
+        height: auto !important;
+        min-height: unset !important;
+        overflow: visible !important;
+      }
+
+      .admin-columns[data-mobile-view="detail"] .detail-content {
+        height: auto !important;
+        max-height: none !important;
+        overflow-y: visible !important;
+        overflow-x: hidden !important;
+        padding: 1.25rem 1rem 2.5rem !important;
+      }
+
+      /* Mobil Geri Dön Butonu */
+      .mobile-detail-nav {
+        display: flex !important;
+        align-items: center;
+        justify-content: flex-start;
+        padding: 0.75rem 1rem;
+        background: #f8fafc;
+        border-bottom: 1px solid var(--admin-border);
+      }
+
+      .mobile-back-btn {
+        display: inline-flex !important;
+        align-items: center;
+        gap: 0.4rem;
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        color: #1d4ed8;
+        padding: 0.5rem 0.95rem;
+        border-radius: 0.6rem;
+        font-size: 0.85rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: background 0.15s ease;
+      }
+
+      .mobile-back-btn:active {
+        background: #dbeafe;
+      }
+
+      .detail-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+      }
+
+      .detail-header .header-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        width: 100%;
+      }
+
+      .detail-header .header-actions .btn {
+        flex: 1 1 auto;
+      }
+
+      /* Mail Servisi Kolonları */
+      .mail-service-grid {
+        grid-template-columns: 1fr !important;
+      }
+
+      .mail-service-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+      }
+
+      .mail-service-stats {
+        width: 100%;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.5rem;
+      }
+
+      /* Planlar & Fiyatlar */
+      .membership-plans-admin-grid {
+        grid-template-columns: 1fr !important;
+      }
+
+      /* Form Satırları ve Izgaraları Mobilde & Tablette Kesinlikle Alt Alta (Tek Kolon) */
+      .form-row-2,
+      .info-grid,
+      .form-row-inline,
+      .mail-cta-fields,
+      .detail-grid {
+        grid-template-columns: 1fr !important;
+        gap: 0.75rem !important;
+      }
+    }
+
+    /* 3. Mobil Cihazlar (Max 767px) */
+    @media (max-width: 767px) {
+      .container {
+        padding: 0 0.75rem !important;
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+
+      .admin-main {
+        padding: 0.85rem 0 2rem !important;
+      }
+
+      /* Header Mobil İyileştirme */
+      .header-container {
+        padding: 0.55rem 0.75rem !important;
+      }
+
+      .header-left {
+        gap: 0.5rem !important;
+      }
+
+      .brand {
+        gap: 0.5rem !important;
+      }
+
+      .admin-logo-img {
+        height: 30px !important;
+        max-width: 110px !important;
+      }
+
+      .admin-title {
+        font-size: 1.05rem !important;
+      }
+
+      .admin-panel-badge {
+        font-size: 0.65rem !important;
+        padding: 0.1rem 0.4rem !important;
+      }
+
+      .admin-subtitle {
+        display: none !important;
+      }
+
+      .logout-text {
+        display: none !important;
+      }
+
+      .admin-logout-btn {
+        padding: 0.4rem 0.65rem !important;
+        font-size: 0.85rem !important;
+      }
+
+      .header-nav-container {
+        padding: 0.3rem 0.75rem !important;
+      }
+
+      .admin-tabs {
+        gap: 0.25rem !important;
+      }
+
+      .admin-tab {
+        padding: 0.45rem 0.75rem !important;
+        font-size: 0.82rem !important;
+      }
+
+      /* Dashboard İstatistik Kartları 2x2 (Taşmayı kesin önleyen minmax(0, 1fr)) */
+      .stats-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 0.65rem !important;
+        margin-bottom: 1.25rem !important;
+        width: 100% !important;
+      }
+
+      .stat-card {
+        padding: 0.75rem 0.65rem !important;
+        gap: 0.5rem !important;
+        border-radius: 0.85rem !important;
+        min-width: 0 !important;
+        overflow: hidden !important;
+      }
+
+      .stat-icon {
+        width: 36px !important;
+        height: 36px !important;
+        font-size: 1.15rem !important;
+        border-radius: 8px !important;
+      }
+
+      .stat-content {
+        min-width: 0 !important;
+        flex: 1 1 0% !important;
+        overflow: hidden !important;
+      }
+
+      .stat-content h3 {
+        font-size: 0.7rem !important;
+        letter-spacing: 0.02em;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+      }
+
+      .stat-value {
+        font-size: 1.25rem !important;
+      }
+
+      .stat-sub-pill {
+        font-size: 0.62rem !important;
+        padding: 0.12rem 0.35rem !important;
+        white-space: normal !important;
+        display: inline-flex !important;
+        line-height: 1.2 !important;
+      }
+
+      /* Dashboard Analitik Kartları & Ranked Listeler */
+      .dashboard-panel-card {
+        padding: 1rem 0.85rem !important;
+        border-radius: 1rem !important;
+        min-width: 0 !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+      }
+
+      .dashboard-panel-header {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.75rem !important;
+      }
+
+      .panel-icon-badge {
+        width: 38px !important;
+        height: 38px !important;
+        font-size: 1.15rem !important;
+        border-radius: 10px !important;
+      }
+
+      .dashboard-panel-title {
+        font-size: 0.98rem !important;
+      }
+
+      .dashboard-jump-link {
+        width: 100% !important;
+        text-align: center !important;
+        padding: 0.5rem !important;
+      }
+
+      .dashboard-ranked-item {
+        padding: 0.6rem 0.65rem !important;
+        gap: 0.65rem !important;
+        min-width: 0 !important;
+        width: 100% !important;
+      }
+
+      .rank-badge {
+        width: 24px !important;
+        height: 24px !important;
+        font-size: 0.72rem !important;
+        border-radius: 6px !important;
+      }
+
+      .ranked-item-info {
+        flex: 1 1 0% !important;
+        min-width: 0 !important;
+        overflow: hidden !important;
+      }
+
+      .ranked-item-title {
+        font-size: 0.84rem !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+      }
+
+      .ranked-item-meta {
+        gap: 0.25rem !important;
+      }
+
+      .meta-tag {
+        font-size: 0.65rem !important;
+        padding: 0.12rem 0.35rem !important;
+      }
+
+      .ranked-item-action {
+        width: 24px !important;
+        height: 24px !important;
+        font-size: 0.95rem !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        flex-shrink: 0 !important;
+      }
+
+      /* Form Satırları ve Izgaraları */
+      .form-row-2,
+      .info-grid,
+      .form-row-inline,
+      .mail-cta-fields,
+      .detail-grid {
+        grid-template-columns: 1fr !important;
+        gap: 0.75rem !important;
+      }
+
+      .test-server-header {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 0.35rem !important;
+      }
+
+      .action-buttons {
+        grid-template-columns: 1fr !important;
+        gap: 0.5rem !important;
+      }
+
+      .btn {
+        padding: 0.6rem 0.9rem !important;
+        font-size: 0.9rem !important;
+      }
+
+      .detail-content {
+        padding: 1.25rem 0.85rem 2rem !important;
+      }
+
+      /* Arama ve Filtre */
+      .list-search-area {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.5rem !important;
+      }
+
+      .list-status-select {
+        width: 100% !important;
+        flex: 1 1 auto !important;
+      }
+
+      /* Kulüp İlanları */
+      .club-program-list-item {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.6rem !important;
+      }
+
+      .club-program-list-item button {
+        width: 100% !important;
+      }
+
+      /* Content Engine Araç Çubuğu */
+      .content-engine-toolbar {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.5rem !important;
+      }
+
+      .content-engine-toolbar .btn {
+        width: 100% !important;
+      }
+
+      .ce-panel-grid {
+        grid-template-columns: 1fr !important;
+      }
+
+      .ce-card {
+        padding: 0.85rem !important;
+      }
+
+      .ce-cal-table-wrap {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        max-width: 100% !important;
+      }
+
+      /* Mail Servisi */
+      .mail-service-header {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 0.75rem !important;
+      }
+
+      .mail-service-stats {
+        grid-template-columns: 1fr 1fr !important;
+        gap: 0.4rem !important;
+      }
+
+      .mail-stat-badge {
+        padding: 0.5rem !important;
+      }
+
+      .mail-card-header {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 0.65rem !important;
+      }
+
+      .preset-selector-wrap {
+        width: 100% !important;
+      }
+
+      .preset-selector-wrap select {
+        width: 100% !important;
+      }
+
+      /* 2FA Modal */
+      .mail-otp-modal-card {
+        max-width: 100% !important;
+        border-radius: 1rem !important;
+        margin: 0.5rem !important;
+      }
+
+      .mail-otp-input {
+        width: 100% !important;
+        max-width: 220px !important;
+        font-size: 1.6rem !important;
+        letter-spacing: 8px !important;
+        padding: 0.6rem !important;
+      }
     }
   </style>
 )}

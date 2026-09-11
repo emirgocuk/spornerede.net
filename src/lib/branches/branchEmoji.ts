@@ -35,7 +35,21 @@ set(SLUG_VISUAL, ['Voleybol', 'Plaj Voleybolu'], '🏐', '#8B5CF6');
 set(SLUG_VISUAL, ['Hentbol', 'Plaj Hentbolu'], '🤾', '#F97316');
 set(SLUG_VISUAL, ['Yüzme', 'Yuzme', 'Akuatlon'], '🏊', '#3B82F6');
 set(SLUG_VISUAL, ['Su Topu'], '🤽', '#3B82F6');
-set(SLUG_VISUAL, ['Dalış', 'Dalis', 'Serbest Dalış', 'Serbest Dalis'], '🤿', '#0EA5E9');
+set(
+  SLUG_VISUAL,
+  [
+    'Dalış',
+    'Dalis',
+    'Serbest Dalış',
+    'Serbest Dalis',
+    'Sualtı Hokeyi',
+    'Sualti Hokeyi',
+    'Sualtı Ragbisi',
+    'Sualti Ragbisi',
+  ],
+  '🤿',
+  '#0EA5E9',
+);
 set(SLUG_VISUAL, ['Kürek', 'Kurek', 'Kano', 'Dragon Bot'], '🚣', '#0284C7');
 set(SLUG_VISUAL, ['Rafting'], '🛶', '#0284C7');
 set(SLUG_VISUAL, ['Yelken'], '⛵', '#0369A1');
@@ -151,7 +165,7 @@ function matchByPattern(slug: string, name: string): BranchVisual | null {
   if (/hentbol/.test(haystack)) return { emoji: '🤾', renk: '#F97316' };
   if (/yuzme|yüzme|akuatlon/.test(haystack)) return { emoji: '🏊', renk: '#3B82F6' };
   if (/su-topu|su topu/.test(haystack)) return { emoji: '🤽', renk: '#3B82F6' };
-  if (/dalis|dalış/.test(haystack)) return { emoji: '🤿', renk: '#0EA5E9' };
+  if (/dalis|dalış|sualti.*hokey|sualtı.*hokey/.test(haystack)) return { emoji: '🤿', renk: '#0EA5E9' };
   if (/kurek|kürek|kano|dragon/.test(haystack)) return { emoji: '🚣', renk: '#0284C7' };
   if (/rafting/.test(haystack)) return { emoji: '🛶', renk: '#0284C7' };
   if (/yelken/.test(haystack)) return { emoji: '⛵', renk: '#0369A1' };

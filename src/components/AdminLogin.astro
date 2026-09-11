@@ -24,8 +24,10 @@ const errorMessage =
 <section class="admin-login-page">
   <div class="admin-login-card">
     <div class="admin-login-brand">
-      <div class="admin-login-logo" aria-hidden="true">SN</div>
-      <div>
+      <a href="/" class="admin-login-logo-link" title="SporNerede.net Ana Sayfa">
+        <img src="/logo-spornerede-header-markup.svg" alt="Spor Nerede?" class="admin-login-logo-img" width="115" height="46" />
+      </a>
+      <div class="admin-login-brand-text">
         <h1>Yönetim Merkezi</h1>
         <p>SporNerede.net başvuru ve kulüp yönetimi</p>
       </div>
@@ -76,32 +78,35 @@ const errorMessage =
 
   .admin-login-brand {
     display: flex;
-    align-items: center;
+    flex-direction: column;
+    align-items: flex-start;
     gap: 1rem;
     margin-bottom: 1.5rem;
   }
 
-  .admin-login-logo {
-    width: 3rem;
-    height: 3rem;
-    border-radius: 0.85rem;
-    background: linear-gradient(135deg, #e30a17, #b5080f);
-    color: #fff;
-    font-weight: 900;
-    display: grid;
-    place-items: center;
-    font-size: 0.95rem;
-    flex-shrink: 0;
+  .admin-login-logo-link {
+    display: inline-flex;
+    align-items: center;
+    text-decoration: none;
   }
 
-  .admin-login-brand h1 {
+  .admin-login-logo-img {
+    height: 42px;
+    width: auto;
+    max-width: 150px;
+    object-fit: contain;
+    display: block;
+  }
+
+  .admin-login-brand-text h1 {
     margin: 0;
     font-size: 1.35rem;
     font-weight: 800;
     color: #0f172a;
+    letter-spacing: -0.02em;
   }
 
-  .admin-login-brand p {
+  .admin-login-brand-text p {
     margin: 0.25rem 0 0;
     font-size: 0.88rem;
     color: #64748b;

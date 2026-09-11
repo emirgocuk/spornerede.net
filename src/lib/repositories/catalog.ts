@@ -4,6 +4,7 @@ import { enrichBranchFields } from '../branches/branchEmoji';
 import { displayIlAd } from '../turkishIlDisplay';
 import { expireDueMemberships } from './memberships';
 import { parseProgramContent } from './programContent';
+import { listingSlug } from '../seo/slug';
 
 export type SearchFilters = {
   il?: string;
@@ -512,16 +513,132 @@ export async function getDistrictBranchLanding(citySlug: string, districtSlug: s
 export async function getAdminClubSummary() {
   requireDatabase();
   const db = await getDb();
-  const clubs = await db.collection('kulupler').getFullList();
+  const [clubs, clubBranches, programs, branches] = await Promise.all([
+    db.collection('kulupler').getFullList(),
+    db.collection('kulup_branslar').getFullList().catch(() => []),
+    db.collection('kulup_programlari').getFullList().catch(() => []),
+    db.collection('branslar').getFullList().catch(() => []),
+  ]);
   const all = clubs.length;
   const pending = clubs.filter((item) => item.durum === 'pending').length;
   const approved = clubs.filter((item) => item.durum === 'approved').length;
   const rejected = clubs.filter((item) => item.durum === 'rejected').length;
+
+  const branchById = new Map(branches.map((b) => [Number(b.legacyId), b]));
+  const branchBySlug = new Map(branches.map((b) => [String(b.slug ?? ''), b]));
+
+  const distinctBranchSlugs = new Set<string>();
+
+  for (const link of clubBranches) {
+    const branch = branchById.get(Number(link.bransLegacyId));
+    if (branch?.slug) distinctBranchSlugs.add(String(branch.slug));
+  }
+
+  for (const p of programs) {
+    const pSlug = slugify(String(p.ad ?? ''));
+    const targetSlug = pSlug === 'jimnastik' ? 'cimnastik' : pSlug;
+    const branch = branchBySlug.get(targetSlug) ?? branchBySlug.get(pSlug);
+    if (branch?.slug) distinctBranchSlugs.add(String(branch.slug));
+  }
+
   return {
     total: all,
     pending,
     approved,
     rejected,
+    branchCount: distinctBranchSlugs.size,
+    totalBranches: branches.length,
   };
+}
+
+export type TopNewsItem = {
+  id: string;
+  baslik: string;
+  slug: string;
+  clicks: number;
+  impressions: number;
+  kategori: string;
+  tarih: string;
+};
+
+export type TopListingItem = {
+  id: string;
+  ad: string;
+  kulupAd: string;
+  il: string;
+  ilce: string;
+  url: string;
+  ucret: string;
+  gunSaat: string;
+  clicks: number;
+  impressions: number;
+};
+
+export async function getDashboardAnalytics(): Promise<{
+  topNews: TopNewsItem[];
+  topListings: TopListingItem[];
+}> {
+  requireDatabase();
+  const db = await getDb();
+
+  let topNews: TopNewsItem[] = [];
+  try {
+    const newsRows = await db.collection('haberler').getFullList({
+      filter: 'aktif = true',
+      sort: '-gsc_tiklama,-gsc_gosterim',
+    });
+    topNews = newsRows.slice(0, 5).map((row) => ({
+      id: String(row.id),
+      baslik: String(row.baslik ?? ''),
+      slug: String(row.slug ?? ''),
+      clicks: Number(row.gsc_tiklama ?? 0),
+      impressions: Number(row.gsc_gosterim ?? 0),
+      kategori: String(row.kategori ?? 'Haber'),
+      tarih: String(row.tarih ?? ''),
+    }));
+  } catch (err) {
+    console.error('Dashboard top news alinamadi:', err);
+  }
+
+  let topListings: TopListingItem[] = [];
+  try {
+    const [programs, clubs, cities, districts] = await Promise.all([
+      db.collection('kulup_programlari').getFullList({ filter: 'aktif = true' }),
+      db.collection('kulupler').getFullList({ filter: 'durum = "approved"' }),
+      db.collection('iller').getFullList(),
+      db.collection('ilceler').getFullList(),
+    ]);
+
+    const cityById = new Map(cities.map((c) => [Number(c.legacyId), c]));
+    const districtById = new Map(districts.map((d) => [Number(d.legacyId), d]));
+    const clubById = new Map(clubs.map((c) => [Number(c.legacyId), c]));
+
+    topListings = programs.slice(0, 5).map((p) => {
+      const club = clubById.get(Number(p.kulupLegacyId));
+      const city = club ? cityById.get(Number(club.ilLegacyId)) : null;
+      const district = club ? districtById.get(Number(club.ilceLegacyId)) : null;
+      const clubAd = String(club?.ad ?? 'Spor Kulübü');
+      const progAd = String(p.ad ?? 'Kurs Programı');
+      const progId = p.legacyId || p.id;
+      const slug = listingSlug({ id: progId, ad: progAd, clubAd });
+
+      return {
+        id: String(p.id),
+        ad: progAd,
+        kulupAd: clubAd,
+        il: String(city?.ad ?? club?.il ?? '-'),
+        ilce: String(district?.ad ?? club?.ilce ?? '-'),
+        url: `/ilanlar/${slug}`,
+        ucret: String(p.ucretBilgisi ?? ''),
+        gunSaat: String(p.gunSaat ?? ''),
+        clicks: Number(p.gsc_tiklama ?? 0),
+        impressions: Number(p.gsc_gosterim ?? 0),
+      };
+    });
+  } catch (err) {
+    console.error('Dashboard top listings alinamadi:', err);
+  }
+
+  return { topNews, topListings };
 }
 
