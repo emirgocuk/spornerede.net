@@ -404,6 +404,13 @@ def pick(text: str, pattern: str) -> str:
     m = re.search(pattern, text, flags=re.IGNORECASE | re.MULTILINE)
     return m.group(0).strip() if m else ""
 
+def add_include(includes: list, seen: set, line: str) -> None:
+    """Add an include/directive line only if its directive key is not already present."""
+    key = line.strip().split()[0]  # e.g. "include" or "ssl_dhparam"
+    if key not in seen:
+        seen.add(key)
+        includes.append(line)
+
 has_ssl = 0
 listen443 = ""
 ssl_cert = ""
@@ -411,6 +418,7 @@ ssl_key = ""
 ssl_trusted = ""
 acme = ""
 includes: list[str] = []
+seen_directives: set[str] = set()
 
 if existing:
     p = Path(existing)
@@ -431,9 +439,9 @@ if existing:
     for line in text.splitlines():
         s = line.strip()
         if "letsencrypt/options-ssl-nginx.conf" in s and s.startswith("include "):
-            includes.append(s)
+            add_include(includes, seen_directives, s)
         if s.startswith("ssl_dhparam "):
-            includes.append(s)
+            add_include(includes, seen_directives, s)
 
     if ssl_cert and ssl_key:
         if not listen443:
@@ -452,9 +460,9 @@ if not has_ssl:
             ssl_cert = f"  ssl_certificate {c};"
             ssl_key = f"  ssl_certificate_key {k};"
             if Path("/etc/letsencrypt/options-ssl-nginx.conf").exists():
-                includes.append("  include /etc/letsencrypt/options-ssl-nginx.conf;")
+                add_include(includes, seen_directives, "  include /etc/letsencrypt/options-ssl-nginx.conf;")
             if Path("/etc/letsencrypt/ssl-dhparams.pem").exists():
-                includes.append("  ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;")
+                add_include(includes, seen_directives, "  ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;")
             break
 
 print(f"UPSTREAM_HOST={upstream_host}")
