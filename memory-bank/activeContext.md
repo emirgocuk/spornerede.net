@@ -2,6 +2,8 @@
 
 ## Şimdiki Çalışma Odağı
 
+**Güvenlik Taraması & İyileştirme Planı (2026-09-15):** Kod tabanında kapsamlı güvenlik denetimi tamamlandı, 6 bulgu ve çözüm adımları `memory-bank/security-audit-and-remediation-plan.md` dosyasına kaydedildi. IP spoofing, başvuru formuna bot koruması/rate limiting ve e-posta HTML kaçışı öncelikli uygulama listesine alındı.
+
 **Faz 13 — Ölçüm doğrulama** (GA4/GTM canlıda; DebugView + consent testi kaldı) → ardından **Faz 14** (Bing/Yandex, SC rutini, NewsArticle şema). **Content Engine haber otopilotu** (Ö1–Ö4 + CE-5–8 + 2026-06-14 operasyon düzeltmeleri) **canlı**; ince ayar ve izleme devam eder.
 
 **Tek otomatik içerik kanalı:** `haberler` (günde 1, GSC + keyword kuyruğu, admin onay/auto-publish). **Rehber otomasyonu**, **AI/stock görsel** ve **video embed** kapsam dışı. Detay: `content-engine-isolated-plan-tr.md`.
