@@ -133,11 +133,21 @@ Bu güvenlik incelemesi, harici üçüncü taraf tarayıcılara ihtiyaç duyulma
 * **Yapılacak:** `src/lib/mail/templates.ts` içine yardımcı bir `escapeHtml` fonksiyonu eklenip `buildApplicationNotificationMail` içerisindeki tüm dinamik kullanıcı alanları (`kulupad`, `yetkili`, `aciklama` vb.) temizlenecek.
 * **Hedef:** E-posta HTML enjeksiyonunun önlenmesi.
 
-#### Adım 1.3: Başvuru Formuna Esnek Rate Limit ve Honeypot Alanı
-* **Yapılacak:**
-  1. Başvuru formuna görünmez bir sahte alan (honeypot `website_url_check`) eklenecek; botlar bu alanı doldurduğunda istek sessizce reddedilecek.
-  2. Aynı IP adresinden 10 dakikada en fazla 5 başvuruya izin verecek esnek bir limit eklenecek (normal kullanıcıyı asla engellemez, bot saldırılarını keser).
-* **Hedef:** DoS, disk dolması ve e-posta kotası tükenmesinin engellenmesi.
+#### Adım 1.3: Başvuru Formuna Süre Bazlı Bot Koruması ve CGNAT-Dostu Esnek Rate Limit
+* **Önceki Deneyim & Öğrenilen Ders:**
+  Daha önceki denemede klasik honeypot alanları kullanıldığında, Chrome/Safari/şifre yöneticilerinin otomatik doldurma (autofill) algoritmaları bu gizli alanları da doldurmuş ve gerçek kullanıcıların başvuruları yanlışlıkla bot sanılarak engellenmiştir. Ayrıca istemcideki olası JS hataları formu `/api/basvuru` adresine yönlendirerek kullanıcı deneyimini bozmuştur.
+* **Yeni ve Güvenli Strateji (Kullanıcıyı Asla Engellemeyen Çözüm):**
+  1. **Süre Bazlı İmzalı Doğrulama (Time-based Token):**
+     * Form açıldığında sunucu tarafında oluşturulan zaman damgası (`_ts`) forma eklenir.
+     * Bir insanın kulüp adı, il, ilçe, yetkili, telefon ve branş seçimlerini doldurması **en az 8–15 saniye** sürer.
+     * Otomatik bot scriptleri formu **100–500 milisaniyede** gönderir.
+     * Sunucu tarafında `gönderim_süresi < 3 saniye` ise istek bot kabul edilir. Tarayıcı autofill'i bu süreyi etkilemediği için **sıfır yanlış engelleme (zero false-positive)** sağlanır.
+  2. **CGNAT ve Mobil Operatör Dostu Esnek Hız Sınırı (Rate Limit):**
+     * Turkcell/Vodafone gibi mobil operatörlerde aynı IP'yi paylaşan (CGNAT) kullanıcıların birbirini kilitlememesi için limit dar tutulmaz.
+     * Kural: **Aynı IP'den 15 dakikada en fazla 10–15 başvuru**. Hiçbir gerçek kullanıcı 15 dakikada 10 farklı kulüp başvurusu yapmaz; fakat saniyede onlarca istek basan DoS botları anında engellenir.
+  3. **İstemci Hata & Yönlendirme İzolasyonu:**
+     * API yanıtlarında `wantsJson` mantığı sağlamlaştırılarak kullanıcının asla çıplak `/api/basvuru` JSON ekranına düşmemesi garanti altına alınır.
+* **Hedef:** Gerçek kullanıcı deneyimini hiçbir şekilde riske atmadan DoS, disk dolması ve e-posta kotası tükenmesinin kesin olarak engellenmesi.
 
 ---
 
@@ -161,4 +171,4 @@ Bu güvenlik incelemesi, harici üçüncü taraf tarayıcılara ihtiyaç duyulma
 
 1. **IP Tespiti Testi:** Doğrudan sahte `CF-Connecting-IP` başlığı taşıyan curl isteği atıldığında gerçek IP'nin loglandığı ve rate limit'in aşılamadığı teyit edilecek.
 2. **E-Posta Enjeksiyon Testi:** `<script>` veya `<b>` etiketi içeren kulüp adı gönderildiğinde gelen e-postada metnin düz kaçışlı metin olarak çıktığı doğrulanacak.
-3. **Bot / Honeypot Testi:** Honeypot alanı dolu isteklerin disk veya e-posta servisine ulaşmadan 400 ile kesildiği test edilecek.
+3. **Süre Bazlı Bot & Rate Limit Testi:** 3 saniyenin altında gönderilen otomatik bot isteklerinin ve 15 dakikada 15'ten fazla gelen DoS isteklerinin reddedildiği; normal insan hızında yapılan form gönderimlerinin ise sorunsuz geçtiği teyit edilecek.
