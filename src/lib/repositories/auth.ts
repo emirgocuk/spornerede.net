@@ -235,7 +235,7 @@ export async function ensureClubUserForClub(input: {
       mustChangePassword: Boolean(created.sifreDegistirmeZorunlu),
     };
   } else {
-    await updateUserPassword(user.id, input.passwordHash, { forcePasswordChange: true });
+    // Mevcut kullanıcının şifresi ezilmez; sadece kulüp yetkisi bağlanır.
   }
 
   await assignUserToClub(user.id, input.clubId, input.membershipRole ?? 'owner');

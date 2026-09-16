@@ -33,10 +33,12 @@ if (typeof cleanupTimer === 'object' && 'unref' in cleanupTimer) {
 }
 
 export function getClientIp(request: Request): string {
-  const cfIp = request.headers.get('cf-connecting-ip');
-  if (cfIp) return cfIp.trim();
+  // Nginx reverse proxy sets X-Real-IP from $remote_addr (validated via real_ip_header if from Cloudflare).
+  // This header cannot be forged by external clients hitting Nginx directly.
   const xReal = request.headers.get('x-real-ip');
   if (xReal) return xReal.trim();
+  const cfIp = request.headers.get('cf-connecting-ip');
+  if (cfIp) return cfIp.trim();
   const xForwarded = request.headers.get('x-forwarded-for');
   if (xForwarded) return xForwarded.split(',')[0].trim();
   return '127.0.0.1';

@@ -7,7 +7,7 @@ import type { BasvuruIlanInput } from '../../lib/repositories/applicationProgram
 import { createClubApplication } from '../../lib/repositories/applications';
 import { enqueueMail, processMailQueue } from '../../lib/mail/service';
 import { buildApplicationNotificationMail } from '../../lib/mail/templates';
-import { getClientIp } from '../../lib/security/rateLimiter';
+import { getClientIp, checkRateLimit } from '../../lib/security/rateLimiter';
 import { isValidDocumentSignature } from '../../lib/security/fileValidation';
 
 export const prerender = false;
@@ -21,6 +21,12 @@ const ALLOWED_MIME_TYPES = new Set([
   'application/zip',
   'application/x-zip-compressed',
 ]);
+
+const BASVURU_RATE_LIMIT = {
+  max: 15,
+  windowSeconds: 900, // 15 dakika
+  blockSeconds: 1800, // 30 dakika
+};
 
 function getAppOrigin(request: Request) {
   const forwardedHost = request.headers.get('x-forwarded-host')?.split(',')[0]?.trim();
@@ -66,7 +72,13 @@ function createApiResponse(
   } else if (data.error) {
     url.searchParams.set('error', data.error);
   }
-  return Response.redirect(url, 303);
+  return new Response(null, {
+    status: 303,
+    headers: {
+      Location: url.toString(),
+      'Cache-Control': 'no-store',
+    },
+  });
 }
 
 function sanitizeFilename(input: string) {
@@ -105,9 +117,44 @@ function parseIlanlarFromFormData(formData: FormData, branchCount: number): Basv
 export const POST: APIRoute = async ({ request }) => {
   try {
     const clientIp = getClientIp(request);
-    // Rate limit engeli kaldırıldı (başvurular tek tek manuel inceleniyor; mobil CGNAT/ortak IP'de bloklanma önlendi).
 
-    const formData = await request.formData();
+    // Mobil CGNAT / ortak IP dostu esnek hız sınırı (15 dakikada en fazla 15 başvuru)
+    const rateCheck = checkRateLimit(`basvuru:${clientIp}`, BASVURU_RATE_LIMIT);
+    if (!rateCheck.allowed) {
+      console.warn(`[rate-limit] Basvuru rate limit exceeded from IP: ${clientIp}`);
+      return createApiResponse(request, 429, {
+        success: false,
+        error: 'rate_limit',
+        message: 'Çok fazla istek gönderildi. Lütfen 15 dakika sonra tekrar deneyin.',
+      });
+    }
+
+    let formData: FormData;
+    try {
+      formData = await request.formData();
+    } catch {
+      return createApiResponse(request, 400, {
+        success: false,
+        error: 'missing',
+        message: 'Lütfen formu eksiksiz doldurun.',
+      });
+    }
+
+    // Süre bazlı bot koruması (Time-based token):
+    // İnsanın formu doldurması en az 4-15 saniye sürer.
+    // Otomatik botlar formu 1-2 saniyenin altında gönderir.
+    // Tarayıcı autofill'i süreyi etkilemez; gerçek kullanıcılar asla engellenmez.
+    const tsRaw = Number(formData.get('_ts')?.toString().trim());
+    const now = Date.now();
+    const elapsedMs = now - tsRaw;
+    if (!Number.isFinite(tsRaw) || tsRaw > now + 60_000 || elapsedMs < 2500) {
+      console.warn(`[bot-defense] Blocked fast automated or invalid submission to /api/basvuru from IP: ${clientIp}, elapsed: ${elapsedMs}ms`);
+      return createApiResponse(request, 400, {
+        success: false,
+        error: 'bot_detected',
+        message: 'Lütfen formu inceleyip tekrar gönderin.',
+      });
+    }
 
     const kulupad = formData.get('kulupad')?.toString().trim() || '';
     const il = formData.get('il')?.toString().trim() || '';

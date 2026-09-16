@@ -34,16 +34,38 @@ function cleanPhoneNumber(raw: string): string {
   return digits;
 }
 
+function escapeHtml(value: unknown): string {
+  if (value === null || value === undefined) return '';
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 export function buildApplicationNotificationMail(
   input: ApplicationNotificationInput,
   options?: { logoSrc?: string }
 ) {
   const siteUrl = getSiteUrl();
   const logoSrc = options?.logoSrc || 'cid:spornerede-logo';
-  const subject = `⚡ Yeni Kulüp Başvurusu: ${input.kulupad} (${input.il}/${input.ilce})`;
   const cleanPhone = cleanPhoneNumber(input.telefon);
   const waUrl = cleanPhone ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent(`Merhaba ${input.yetkili}, SporNerede.net üzerinden yapmış olduğunuz kulüp başvurunuz tarafımıza ulaştı.`)}` : '';
   const adminUrl = `${siteUrl}/merkez`;
+
+  // Dynamic user input escaping for email HTML injection defense
+  const safeKulupad = escapeHtml(input.kulupad);
+  const safeIl = escapeHtml(input.il);
+  const safeIlce = escapeHtml(input.ilce);
+  const safeBrans = escapeHtml(input.brans);
+  const safeYetkili = escapeHtml(input.yetkili);
+  const safeTelefon = escapeHtml(input.telefon);
+  const safeEmail = escapeHtml(input.email);
+  const safePaket = escapeHtml(input.paket);
+  const safeAciklama = escapeHtml(input.aciklama);
+
+  const subject = `⚡ Yeni Kulüp Başvurusu: ${safeKulupad} (${safeIl}/${safeIlce})`;
 
   const html = `
 <!DOCTYPE html>
@@ -56,7 +78,7 @@ export function buildApplicationNotificationMail(
 <body style="margin: 0; padding: 0; background-color: #f1f3f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased;">
   <!-- Preheader (Inbox preview text) -->
   <div style="display: none; max-height: 0px; overflow: hidden; opacity: 0;">
-    Yeni kulüp başvurusu alındı: ${input.kulupad} - ${input.il}/${input.ilce} - Yetkili: ${input.yetkili}
+    Yeni kulüp başvurusu alındı: ${safeKulupad} - ${safeIl}/${safeIlce} - Yetkili: ${safeYetkili}
   </div>
 
   <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f1f3f5; padding: 24px 12px;">
@@ -91,14 +113,14 @@ export function buildApplicationNotificationMail(
               <!-- Title & Location Card -->
               <div style="background: #f8f9fa; border-radius: 12px; padding: 18px 20px; border: 1px solid #e9ecef; margin-bottom: 22px;">
                 <h1 style="margin: 0 0 6px 0; font-size: 20px; font-weight: 800; color: #1e293b; line-height: 1.3;">
-                  ${input.kulupad}
+                  ${safeKulupad}
                 </h1>
                 <div style="margin-top: 4px;">
                   <span style="display: inline-block; background: #fee2e2; color: #b91c1c; font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 6px; margin-right: 6px;">
-                    📍 ${input.il} / ${input.ilce}
+                    📍 ${safeIl} / ${safeIlce}
                   </span>
                   <span style="display: inline-block; background: #e0f2fe; color: #0369a1; font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 6px;">
-                    🏅 ${input.brans}
+                    🏅 ${safeBrans}
                   </span>
                 </div>
               </div>
@@ -110,7 +132,7 @@ export function buildApplicationNotificationMail(
                     👤 Yetkili Kişi
                   </td>
                   <td style="padding: 10px 12px; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-weight: 700;">
-                    ${input.yetkili}
+                    ${safeYetkili}
                   </td>
                 </tr>
                 <tr>
@@ -119,7 +141,7 @@ export function buildApplicationNotificationMail(
                   </td>
                   <td style="padding: 10px 12px; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-weight: 700;">
                     <a href="tel:${cleanPhone}" style="color: #E30A17; text-decoration: none; font-weight: 700;">
-                      ${input.telefon}
+                      ${safeTelefon}
                     </a>
                   </td>
                 </tr>
@@ -128,8 +150,8 @@ export function buildApplicationNotificationMail(
                     ✉️ E-Posta
                   </td>
                   <td style="padding: 10px 12px; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-weight: 600;">
-                    <a href="mailto:${input.email}" style="color: #2563eb; text-decoration: none;">
-                      ${input.email}
+                    <a href="mailto:${safeEmail}" style="color: #2563eb; text-decoration: none;">
+                      ${safeEmail}
                     </a>
                   </td>
                 </tr>
@@ -138,17 +160,17 @@ export function buildApplicationNotificationMail(
                     📦 Paket / Branş
                   </td>
                   <td style="padding: 10px 12px; border-bottom: 1px solid #f1f5f9; color: #0f172a; font-weight: 600;">
-                    ${input.paket}
+                    ${safePaket}
                   </td>
                 </tr>
-                ${input.aciklama ? `
+                ${safeAciklama ? `
                 <tr>
                   <td valign="top" style="padding: 10px 12px; border-bottom: 1px solid #f1f5f9; color: #64748b; font-weight: 600;">
                     📝 Başvuru Notu
                   </td>
                   <td style="padding: 10px 12px; border-bottom: 1px solid #f1f5f9; color: #334155; line-height: 1.5;">
                     <div style="background: #fffbeb; border-left: 3px solid #f59e0b; padding: 8px 12px; border-radius: 4px; font-size: 13px;">
-                      ${input.aciklama}
+                      ${safeAciklama}
                     </div>
                   </td>
                 </tr>` : ''}

@@ -11,6 +11,7 @@ const { cities, bransListesi, errorMessage } = Astro.props;
 ---
 
 <div class="basvuru-form-root">
+<input type="hidden" name="_ts" id="basvuru-form-ts" value={Date.now().toString()} />
 {errorMessage && (
   <div class="form-alert form-alert--error" role="alert" aria-live="polite">
     {errorMessage}

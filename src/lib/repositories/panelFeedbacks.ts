@@ -72,7 +72,7 @@ export async function getAdminFeedbacks(): Promise<PanelFeedback[]> {
   try {
     const db = await getDb();
     const list = await db.collection('panel_geribildirimleri').getFullList({
-      sort: '-created',
+      sort: '-legacyId',
     });
     return list.map((row) => mapFeedbackRow(row as unknown as Record<string, unknown>));
   } catch (error) {

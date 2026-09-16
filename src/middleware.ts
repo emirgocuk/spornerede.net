@@ -103,41 +103,77 @@ const cacheAndSecurityHeaders = defineMiddleware(async (context, next) => {
     contentType.includes('application/javascript') ||
     contentType.includes('text/javascript');
 
-  if (isCacheableMethod && isCacheableType && response.status >= 200 && response.status < 400) {
-    const cacheControl = pickCacheControl(pathname);
-    if (cacheControl) {
-      // Immutable yollarda (fonts, _astro) Astro/Node adapter'in default 4h
-      // Cache-Control degeri 1 yil immutable ile override edilir. Diger
-      // yollarda Astro/route handler kendi degeri varsa o korunur.
-      if (isImmutableStaticPath) {
-        response.headers.set('Cache-Control', cacheControl);
-      } else if (!response.headers.has('cache-control')) {
-        response.headers.set('Cache-Control', cacheControl);
+  try {
+    if (isCacheableMethod && isCacheableType && response.status >= 200 && response.status < 400) {
+      const cacheControl = pickCacheControl(pathname);
+      if (cacheControl) {
+        // Immutable yollarda (fonts, _astro) Astro/Node adapter'in default 4h
+        // Cache-Control degeri 1 yil immutable ile override edilir. Diger
+        // yollarda Astro/route handler kendi degeri varsa o korunur.
+        if (isImmutableStaticPath) {
+          response.headers.set('Cache-Control', cacheControl);
+        } else if (!response.headers.has('cache-control')) {
+          response.headers.set('Cache-Control', cacheControl);
+        }
       }
     }
-  }
 
-  // Tum yanitlara MIME sniffing engeli ve HSTS
-  if (!response.headers.has('x-content-type-options')) {
-    response.headers.set('X-Content-Type-Options', 'nosniff');
-  }
-  if (!response.headers.has('strict-transport-security')) {
-    response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
-  }
+    // Tum yanitlara MIME sniffing engeli ve HSTS
+    if (!response.headers.has('x-content-type-options')) {
+      response.headers.set('X-Content-Type-Options', 'nosniff');
+    }
+    if (!response.headers.has('strict-transport-security')) {
+      response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    }
 
-  // Sadece HTML yanitlarina ozel ek guvenlik basliklari
-  if (contentType.includes('text/html')) {
-    if (!response.headers.has('x-frame-options')) {
-      response.headers.set('X-Frame-Options', 'SAMEORIGIN');
+    // Sadece HTML yanitlarina ozel ek guvenlik basliklari
+    if (contentType.includes('text/html')) {
+      if (!response.headers.has('x-frame-options')) {
+        response.headers.set('X-Frame-Options', 'SAMEORIGIN');
+      }
+      if (!response.headers.has('referrer-policy')) {
+        response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+      }
+      if (!response.headers.has('permissions-policy')) {
+        response.headers.set(
+          'Permissions-Policy',
+          'interest-cohort=(), camera=(), microphone=(), geolocation=(self)'
+        );
+      }
+      if (!response.headers.has('content-security-policy')) {
+        response.headers.set(
+          'Content-Security-Policy',
+          [
+            "default-src 'self'",
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com",
+            "style-src 'self' 'unsafe-inline'",
+            "img-src 'self' data: blob: https:",
+            "font-src 'self' data:",
+            "connect-src 'self' https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com",
+            "frame-ancestors 'self'",
+            "base-uri 'self'",
+            "form-action 'self'",
+          ].join('; ')
+        );
+      }
     }
-    if (!response.headers.has('referrer-policy')) {
-      response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-    }
-    if (!response.headers.has('permissions-policy')) {
-      response.headers.set(
-        'Permissions-Policy',
-        'interest-cohort=(), camera=(), microphone=(), geolocation=(self)'
-      );
+  } catch {
+    // Response.redirect() gibi immutable header'li yanitlarda clone et
+    try {
+      const headers = new Headers(response.headers);
+      if (!headers.has('x-content-type-options')) {
+        headers.set('X-Content-Type-Options', 'nosniff');
+      }
+      if (!headers.has('strict-transport-security')) {
+        headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+      }
+      return new Response(response.body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers,
+      });
+    } catch {
+      // Fallback
     }
   }
 
