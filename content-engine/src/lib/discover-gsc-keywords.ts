@@ -29,6 +29,9 @@ const SPORT_HINTS = [
   'kravmaga',
   'sualti hokeyi',
   'sualtihokeyi',
+  'tai chi',
+  'taichi',
+  'qigong',
 ];
 
 const MIN_IMPRESSIONS = 15;

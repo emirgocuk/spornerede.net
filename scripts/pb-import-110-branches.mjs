@@ -113,6 +113,7 @@ const BRANCH_NAMES = [
   'Crossfit',
   'Pilates',
   'Yoga',
+  'Tai Chi & Qigong',
   'Cimnastik',
   'Artistik Cimnastik',
   'Ritmik Cimnastik',

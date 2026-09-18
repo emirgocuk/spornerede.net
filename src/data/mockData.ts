@@ -58,6 +58,7 @@ export const BRANCHES: Branch[] = [
   { slug: 'sup', isim: 'SUP', emoji: '🏄', renk: '#06B6D4', aciklama: 'Stand Up Paddleboarding (kürekli sörf), denge ve su sporu' },
   { slug: 'krav-maga', isim: 'Krav Maga', emoji: '🥋', renk: '#DC2626', aciklama: 'Yakın dövüş, taktik savunma ve refleks' },
   { slug: 'sualti-hokeyi', isim: 'Sualtı Hokeyi', emoji: '🤿', renk: '#0EA5E9', aciklama: 'Havuz dibinde palet ve şnorkelle oynanan dinamik takım sporu' },
+  { slug: 'tai-chi-qigong', isim: 'Tai Chi & Qigong', emoji: '☯️', renk: '#0D9488', aciklama: 'Denge, nefes, içsel enerji ve zihin-beden uyumu sağlayan hareket sanatı' },
 ];
 
 export const CLUBS: Club[] = [

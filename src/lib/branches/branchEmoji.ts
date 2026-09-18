@@ -96,6 +96,21 @@ set(SLUG_VISUAL, ['Vücut Geliştirme', 'Vucut Gelistirme', 'Fitness'], '💪', 
 set(SLUG_VISUAL, ['Pilates', 'Yoga'], '🧘', '#A855F7');
 set(
   SLUG_VISUAL,
+  [
+    'Tai Chi & Qigong',
+    'Tai Chi ve Qigong',
+    'Tai Chi',
+    'Taichi',
+    'Qigong',
+    'Qi Gong',
+    'Çigong',
+    'Cigong',
+  ],
+  '☯️',
+  '#0D9488',
+);
+set(
+  SLUG_VISUAL,
   ['Cimnastik', 'Jimnastik', 'Artistik Cimnastik', 'Ritmik Cimnastik', 'Trambolin', 'Akrobasi'],
   '🤸',
   '#EC4899',
@@ -183,6 +198,7 @@ function matchByPattern(slug: string, name: string): BranchVisual | null {
   if (/halter|crossfit/.test(haystack)) return { emoji: '🏋️', renk: '#78716C' };
   if (/fitness|vucut|vücut|bodybuilding/.test(haystack)) return { emoji: '💪', renk: '#F97316' };
   if (/pilates|yoga/.test(haystack)) return { emoji: '🧘', renk: '#A855F7' };
+  if (/tai.*chi|taichi|qigong|qi.*gong|çigong|cigong/.test(haystack)) return { emoji: '☯️', renk: '#0D9488' };
   if (/cimnastik|jimnastik|trambolin|akrobasi/.test(haystack)) return { emoji: '🤸', renk: '#EC4899' };
   if (/bale/.test(haystack)) return { emoji: '🩰', renk: '#F472B6' };
   if (/dans|zumba|salsa|tango|halk-oyun/.test(haystack)) return { emoji: '💃', renk: '#DB2777' };

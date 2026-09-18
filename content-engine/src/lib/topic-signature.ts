@@ -31,6 +31,12 @@ const BRANSLAR = [
   'sualti hokeyi',
   'sualtı hokeyi',
   'sualti-hokeyi',
+  'tai chi',
+  'taichi',
+  'qigong',
+  'qi gong',
+  'tai-chi-qigong',
+  'tai chi & qigong',
 ];
 
 export function topicSignature(konu: string): string {

@@ -20,6 +20,7 @@ const BRANSLAR = [
   'satranc', 'satranç', 'gures', 'güreş', 'okculuk', 'okçuluk', 'kurek', 'kürek',
   'krav maga', 'krav-maga', 'kravmaga',
   'sualti hokeyi', 'sualtı hokeyi', 'sualti-hokeyi',
+  'tai chi', 'taichi', 'qigong', 'qi gong', 'tai-chi-qigong', 'tai chi & qigong',
 ];
 
 const INCOMPLETE_TAIL = /\b(ve|ile|icin|için|olan|olarak|kayit|kayıt|den|da|de|bir|the)\s*$/i;

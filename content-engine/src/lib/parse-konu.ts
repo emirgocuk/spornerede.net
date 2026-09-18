@@ -5,6 +5,7 @@ const BRANSLAR = [
   'oryantiring', 'satranc', 'satranç', 'gures', 'güreş', 'okculuk', 'okçuluk',
   'krav maga', 'krav-maga', 'kravmaga',
   'sualti hokeyi', 'sualtı hokeyi', 'sualti-hokeyi',
+  'tai chi', 'taichi', 'qigong', 'qi gong', 'tai-chi-qigong', 'tai chi & qigong',
 ];
 
 const SEHIR_LABEL: Record<string, string> = {
@@ -48,6 +49,12 @@ const BRANS_LABEL: Record<string, string> = {
   'sualti hokeyi': 'Sualtı Hokeyi',
   'sualtı hokeyi': 'Sualtı Hokeyi',
   'sualti-hokeyi': 'Sualtı Hokeyi',
+  'tai chi': 'Tai Chi & Qigong',
+  taichi: 'Tai Chi & Qigong',
+  qigong: 'Tai Chi & Qigong',
+  'qi gong': 'Tai Chi & Qigong',
+  'tai-chi-qigong': 'Tai Chi & Qigong',
+  'tai chi & qigong': 'Tai Chi & Qigong',
 };
 
 const ILCE_MAP: Record<string, { slug: string; label: string; sehir: string }> = {
