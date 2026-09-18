@@ -154,7 +154,7 @@ export function verifyBulkMailOtp(email: string, enteredCode: string): { valid: 
 const TEST_TARGET_EMAIL = 'emrggck@gmail.com';
 
 export async function requestClubUpdateOtp(
-  clubId: number,
+  clubId: string | number,
   clubEmail: string,
   clubName: string,
   yetkili?: string,
@@ -193,7 +193,7 @@ export async function requestClubUpdateOtp(
   };
 }
 
-export function verifyClubUpdateOtp(clubId: number, enteredCode: string): { valid: boolean; error?: string } {
+export function verifyClubUpdateOtp(clubId: string | number, enteredCode: string): { valid: boolean; error?: string } {
   const storeKey = `club-update:${clubId}`;
   const record = otpStore.get(storeKey);
 
