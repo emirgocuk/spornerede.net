@@ -94,10 +94,13 @@ export async function listApprovedAdminClubs() {
     return {
     id: Number(row.legacyId),
     ad: row.ad as string,
+    yetkili: (row.yetkili as string) ?? '',
     il: city ? displayIlAd(String(city.slug), String(city.ad)) : '',
     ilce: districtMap.get(Number(row.ilceLegacyId)) ?? '',
     telefon: (row.telefon as string) ?? '',
     email: (row.email as string) ?? '',
+    sonGuncellemeTalebi: (row.sonGuncellemeTalebi as string) ?? '',
+    bilgiGuncellendiAt: (row.bilgiGuncellendiAt as string) ?? '',
     updatedAt: row.updated,
   };
   });
@@ -153,6 +156,10 @@ export async function getApprovedAdminClubById(clubId: number) {
     ilceSlug: (district?.slug as string) ?? '',
     telefon: (row.telefon as string) ?? '',
     email: (row.email as string) ?? '',
+    yetkili: (row.yetkili as string) ?? '',
+    sonGuncellemeTalebi: (row.sonGuncellemeTalebi as string) ?? '',
+    bilgiGuncellendiAt: (row.bilgiGuncellendiAt as string) ?? '',
+    guncellemeToken: (row.guncellemeToken as string) ?? '',
     adres: (row.adres as string) ?? '',
     aciklama: (row.aciklama as string) ?? '',
     yasAraligi: (row.yasAraligi as string) ?? '',
@@ -173,6 +180,7 @@ export async function getApprovedAdminClubById(clubId: number) {
 
 export type UpdateApprovedClubInput = {
   ad: string;
+  yetkili?: string;
   telefon: string;
   email: string;
   adres: string;
@@ -206,6 +214,7 @@ export async function updateApprovedAdminClub(clubId: number, input: UpdateAppro
     aciklama: input.aciklama.trim(),
     yasAraligi: input.yasAraligi.trim(),
     fiyatBilgisi: input.fiyatBilgisi.trim(),
+    ...(input.yetkili !== undefined ? { yetkili: input.yetkili.trim().slice(0, 100) } : {}),
     ...(input.adminNotu !== undefined ? { adminNotu: input.adminNotu.trim().slice(0, 5000) } : {}),
     ...(input.sorumluAdminEmail !== undefined
       ? { sorumluAdminEmail: input.sorumluAdminEmail.trim().slice(0, 180) }
@@ -388,4 +397,118 @@ export async function deleteAdminClubProgram(clubId: number, programId: number) 
 
   await db.collection('kulup_programlari').delete(program.id);
   return true;
+}
+
+export async function createOrGetClubUpdateToken(clubId: number) {
+  requireDatabase();
+  const db = await getDb();
+  const row = await db
+    .collection('kulupler')
+    .getFirstListItem(`legacyId = ${clubId} && durum = "approved"`)
+    .catch(() => null);
+  if (!row) return null;
+
+  let token = (row.guncellemeToken as string) || '';
+  const now = new Date();
+  const exp = row.guncellemeTokenExp ? new Date(row.guncellemeTokenExp as string) : null;
+
+  if (!token || !exp || exp.getTime() <= now.getTime()) {
+    const crypto = await import('node:crypto');
+    token = crypto.randomBytes(24).toString('hex');
+    const newExp = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000); // 60 days
+    await db.collection('kulupler').update(row.id, {
+      guncellemeToken: token,
+      guncellemeTokenExp: newExp.toISOString(),
+      sonGuncellemeTalebi: now.toISOString(),
+    });
+  } else {
+    await db.collection('kulupler').update(row.id, {
+      sonGuncellemeTalebi: now.toISOString(),
+    });
+  }
+
+  return {
+    token,
+    clubId: Number(row.legacyId),
+    ad: row.ad as string,
+    email: (row.email as string) ?? '',
+    yetkili: (row.yetkili as string) ?? '',
+    telefon: (row.telefon as string) ?? '',
+  };
+}
+
+export async function getClubByUpdateToken(token: string) {
+  if (!token || typeof token !== 'string') return null;
+  requireDatabase();
+  const db = await getDb();
+  const safeToken = token.trim().replace(/[^a-zA-Z0-9_-]/g, '');
+  if (!safeToken) return null;
+
+  const row = await db
+    .collection('kulupler')
+    .getFirstListItem(`guncellemeToken = "${safeToken}" && durum = "approved"`)
+    .catch(() => null);
+  if (!row) return null;
+
+  if (row.guncellemeTokenExp) {
+    const exp = new Date(row.guncellemeTokenExp as string);
+    if (exp.getTime() < Date.now()) {
+      return null;
+    }
+  }
+
+  return getApprovedAdminClubById(Number(row.legacyId));
+}
+
+export async function applyClubSelfUpdate(
+  clubId: number,
+  data: {
+    ad?: string;
+    yetkili?: string;
+    telefon?: string;
+    email?: string;
+    adres?: string;
+    aciklama?: string;
+    yasAraligi?: string;
+    fiyatBilgisi?: string;
+  }
+) {
+  requireDatabase();
+  const db = await getDb();
+  const row = await db
+    .collection('kulupler')
+    .getFirstListItem(`legacyId = ${clubId} && durum = "approved"`)
+    .catch(() => null);
+  if (!row) return null;
+
+  const patch: Record<string, unknown> = {
+    bilgiGuncellendiAt: new Date().toISOString(),
+  };
+
+  if (data.ad?.trim()) patch.ad = data.ad.trim().slice(0, 160);
+  if (data.yetkili?.trim()) patch.yetkili = data.yetkili.trim().slice(0, 100);
+  if (data.telefon?.trim()) patch.telefon = data.telefon.trim().slice(0, 30);
+  if (data.email?.trim()) patch.email = data.email.trim().slice(0, 180);
+  if (data.adres !== undefined) patch.adres = data.adres.trim().slice(0, 5000);
+  if (data.aciklama !== undefined) patch.aciklama = data.aciklama.trim().slice(0, 5000);
+  if (data.yasAraligi !== undefined) patch.yasAraligi = data.yasAraligi.trim().slice(0, 50);
+  if (data.fiyatBilgisi !== undefined) patch.fiyatBilgisi = data.fiyatBilgisi.trim().slice(0, 120);
+
+  await db.collection('kulupler').update(row.id, patch);
+
+  await db
+    .collection('admin_basvuru_loglari')
+    .create({
+      legacyId: Date.now(),
+      basvuruLegacyId: Number(row.legacyId),
+      aksiyon: 'club_info_updated',
+      yeniDurum: 'approved',
+      islemYapanEmail: data.email?.trim() || (row.email as string) || 'kulup@spornerede.net',
+      notMetni: `Kulüp yetkilisi (${data.yetkili || row.yetkili || 'Yetkili'}) tarafından bilgiler doğrulandı ve güncellendi.`,
+      atananAdminEmail: '',
+      oncekiDurum: 'approved',
+    })
+    .catch(() => null);
+
+  return getApprovedAdminClubById(clubId);
 }

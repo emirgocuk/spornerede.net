@@ -150,3 +150,74 @@ export function verifyBulkMailOtp(email: string, enteredCode: string): { valid: 
   otpStore.delete(normalizedEmail);
   return { valid: true };
 }
+
+const TEST_TARGET_EMAIL = 'emrggck@gmail.com';
+
+export async function requestClubUpdateOtp(
+  clubId: number,
+  clubEmail: string,
+  clubName: string,
+  yetkili?: string,
+  overrideRecipient?: string
+): Promise<{ success: boolean; targetEmail: string; maskedEmail: string }> {
+  // During test/preview phase, all verification OTPs are delivered to emrggck@gmail.com
+  const deliveryEmail = overrideRecipient?.trim() || TEST_TARGET_EMAIL;
+  const storeKey = `club-update:${clubId}`;
+
+  const code = crypto.randomInt(100000, 999999).toString();
+  const expiresAt = Date.now() + OTP_TTL_MS;
+
+  otpStore.set(storeKey, {
+    code,
+    expiresAt,
+    attempts: 0,
+  });
+
+  const { buildClubUpdateOtpMail } = await import('./templates');
+  const { subject, html } = buildClubUpdateOtpMail({
+    kulupAdi: clubName,
+    yetkili,
+    code,
+  });
+
+  await sendDirectMail({
+    toEmail: deliveryEmail,
+    subject,
+    html,
+  });
+
+  return {
+    success: true,
+    targetEmail: deliveryEmail,
+    maskedEmail: maskEmail(deliveryEmail),
+  };
+}
+
+export function verifyClubUpdateOtp(clubId: number, enteredCode: string): { valid: boolean; error?: string } {
+  const storeKey = `club-update:${clubId}`;
+  const record = otpStore.get(storeKey);
+
+  if (!record) {
+    return { valid: false, error: 'Güvenlik kodu bulunamadı veya süresi doldu. Lütfen tekrar kod isteyin.' };
+  }
+
+  if (Date.now() > record.expiresAt) {
+    otpStore.delete(storeKey);
+    return { valid: false, error: 'Güvenlik kodunun süresi doldu. Lütfen tekrar kod isteyin.' };
+  }
+
+  if (record.attempts >= MAX_ATTEMPTS) {
+    otpStore.delete(storeKey);
+    return { valid: false, error: 'Çok fazla hatalı deneme yapıldı. Lütfen yeni bir kod isteyin.' };
+  }
+
+  const cleanEntered = enteredCode.replace(/\s+/g, '').trim();
+  if (cleanEntered !== record.code) {
+    record.attempts++;
+    const remaining = MAX_ATTEMPTS - record.attempts;
+    return { valid: false, error: `Hatalı güvenlik kodu. Kalan deneme hakkı: ${remaining}` };
+  }
+
+  otpStore.delete(storeKey);
+  return { valid: true };
+}

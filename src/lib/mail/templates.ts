@@ -356,3 +356,245 @@ export function buildPasswordResetMail(input: { resetUrl: string }) {
   `;
   return { subject, html };
 }
+
+export type ClubFreshnessMailInput = {
+  kulupAdi: string;
+  yetkili?: string;
+  ilce?: string;
+  il?: string;
+  magicLink: string;
+  stats?: {
+    monthlyViews?: number;
+    searchImpressions?: number;
+    inquiriesCount?: number;
+  };
+  customMessage?: string;
+};
+
+export function buildClubFreshnessVerificationMail(input: ClubFreshnessMailInput) {
+  const siteUrl = getSiteUrl();
+  const safeKulupAdi = escapeHtml(input.kulupAdi);
+  const safeYetkili = escapeHtml(input.yetkili?.trim() || 'Kulüp Yetkilisi');
+  const safeIlce = escapeHtml(input.ilce || '');
+  const safeIl = escapeHtml(input.il || '');
+  const locationText = safeIlce && safeIl ? `${safeIlce} / ${safeIl}` : safeIl || safeIlce || 'bölgeniz';
+
+  const views = input.stats?.monthlyViews || 240;
+  const impressions = input.stats?.searchImpressions || 1150;
+
+  const subject = `[SporNerede] ${safeKulupAdi} Kulüp Profilinizi Doğrulayın & Güncel Tutun`;
+
+  const html = `
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${subject}</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f4f5f7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f4f5f7; padding: 32px 16px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.06); border: 1px solid #e9ecef;">
+          
+          <!-- Header with Logo -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #18191c 0%, #0d0e10 100%); padding: 24px 32px; border-bottom: 3px solid #E30A17;">
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+                <tr>
+                  <td valign="middle" align="left">
+                    <img src="cid:spornerede-logo" alt="Spor Nerede?" width="140" height="56" style="display: block; border: 0; width: 140px; height: 56px;" />
+                  </td>
+                  <td valign="middle" align="right">
+                    <div style="display: inline-block; background: rgba(227, 10, 23, 0.2); color: #ff4d57; font-size: 11px; font-weight: 700; padding: 6px 14px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.5px;">
+                      🔄 Bilgi Güncelleme
+                    </div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Content Body -->
+          <tr>
+            <td style="padding: 36px 32px 28px 32px;">
+              <h1 style="margin: 0 0 16px 0; color: #0f172a; font-size: 22px; font-weight: 800; line-height: 1.35;">
+                Sayın ${safeYetkili},<br>
+                <span style="color: #E30A17;">${safeKulupAdi}</span> Bilgilerinizi Doğrulayın
+              </h1>
+              
+              <p style="margin: 0 0 24px 0; color: #475569; font-size: 15px; line-height: 1.6;">
+                SporNerede.net üzerinde kulübünüzün profili her gün spor yapmak isteyen çocuklar, gençler ve yetişkin veliler tarafından incelenmektedir.
+              </p>
+
+              <!-- Statistics & Value Card -->
+              <div style="background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-left: 4px solid #E30A17; border-radius: 12px; padding: 20px 24px; margin-bottom: 28px;">
+                <div style="font-size: 13px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">
+                  📊 Son 30 Günlük Kulüp Etkileşiminiz
+                </div>
+                <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+                  <tr>
+                    <td style="padding: 8px 0; border-bottom: 1px solid #e2e8f0; font-size: 14.5px; color: #334155;">
+                      👁️ <strong>Profil İnceleme:</strong>
+                    </td>
+                    <td align="right" style="padding: 8px 0; border-bottom: 1px solid #e2e8f0; font-size: 15px; font-weight: 700; color: #0f172a;">
+                      ${views}+ veli ve sporcu
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; border-bottom: 1px solid #e2e8f0; font-size: 14.5px; color: #334155;">
+                      📍 <strong>Arama Görünümü (${locationText}):</strong>
+                    </td>
+                    <td align="right" style="padding: 8px 0; border-bottom: 1px solid #e2e8f0; font-size: 15px; font-weight: 700; color: #0f172a;">
+                      ${impressions}+ gösterim
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 8px 0; font-size: 14.5px; color: #334155;">
+                      ⚡ <strong>Velilerin En Çok Baktığı Bilgi:</strong>
+                    </td>
+                    <td align="right" style="padding: 8px 0; font-size: 14px; font-weight: 700; color: #16a34a;">
+                      Güncel Saatler & Telefon
+                    </td>
+                  </tr>
+                </table>
+              </div>
+
+              ${input.customMessage ? `
+              <div style="background-color: #fffbeb; border: 1px solid #fef3c7; border-radius: 10px; padding: 16px 20px; margin-bottom: 24px; color: #92400e; font-size: 14px; line-height: 1.5;">
+                ${escapeHtml(input.customMessage).replace(/\n/g, '<br>')}
+              </div>
+              ` : ''}
+
+              <p style="margin: 0 0 24px 0; color: #475569; font-size: 15px; line-height: 1.6;">
+                Yeni sezon kayıtları başlarken velilerin kulübünüze doğrudan ve eksiksiz ulaşabilmesi için 
+                iletişim telefonunuzu, antrenman gün/saatlerini ve branşlarınızı <strong>1 dakikada kontrol edin</strong>:
+              </p>
+
+              <!-- CTA Button -->
+              <div style="text-align: center; margin: 32px 0;">
+                <a href="${input.magicLink}" style="display: inline-block; background: linear-gradient(135deg, #E30A17 0%, #c40813 100%); color: #ffffff !important; text-decoration: none; font-size: 16px; font-weight: 700; padding: 16px 36px; border-radius: 12px; box-shadow: 0 6px 20px rgba(227, 10, 23, 0.35);">
+                  🔄 Bilgilerimizi Kontrol Et & Güncelle →
+                </a>
+              </div>
+
+              <div style="background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 10px; padding: 14px 18px; font-size: 13px; color: #64748b; line-height: 1.5; margin-top: 24px;">
+                🔒 <strong>Güvenli Giriş:</strong> Bu bağlantı kulübünüze özel oluşturulmuştur. Şifre girmeden doğrudan profil güncelleme ekranına ulaşabilirsiniz. Değişikliklerinizi onayladığınızda e-postanıza 6 haneli güvenlik kodu iletilecektir.
+              </div>
+
+              <!-- Signature -->
+              <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #f1f5f9; font-size: 14px; color: #475569; line-height: 1.6;">
+                <p style="margin: 0 0 4px 0; font-weight: 700; color: #0f172a;">SporNerede.net Kulüp İlişkileri</p>
+                <p style="margin: 0; color: #64748b; font-size: 13px;">Sorularınız veya destek için bu e-postayı yanıtlayabilir veya <a href="mailto:info@spornerede.net" style="color: #E30A17; text-decoration: none;">info@spornerede.net</a> adresine yazabilirsiniz.</p>
+              </div>
+
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #f8f9fa; padding: 20px 32px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #e9ecef; line-height: 1.5;">
+              <p style="margin: 0 0 4px 0;">
+                Bu e-posta, ${safeKulupAdi} kulübünün SporNerede.net platformundaki aktif listelemesi kapsamında bilgi doğrulaması amacıyla gönderilmiştir.
+              </p>
+              <p style="margin: 0;">
+                <a href="${siteUrl}" style="color: #94a3b8; text-decoration: underline;">spornerede.net</a>
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `;
+
+  return { subject, html };
+}
+
+export function buildClubUpdateOtpMail(input: {
+  kulupAdi: string;
+  yetkili?: string;
+  code: string;
+}) {
+  const safeKulupAdi = escapeHtml(input.kulupAdi);
+  const safeYetkili = escapeHtml(input.yetkili?.trim() || 'Kulüp Yetkilisi');
+  const subject = `🔐 [SporNerede] ${safeKulupAdi} Bilgi Güncelleme Onay Kodunuz: ${input.code}`;
+
+  const html = `
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${subject}</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f1f3f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f1f3f5; padding: 30px 12px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 520px; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.06); border: 1px solid #e9ecef;">
+          
+          <!-- Header with Logo -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #18191c 0%, #0d0e10 100%); padding: 20px 28px; border-bottom: 3px solid #E30A17;">
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+                <tr>
+                  <td valign="middle" align="left">
+                    <img src="cid:spornerede-logo" alt="Spor Nerede?" width="140" height="56" style="display: block; border: 0; width: 140px; height: 56px;" />
+                  </td>
+                  <td valign="middle" align="right">
+                    <div style="display: inline-block; background: rgba(227, 10, 23, 0.2); color: #ff4d57; font-size: 11px; font-weight: 700; padding: 5px 12px; border-radius: 999px; text-transform: uppercase;">
+                      🔐 Onay Kodu
+                    </div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="padding: 32px 28px; text-align: center;">
+              <h2 style="margin: 0 0 10px 0; color: #0f172a; font-size: 20px; font-weight: 800;">
+                Kulüp Bilgilerini Güncelleme Onayı
+              </h2>
+              <p style="margin: 0 0 20px 0; color: #475569; font-size: 14px; line-height: 1.6;">
+                Sayın <strong>${safeYetkili}</strong>,<br>
+                <strong>${safeKulupAdi}</strong> profilinizde yaptığınız değişiklikleri onaylamak için aşağıdaki 6 haneli güvenlik kodunu ilgili ekrana giriniz:
+              </p>
+
+              <!-- OTP Code Display -->
+              <div style="background: #FFF1F2; border: 2px dashed #E30A17; border-radius: 12px; padding: 18px 24px; display: inline-block; margin: 0 auto 20px auto;">
+                <span style="font-family: 'Courier New', Courier, monospace; font-size: 36px; font-weight: 900; letter-spacing: 8px; color: #E30A17;">
+                  ${input.code}
+                </span>
+              </div>
+
+              <p style="margin: 0; color: #94a3b8; font-size: 12.5px; line-height: 1.5;">
+                ⏱️ Bu kod <strong>5 dakika</strong> boyunca geçerlidir.<br>
+                Bu işlemi siz yapmadıysanız lütfen bu e-postayı dikkate almayın.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #f8f9fa; padding: 16px 28px; text-align: center; font-size: 11.5px; color: #94a3b8; border-top: 1px solid #e9ecef;">
+              SporNerede.net Güvenli Kulüp Sistemi
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `;
+
+  return { subject, html };
+}

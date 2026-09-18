@@ -1,0 +1,778 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { getClubByUpdateToken } from '../lib/repositories/adminClubs';
+import { formatPhoneDisplay } from '../lib/phone';
+
+export const prerender = false;
+
+const token = Astro.url.searchParams.get('token')?.trim() || '';
+const club = token ? await getClubByUpdateToken(token) : null;
+---
+
+<BaseLayout
+  title={club ? `${club.ad} - Bilgi Güncelleme & Doğrulama | SporNerede.net` : 'Kulüp Bilgi Güncelleme | SporNerede.net'}
+  description="SporNerede.net onaylı kulüp bilgi güncelleme ve doğrulama ekranı."
+>
+  <div class="update-page-wrapper">
+    <div class="update-container">
+      {!club ? (
+        <div class="error-card animate-fade-in">
+          <div class="error-icon">⚠️</div>
+          <h1 class="error-title">Geçersiz veya Süresi Dolmuş Bağlantı</h1>
+          <p class="error-desc">
+            Bu güncelleme bağlantısı bulunamadı, daha önce kullanılmış veya 60 günlük geçerlilik süresi dolmuş olabilir.
+          </p>
+          <div class="error-actions">
+            <a href="/" class="btn-primary">Ana Sayfaya Dön</a>
+            <a href="mailto:info@spornerede.net" class="btn-secondary">Destek Ekibine Yaz</a>
+          </div>
+        </div>
+      ) : (
+        <div class="update-card animate-fade-in">
+          <!-- Header Banner -->
+          <div class="card-header">
+            <div class="badge-row">
+              <span class="status-badge">🔄 Bilgi Güncelleme & Doğrulama</span>
+              <span class="city-badge">📍 {club.il} / {club.ilce}</span>
+            </div>
+            <h1 class="club-title">{club.ad}</h1>
+            <p class="card-subtitle">
+              Velilerin ve sporcuların kulübünüze doğru ve eksiksiz ulaşabilmesi için bilgilerinizi kontrol ediniz.
+            </p>
+          </div>
+
+          <!-- Value Alert -->
+          <div class="info-alert">
+            <div class="alert-icon">💡</div>
+            <div class="alert-text">
+              <strong>Kulübünüz Aktif Olarak Ziyaret Ediliyor!</strong><br />
+              Profilinizi güncel tutarak arama sonuçlarında velilerin kulübünüzü daha hızlı tercih etmesini sağlayabilirsiniz.
+              Değişikliklerinizi onaylamak için e-posta adresinize 6 haneli bir güvenlik kodu gönderilecektir.
+            </div>
+          </div>
+
+          <!-- Update Form -->
+          <form id="club-update-form" class="update-form">
+            <input type="hidden" id="token-input" value={token} />
+
+            <div class="form-grid">
+              <div class="form-group full-width">
+                <label for="kulup-ad">Kulüp / Tesis Adı</label>
+                <input type="text" id="kulup-ad" name="ad" value={club.ad} required />
+              </div>
+
+              <div class="form-group">
+                <label for="yetkili-ad">Kulüp Yetkilisi / Sorumlu Kişi</label>
+                <input
+                  type="text"
+                  id="yetkili-ad"
+                  name="yetkili"
+                  value={club.yetkili || ''}
+                  placeholder="Ad Soyad (Örn: Mehmet Özkan)"
+                  required
+                />
+                <span class="field-hint">Kulüp adına yetkili iletişim kurulacak kişi</span>
+              </div>
+
+              <div class="form-group">
+                <label for="telefon">İletişim / WhatsApp Telefonu</label>
+                <input
+                  type="tel"
+                  id="telefon"
+                  name="telefon"
+                  value={formatPhoneDisplay(club.telefon)}
+                  placeholder="+90 5XX XXX XX XX"
+                  required
+                />
+                <span class="field-hint">Format: +90 531 707 26 96</span>
+              </div>
+
+              <div class="form-group">
+                <label for="email">Yetkili E-posta Adresi</label>
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  value={club.email}
+                  placeholder="kulup@eposta.com"
+                  required
+                />
+                <span class="field-hint">Güvenlik ve onay kodları bu adrese iletilir</span>
+              </div>
+
+              <div class="form-group">
+                <label for="fiyat">Aidat / Kurs Ücreti Bilgisi</label>
+                <input
+                  type="text"
+                  id="fiyat"
+                  name="fiyatBilgisi"
+                  value={club.fiyatBilgisi || ''}
+                  placeholder="Örn: Aylık 1.500 TL veya İletişime Geçiniz"
+                />
+              </div>
+
+              <div class="form-group full-width">
+                <label for="yas">Kabul Edilen Yaş Grupları</label>
+                <input
+                  type="text"
+                  id="yas"
+                  name="yasAraligi"
+                  value={club.yasAraligi || ''}
+                  placeholder="Örn: 5-16 Yaş, Yetişkin Gruplar"
+                />
+              </div>
+
+              <div class="form-group full-width">
+                <label for="adres">Açık Adres & Tesis Konumu</label>
+                <textarea id="adres" name="adres" rows="2" placeholder="Tesisin detaylı adresi...">{club.adres || ''}</textarea>
+              </div>
+
+              <div class="form-group full-width">
+                <label for="aciklama">Kulüp Hakkında & Tanıtım Metni</label>
+                <textarea id="aciklama" name="aciklama" rows="4" placeholder="Kulübünüzün antrenman felsefesi, başarıları ve imkanları...">{club.aciklama || ''}</textarea>
+              </div>
+            </div>
+
+            <!-- Program preview -->
+            {club.programs && club.programs.length > 0 && (
+              <div class="programs-preview-box">
+                <h3 class="programs-title">Aktif Branşlar ve Kurslar ({club.programs.length})</h3>
+                <div class="programs-list">
+                  {club.programs.map((prog) => (
+                    <div class="prog-chip">
+                      <span class="prog-name">🏅 {prog.ad}</span>
+                      {prog.yasAraligi && <span class="prog-meta">{prog.yasAraligi}</span>}
+                    </div>
+                  ))}
+                </div>
+                <p class="programs-note">
+                  ℹ️ Yeni branş eklemek veya mevcutları düzenlemek için yönetim panelinizi kullanabilir veya müşteri temsilcimizle iletişime geçebilirsiniz.
+                </p>
+              </div>
+            )}
+
+            <!-- Form Submit -->
+            <div class="form-actions">
+              <button type="button" id="btn-request-otp" class="btn-submit">
+                <span class="btn-icon">🔐</span> Değişiklikleri Doğrula ve Kaydet
+              </button>
+            </div>
+          </form>
+
+          <!-- Success View (Hidden initially) -->
+          <div id="success-view" class="success-box is-hidden">
+            <div class="success-icon">🎉</div>
+            <h2 class="success-title">Bilgileriniz Başarıyla Doğrulandı ve Güncellendi!</h2>
+            <p class="success-desc">
+              Kulüp profilinizdeki veriler başarıyla kaydedildi. SporNerede.net üzerindeki profiliniz güncel haliyle yayında.
+            </p>
+            <div class="success-actions">
+              <a href={`/kulupler/${club.id}`} class="btn-primary" target="_blank">
+                Kulüp Profilini İncele ↗
+              </a>
+              <a href="/" class="btn-secondary">SporNerede Ana Sayfa</a>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  </div>
+
+  <!-- OTP Modal -->
+  <div id="otp-modal" class="modal-backdrop is-hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-card">
+      <button type="button" id="otp-modal-close" class="modal-close" aria-label="Kapat">✕</button>
+      <div class="modal-icon">📩</div>
+      <h3 id="modal-title" class="modal-title">6 Haneli Doğrulama Kodu</h3>
+      <p class="modal-desc">
+        Güvenliğiniz için <strong id="otp-target-email">e-posta adresinize</strong> 6 haneli bir onay kodu gönderdik. Lütfen gelen kodu giriniz:
+      </p>
+
+      <div class="otp-input-wrap">
+        <input
+          type="text"
+          id="otp-code-input"
+          class="otp-field"
+          maxlength="6"
+          placeholder="••••••"
+          autocomplete="one-time-code"
+          inputmode="numeric"
+        />
+      </div>
+
+      <div id="otp-error-msg" class="otp-error is-hidden"></div>
+
+      <div class="modal-actions">
+        <button type="button" id="btn-verify-otp" class="btn-submit">
+          Onayla ve Kaydet
+        </button>
+        <button type="button" id="btn-resend-otp" class="btn-resend">
+          Tekrar Kod Gönder
+        </button>
+      </div>
+    </div>
+  </div>
+</BaseLayout>
+
+<style>
+  .update-page-wrapper {
+    min-height: 80vh;
+    padding: 40px 16px 80px;
+    background: linear-gradient(180deg, #0d0e10 0%, #18191c 200px, #f4f5f7 200px, #f4f5f7 100%);
+  }
+
+  .update-container {
+    max-width: 760px;
+    margin: 0 auto;
+  }
+
+  .update-card,
+  .error-card {
+    background: #ffffff;
+    border-radius: 20px;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    overflow: hidden;
+    padding: 36px 32px;
+  }
+
+  @media (max-width: 640px) {
+    .update-card,
+    .error-card {
+      padding: 24px 18px;
+      border-radius: 16px;
+    }
+  }
+
+  .card-header {
+    border-bottom: 1px solid #edf2f7;
+    padding-bottom: 24px;
+    margin-bottom: 24px;
+  }
+
+  .badge-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+
+  .status-badge {
+    background: #eff6ff;
+    color: #1d4ed8;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 999px;
+  }
+
+  .city-badge {
+    background: #f1f5f9;
+    color: #475569;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 999px;
+  }
+
+  .club-title {
+    font-size: 26px;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0 0 8px 0;
+    line-height: 1.3;
+  }
+
+  .card-subtitle {
+    font-size: 14.5px;
+    color: #64748b;
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  .info-alert {
+    display: flex;
+    gap: 14px;
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+    border: 1px solid #bbf7d0;
+    border-radius: 14px;
+    padding: 16px 20px;
+    margin-bottom: 28px;
+  }
+
+  .alert-icon {
+    font-size: 24px;
+    flex-shrink: 0;
+  }
+
+  .alert-text {
+    font-size: 13.5px;
+    color: #166534;
+    line-height: 1.55;
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+
+  @media (max-width: 640px) {
+    .form-grid {
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+  }
+
+  .full-width {
+    grid-column: 1 / -1;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .form-group label {
+    font-size: 13px;
+    font-weight: 700;
+    color: #334155;
+  }
+
+  .form-group input,
+  .form-group textarea {
+    background: #f8fafc;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 14px;
+    color: #0f172a;
+    transition: all 0.2s ease;
+    font-family: inherit;
+  }
+
+  .form-group input:focus,
+  .form-group textarea:focus {
+    outline: none;
+    border-color: #E30A17;
+    background: #ffffff;
+    box-shadow: 0 0 0 3px rgba(227, 10, 23, 0.12);
+  }
+
+  .field-hint {
+    font-size: 11.5px;
+    color: #94a3b8;
+  }
+
+  .programs-preview-box {
+    margin-top: 24px;
+    padding: 18px 20px;
+    background: #f8fafc;
+    border: 1px dashed #cbd5e1;
+    border-radius: 12px;
+  }
+
+  .programs-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #334155;
+    margin: 0 0 12px 0;
+  }
+
+  .programs-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .prog-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #0f172a;
+  }
+
+  .prog-meta {
+    font-size: 11.5px;
+    color: #64748b;
+    border-left: 1px solid #e2e8f0;
+    padding-left: 6px;
+  }
+
+  .programs-note {
+    font-size: 12px;
+    color: #64748b;
+    margin: 8px 0 0 0;
+  }
+
+  .form-actions {
+    margin-top: 32px;
+    text-align: center;
+  }
+
+  .btn-submit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    max-width: 360px;
+    background: linear-gradient(135deg, #E30A17 0%, #c40813 100%);
+    color: #ffffff;
+    border: none;
+    border-radius: 12px;
+    padding: 16px 24px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(227, 10, 23, 0.3);
+    transition: all 0.2s ease;
+  }
+
+  .btn-submit:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 25px rgba(227, 10, 23, 0.4);
+  }
+
+  .btn-submit:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  /* Success View */
+  .success-box {
+    text-align: center;
+    padding: 32px 16px;
+  }
+
+  .success-icon {
+    font-size: 54px;
+    margin-bottom: 16px;
+  }
+
+  .success-title {
+    font-size: 22px;
+    font-weight: 800;
+    color: #15803d;
+    margin: 0 0 12px 0;
+  }
+
+  .success-desc {
+    font-size: 15px;
+    color: #475569;
+    max-width: 480px;
+    margin: 0 auto 28px;
+    line-height: 1.6;
+  }
+
+  .success-actions {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .btn-primary {
+    background: #E30A17;
+    color: #fff;
+    padding: 12px 24px;
+    border-radius: 10px;
+    font-weight: 700;
+    text-decoration: none;
+    display: inline-block;
+  }
+
+  .btn-secondary {
+    background: #f1f5f9;
+    color: #334155;
+    padding: 12px 24px;
+    border-radius: 10px;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-block;
+  }
+
+  /* Error card */
+  .error-card {
+    text-align: center;
+    padding: 48px 24px;
+  }
+
+  .error-icon {
+    font-size: 50px;
+    margin-bottom: 16px;
+  }
+
+  .error-title {
+    font-size: 22px;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0 0 12px 0;
+  }
+
+  .error-desc {
+    font-size: 15px;
+    color: #64748b;
+    max-width: 460px;
+    margin: 0 auto 28px;
+    line-height: 1.6;
+  }
+
+  .error-actions {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+  }
+
+  /* Modal */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 16px;
+  }
+
+  .modal-card {
+    position: relative;
+    background: #ffffff;
+    width: 100%;
+    max-width: 440px;
+    border-radius: 20px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+    padding: 32px 28px;
+    text-align: center;
+  }
+
+  .modal-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: #f1f5f9;
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    font-size: 14px;
+    cursor: pointer;
+    color: #64748b;
+  }
+
+  .modal-icon {
+    font-size: 40px;
+    margin-bottom: 12px;
+  }
+
+  .modal-title {
+    font-size: 19px;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0 0 8px 0;
+  }
+
+  .modal-desc {
+    font-size: 13.5px;
+    color: #64748b;
+    line-height: 1.5;
+    margin: 0 0 20px 0;
+  }
+
+  .otp-input-wrap {
+    margin-bottom: 16px;
+  }
+
+  .otp-field {
+    width: 100%;
+    max-width: 240px;
+    margin: 0 auto;
+    text-align: center;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 32px;
+    font-weight: 900;
+    letter-spacing: 8px;
+    padding: 12px 16px;
+    background: #fff1f2;
+    border: 2px dashed #E30A17;
+    border-radius: 12px;
+    color: #E30A17;
+  }
+
+  .otp-field:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(227, 10, 23, 0.2);
+  }
+
+  .otp-error {
+    font-size: 13px;
+    color: #dc2626;
+    background: #fee2e2;
+    padding: 8px 12px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+  }
+
+  .modal-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .btn-resend {
+    background: transparent;
+    border: none;
+    color: #64748b;
+    font-size: 13px;
+    cursor: pointer;
+    text-decoration: underline;
+  }
+
+  .is-hidden {
+    display: none !important;
+  }
+</style>
+
+<script is:inline>
+  (function () {
+    const tokenInput = document.getElementById('token-input');
+    const form = document.getElementById('club-update-form');
+    const btnRequestOtp = document.getElementById('btn-request-otp');
+    const otpModal = document.getElementById('otp-modal');
+    const otpModalClose = document.getElementById('otp-modal-close');
+    const otpCodeInput = document.getElementById('otp-code-input');
+    const otpErrorMsg = document.getElementById('otp-error-msg');
+    const btnVerifyOtp = document.getElementById('btn-verify-otp');
+    const btnResendOtp = document.getElementById('btn-resend-otp');
+    const otpTargetEmail = document.getElementById('otp-target-email');
+    const successView = document.getElementById('success-view');
+
+    if (!form || !tokenInput) return;
+
+    const token = tokenInput.value;
+
+    function showModal() {
+      otpModal.classList.remove('is-hidden');
+      otpCodeInput.value = '';
+      otpErrorMsg.classList.add('is-hidden');
+      otpCodeInput.focus();
+    }
+
+    function hideModal() {
+      otpModal.classList.add('is-hidden');
+    }
+
+    otpModalClose.addEventListener('click', hideModal);
+
+    async function sendOtp() {
+      btnRequestOtp.disabled = true;
+      btnRequestOtp.textContent = 'Kod İletiliyor...';
+
+      try {
+        const res = await fetch('/api/club/request-update-otp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token }),
+        });
+        const data = await res.json();
+
+        if (!data.success) {
+          alert(data.error || 'Onay kodu gönderilemedi.');
+          return;
+        }
+
+        if (otpTargetEmail && data.maskedEmail) {
+          otpTargetEmail.textContent = data.maskedEmail;
+        }
+        showModal();
+      } catch (err) {
+        alert('Sunucu ile bağlantı kurulamadı.');
+      } finally {
+        btnRequestOtp.disabled = false;
+        btnRequestOtp.innerHTML = '<span class="btn-icon">🔐</span> Değişiklikleri Doğrula ve Kaydet';
+      }
+    }
+
+    btnRequestOtp.addEventListener('click', function (e) {
+      e.preventDefault();
+      if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+      }
+      sendOtp();
+    });
+
+    btnResendOtp.addEventListener('click', function () {
+      btnResendOtp.textContent = 'Kod gönderiliyor...';
+      sendOtp().finally(() => {
+        btnResendOtp.textContent = 'Tekrar Kod Gönder';
+      });
+    });
+
+    btnVerifyOtp.addEventListener('click', async function () {
+      const code = otpCodeInput.value.trim();
+      if (code.length < 6) {
+        otpErrorMsg.textContent = 'Lütfen 6 haneli kodu eksiksiz girin.';
+        otpErrorMsg.classList.remove('is-hidden');
+        return;
+      }
+
+      btnVerifyOtp.disabled = true;
+      btnVerifyOtp.textContent = 'Doğrulanıyor...';
+      otpErrorMsg.classList.add('is-hidden');
+
+      const formData = new FormData(form);
+      const fields = {
+        ad: formData.get('ad'),
+        yetkili: formData.get('yetkili'),
+        telefon: formData.get('telefon'),
+        email: formData.get('email'),
+        fiyatBilgisi: formData.get('fiyatBilgisi'),
+        yasAraligi: formData.get('yasAraligi'),
+        adres: formData.get('adres'),
+        aciklama: formData.get('aciklama'),
+      };
+
+      try {
+        const res = await fetch('/api/club/verify-update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            token,
+            otpCode: code,
+            fields,
+          }),
+        });
+
+        const data = await res.json();
+        if (!data.success) {
+          otpErrorMsg.textContent = data.error || 'Doğrulama başarısız.';
+          otpErrorMsg.classList.remove('is-hidden');
+          btnVerifyOtp.disabled = false;
+          btnVerifyOtp.textContent = 'Onayla ve Kaydet';
+          return;
+        }
+
+        // Success!
+        hideModal();
+        form.classList.add('is-hidden');
+        successView.classList.remove('is-hidden');
+      } catch (err) {
+        otpErrorMsg.textContent = 'Bir ağ hatası oluştu.';
+        otpErrorMsg.classList.remove('is-hidden');
+        btnVerifyOtp.disabled = false;
+        btnVerifyOtp.textContent = 'Onayla ve Kaydet';
+      }
+    });
+  })();
+</script>

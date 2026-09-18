@@ -15,7 +15,7 @@ const isLoggedInAdmin = session?.role === 'admin';
 const loginError = Astro.url.searchParams.get('error') ?? '';
 
 const summary = await getAdminClubSummary();
-const { topNews, topListings } = isLoggedInAdmin ? await getDashboardAnalytics() : { topNews: [], topListings: [] };
+const { topNews, topListings, recentActivities } = isLoggedInAdmin ? await getDashboardAnalytics() : { topNews: [], topListings: [], recentActivities: [] };
 const branchRows = await getAllBranches();
 const adminBransList = [...branchRows.map((b) => b.isim).sort((a, b) => a.localeCompare(b, 'tr')), 'Diğer'];
 const [cityRows, districtRows] = await Promise.all([getAllCities(), getAllDistrictsWithCities()]);
@@ -311,6 +311,45 @@ const adminLocationData = {
               </div>
             </div>
           </div>
+
+          <!-- Son Etkinlikler (Recent Activities Feed) -->
+          <div class="dashboard-activity-card">
+            <div class="dashboard-panel-header">
+              <div class="dashboard-panel-title-wrap">
+                <div class="panel-icon-badge bg-amber">⚡</div>
+                <div>
+                  <h2 class="dashboard-panel-title">Son Etkinlikler & İşlem Akışı</h2>
+                  <p class="dashboard-panel-sub">Sistemdeki son başvurular, onaylar ve kulüp veri güncellemeleri</p>
+                </div>
+              </div>
+              <button type="button" class="dashboard-jump-link" data-jump-to-tab="applications">
+                Tüm Başvurular →
+              </button>
+            </div>
+
+            <div class="dashboard-panel-body">
+              {recentActivities.length === 0 ? (
+                <div class="dashboard-empty-panel">
+                  <p>Henüz kaydedilmiş bir etkinlik bulunmuyor.</p>
+                </div>
+              ) : (
+                <ul class="dashboard-activity-list">
+                  {recentActivities.map((act) => (
+                    <li class="dashboard-activity-item">
+                      <div class="activity-icon-badge">{act.icon}</div>
+                      <div class="activity-content">
+                        <div class="activity-top-row">
+                          <span class="activity-title">{act.title}</span>
+                          <span class="activity-time">{act.dateStr}</span>
+                        </div>
+                        <p class="activity-desc">{act.desc}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
         </section>
 
         <!-- Applications Tab Panel -->
@@ -548,130 +587,237 @@ const adminLocationData = {
 
             <div id="mail-service-status" class="mail-status-banner" style="display:none;"></div>
 
-            <div class="mail-service-grid">
-              <!-- Sol Kolon: Yazı ve Kampanya Editörü -->
-              <div class="mail-editor-column">
-                <div class="mail-card">
-                  <div class="mail-card-header">
-                    <h3>✍️ Duyuru & Bülten Oluştur</h3>
-                    <div class="preset-selector-wrap">
-                      <label for="mail-preset-select">Hazır Şablon:</label>
-                      <select id="mail-preset-select" class="modern-select">
-                        <option value="announcement">📢 Yeni Sezon & Özellik Duyurusu</option>
-                        <option value="trends">📊 Haftalık Veli Arama Trendleri</option>
-                        <option value="tactics">💡 Hap Kulüp Taktikleri</option>
-                        <option value="friendly_match">🤝 Hazırlık Maçı Eşleştirmesi</option>
-                        <option value="blank">📝 Boş Taslak</option>
-                      </select>
+            <!-- Mail Servisi Alt Menü (Sub-Navigation) -->
+            <div class="mail-subnav-bar">
+              <button type="button" class="mail-subnav-btn is-active" data-mail-subnav="announcements">
+                <span>📬</span> Genel İletişim & Duyuru Bülteni
+              </button>
+              <button type="button" class="mail-subnav-btn" data-mail-subnav="freshness">
+                <span>🔄</span> Bilgi Güncelleme Talebi
+              </button>
+            </div>
+
+            <!-- Alt Sekme 1: Duyuru & Bülten -->
+            <div id="mail-subpanel-announcements" class="mail-subpanel">
+              <div class="mail-service-grid">
+                <!-- Sol Kolon: Yazı ve Kampanya Editörü -->
+                <div class="mail-editor-column">
+                  <div class="mail-card">
+                    <div class="mail-card-header">
+                      <h3>✍️ Duyuru & Bülten Oluştur</h3>
+                      <div class="preset-selector-wrap">
+                        <label for="mail-preset-select">Hazır Şablon:</label>
+                        <select id="mail-preset-select" class="modern-select">
+                          <option value="announcement">📢 Yeni Sezon & Özellik Duyurusu</option>
+                          <option value="trends">📊 Haftalık Veli Arama Trendleri</option>
+                          <option value="tactics">💡 Hap Kulüp Taktikleri</option>
+                          <option value="friendly_match">🤝 Hazırlık Maçı Eşleştirmesi</option>
+                          <option value="blank">📝 Boş Taslak</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div class="mail-card-body">
+                      <div class="form-group">
+                        <label for="mail-subject">E-Posta Konusu (Subject):</label>
+                        <input id="mail-subject" type="text" class="modern-input" value="📢 SporNerede.net 2026-2027 Yeni Sezon Kulüp Gelişmeleri" placeholder="Kulübün gelen kutusunda göreceği başlık" />
+                      </div>
+
+                      <div class="form-group">
+                        <label for="mail-preheader">Önizleme Metni (Preheader):</label>
+                        <input id="mail-preheader" type="text" class="modern-input" value="Yeni sezon yaklaşırken kulüplerimiz için hazırladığımız yenilikler ve fırsatlar." placeholder="Gelen kutusunda konunun yanında görünen kısa açıklama" />
+                      </div>
+
+                      <div class="form-group">
+                        <label>Duyuru İçeriği (Zengin Metin):</label>
+                        <div class="mail-tags-hint">
+                          İpucu: Metinde <code>&#123;&#123;kulupAdi&#125;&#125;</code>, <code>&#123;&#123;ilce&#125;&#125;</code> veya <code>&#123;&#123;brans&#125;&#125;</code> yazarsanız her kulübe özel kişiselleşir.
+                        </div>
+                        <textarea id="mail-editor-textarea" style="display:none;"></textarea>
+                      </div>
+
+                      <div class="mail-cta-fields">
+                        <div class="form-group">
+                          <label for="mail-cta-text">Buton Metni (İsteğe Bağlı):</label>
+                          <input id="mail-cta-text" type="text" class="modern-input" value="Kulüp Profilinizi İnceleyin" placeholder="Örn: Yazının Devamını Oku" />
+                        </div>
+                        <div class="form-group">
+                          <label for="mail-cta-url">Buton Bağlantısı (URL):</label>
+                          <input id="mail-cta-url" type="text" class="modern-input" value="https://spornerede.net/panel" placeholder="https://..." />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Sağ Kolon: Canlı Önizleme, Test ve Gönderim -->
+                <div class="mail-preview-column">
+                  <!-- Canlı Önizleme Kartı -->
+                  <div class="mail-card">
+                    <div class="mail-card-header">
+                      <h3>👁️ Canlı E-Posta Önizlemesi</h3>
+                      <div class="device-toggles">
+                        <button type="button" id="btn-preview-desktop" class="device-toggle-btn is-active" title="Masaüstü Görünümü">💻 Masaüstü</button>
+                        <button type="button" id="btn-preview-mobile" class="device-toggle-btn" title="Mobil Görünüm">📱 Mobil</button>
+                      </div>
+                    </div>
+                    <div class="mail-card-body preview-body">
+                      <div id="mail-preview-wrapper" class="mail-preview-wrapper">
+                        <iframe id="mail-preview-frame" class="mail-preview-iframe" title="E-Posta Canlı Önizleme"></iframe>
+                      </div>
                     </div>
                   </div>
 
-                  <div class="mail-card-body">
-                    <div class="form-group">
-                      <label for="mail-subject">E-Posta Konusu (Subject):</label>
-                      <input id="mail-subject" type="text" class="modern-input" value="📢 SporNerede.net 2026-2027 Yeni Sezon Kulüp Gelişmeleri" placeholder="Kulübün gelen kutusunda göreceği başlık" />
+                  <!-- Test Gönderim Kartı -->
+                  <div class="mail-card test-card">
+                    <div class="mail-card-header">
+                      <h3>🧪 Test Gönderimi (Güvenli Kontrol)</h3>
                     </div>
-
-                    <div class="form-group">
-                      <label for="mail-preheader">Önizleme Metni (Preheader):</label>
-                      <input id="mail-preheader" type="text" class="modern-input" value="Yeni sezon yaklaşırken kulüplerimiz için hazırladığımız yenilikler ve fırsatlar." placeholder="Gelen kutusunda konunun yanında görünen kısa açıklama" />
-                    </div>
-
-                    <div class="form-group">
-                      <label>Duyuru İçeriği (Zengin Metin):</label>
-                      <div class="mail-tags-hint">
-                        İpucu: Metinde <code>&#123;&#123;kulupAdi&#125;&#125;</code>, <code>&#123;&#123;ilce&#125;&#125;</code> veya <code>&#123;&#123;brans&#125;&#125;</code> yazarsanız her kulübe özel kişiselleşir.
+                    <div class="mail-card-body">
+                      <p class="test-desc">Kulüplere göndermeden önce tasarımı kendi gelen kutunuzda kontrol edin:</p>
+                      <div class="test-input-row">
+                        <input id="mail-test-recipient" type="email" class="modern-input" placeholder="emrggck@gmail.com" value="emrggck@gmail.com" />
                       </div>
-                      <textarea id="mail-editor-textarea" style="display:none;"></textarea>
-                    </div>
-
-                    <div class="mail-cta-fields">
-                      <div class="form-group">
-                        <label for="mail-cta-text">Buton Metni (İsteğe Bağlı):</label>
-                        <input id="mail-cta-text" type="text" class="modern-input" value="Kulüp Profilinizi İnceleyin" placeholder="Örn: Yazının Devamını Oku" />
+                      <div class="test-actions-row">
+                        <button type="button" id="btn-send-test-mail" class="btn-mail-test">
+                          🚀 Bana Test Duyuru Maili Gönder
+                        </button>
+                        <button type="button" id="btn-send-test-app-mail" class="btn-mail-app-test">
+                          📥 Yenilenen Başvuru Mailini Test Et
+                        </button>
                       </div>
-                      <div class="form-group">
-                        <label for="mail-cta-url">Buton Bağlantısı (URL):</label>
-                        <input id="mail-cta-url" type="text" class="modern-input" value="https://spornerede.net/panel" placeholder="https://..." />
+                    </div>
+                  </div>
+
+                  <!-- Toplu Gönderim Kartı -->
+                  <div class="mail-card bulk-card">
+                    <div class="mail-card-header">
+                      <h3>🚀 Toplu Gönderim (Müşteriler / Kuyruk)</h3>
+                    </div>
+                    <div class="mail-card-body">
+                      <p class="bulk-desc">
+                        Bu duyuru müşterilere kendi bilgileriyle kişiselleştirilerek gönderim kuyruğuna alınır. Test ortamında hedef müşteri yalnızca <strong>emrggck@gmail.com</strong> olarak ayarlanmıştır.
+                      </p>
+                      <button type="button" id="btn-queue-bulk-mail" class="btn-mail-bulk">
+                        ✉️ Müşteriye Gönder: emrggck@gmail.com (Kuyruk)
+                      </button>
+
+                      <!-- Test Sunucusu / Sadece emrggck@gmail.com Güvenlik Kutusu -->
+                      <div class="mail-test-server-box">
+                        <div class="test-server-header">
+                          <span class="test-server-badge">🛡️ Test Sunucusu Modu</span>
+                          <span class="test-server-target-text">Hedef Müşteri: <strong>emrggck@gmail.com</strong></span>
+                        </div>
+                        <p class="test-server-desc">
+                          Diğer müşterileri korumak adına duyuru e-postası yalnızca hedef müşteri olan <strong>emrggck@gmail.com</strong> adresine iletilir. 2FA güvenlik onay kodu ise yönetici adresiniz olan <strong>neredespor@gmail.com</strong>'a gönderilir.
+                        </p>
+                        <label class="mail-safe-mode-toggle">
+                          <input type="checkbox" id="chk-test-server-safe" checked />
+                          <span>Güvenli Mod: Yalnızca hedef müşteri <strong>emrggck@gmail.com</strong> adresine ilet</span>
+                        </label>
+                        <button type="button" id="btn-queue-test-single" class="btn-mail-test-single">
+                          🧪 Sadece Hedef Müşteriye Gönder (emrggck@gmail.com)
+                        </button>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
+            </div>
 
-              <!-- Sağ Kolon: Canlı Önizleme, Test ve Gönderim -->
-              <div class="mail-preview-column">
-                
-                <!-- Canlı Önizleme Kartı -->
+            <!-- Alt Sekme 2: Bilgi Güncelleme Talebi -->
+            <div id="mail-subpanel-freshness" class="mail-subpanel is-hidden">
+              <div class="freshness-panel-grid">
+                <!-- Sol Kolon: Hedef Kulüp ve Bilgileri -->
                 <div class="mail-card">
                   <div class="mail-card-header">
-                    <h3>👁️ Canlı E-Posta Önizlemesi</h3>
-                    <div class="device-toggles">
-                      <button type="button" id="btn-preview-desktop" class="device-toggle-btn is-active" title="Masaüstü Görünümü">💻 Masaüstü</button>
-                      <button type="button" id="btn-preview-mobile" class="device-toggle-btn" title="Mobil Görünüm">📱 Mobil</button>
-                    </div>
-                  </div>
-                  <div class="mail-card-body preview-body">
-                    <div id="mail-preview-wrapper" class="mail-preview-wrapper">
-                      <iframe id="mail-preview-frame" class="mail-preview-iframe" title="E-Posta Canlı Önizleme"></iframe>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Test Gönderim Kartı -->
-                <div class="mail-card test-card">
-                  <div class="mail-card-header">
-                    <h3>🧪 Test Gönderimi (Güvenli Kontrol)</h3>
+                    <h3>🏢 Hedef Kulüp Seçimi & İletişim Bilgileri</h3>
                   </div>
                   <div class="mail-card-body">
-                    <p class="test-desc">Kulüplere göndermeden önce tasarımı kendi gelen kutunuzda kontrol edin:</p>
-                    <div class="test-input-row">
-                      <input id="mail-test-recipient" type="email" class="modern-input" placeholder="emrggck@gmail.com" value="emrggck@gmail.com" />
+                    <div class="form-group">
+                      <label for="freshness-club-select">Kulüp Seçin:</label>
+                      <select id="freshness-club-select" class="modern-select">
+                        <option value="">-- Lütfen bir kulüp seçin --</option>
+                        <option value="ALL">📢 [Tüm Onaylı Kulüpler - Toplu Gönderim]</option>
+                      </select>
                     </div>
-                    <div class="test-actions-row">
-                      <button type="button" id="btn-send-test-mail" class="btn-mail-test">
-                        🚀 Bana Test Duyuru Maili Gönder
-                      </button>
-                      <button type="button" id="btn-send-test-app-mail" class="btn-mail-app-test">
-                        📥 Yenilenen Başvuru Mailini Test Et
-                      </button>
-                    </div>
-                  </div>
-                </div>
 
-                <!-- Toplu Gönderim Kartı -->
-                <div class="mail-card bulk-card">
-                  <div class="mail-card-header">
-                    <h3>🚀 Toplu Gönderim (Müşteriler / Kuyruk)</h3>
-                  </div>
-                  <div class="mail-card-body">
-                    <p class="bulk-desc">
-                      Bu duyuru müşterilere kendi bilgileriyle kişiselleştirilerek gönderim kuyruğuna alınır. Test ortamında hedef müşteri yalnızca <strong>emrggck@gmail.com</strong> olarak ayarlanmıştır.
-                    </p>
-                    <button type="button" id="btn-queue-bulk-mail" class="btn-mail-bulk">
-                      ✉️ Müşteriye Gönder: emrggck@gmail.com (Kuyruk)
-                    </button>
-
-                    <!-- Test Sunucusu / Sadece emrggck@gmail.com Güvenlik Kutusu -->
-                    <div class="mail-test-server-box">
-                      <div class="test-server-header">
-                        <span class="test-server-badge">🛡️ Test Sunucusu Modu</span>
-                        <span class="test-server-target-text">Hedef Müşteri: <strong>emrggck@gmail.com</strong></span>
+                    <!-- Kulüp Detay Kartı (Kulüp seçildiğinde dolar) -->
+                    <div id="freshness-selected-club-info" class="selected-club-info-card is-hidden">
+                      <div class="club-info-item">
+                        <span class="info-label">👤 Yetkili Kişi (Ad Soyad):</span>
+                        <strong id="info-yetkili" class="info-val">-</strong>
                       </div>
-                      <p class="test-server-desc">
-                        Diğer müşterileri korumak adına duyuru e-postası yalnızca hedef müşteri olan <strong>emrggck@gmail.com</strong> adresine iletilir. 2FA güvenlik onay kodu ise yönetici adresiniz olan <strong>neredespor@gmail.com</strong>'a gönderilir.
-                      </p>
-                      <label class="mail-safe-mode-toggle">
-                        <input type="checkbox" id="chk-test-server-safe" checked />
-                        <span>Güvenli Mod: Yalnızca hedef müşteri <strong>emrggck@gmail.com</strong> adresine ilet</span>
-                      </label>
-                      <button type="button" id="btn-queue-test-single" class="btn-mail-test-single">
-                        🧪 Sadece Hedef Müşteriye Gönder (emrggck@gmail.com)
-                      </button>
+                      <div class="club-info-item">
+                        <span class="info-label">📞 İletişim Telefonu:</span>
+                        <strong id="info-phone" class="info-val">-</strong>
+                      </div>
+                      <div class="club-info-item">
+                        <span class="info-label">✉️ E-posta Adresi:</span>
+                        <strong id="info-email" class="info-val">-</strong>
+                      </div>
+                      <div class="club-info-item">
+                        <span class="info-label">📍 Şehir / İlçe:</span>
+                        <strong id="info-location" class="info-val">-</strong>
+                      </div>
+                      <div class="club-info-item">
+                        <span class="info-label">🔄 Son Güncelleme Durumu:</span>
+                        <span id="info-freshness-badge" class="badge badge-neutral">Henüz Doğrulanmadı</span>
+                      </div>
+
+                      <div class="magic-link-box mt-3">
+                        <label>🔗 Kulübe Özel Güncelleme Linki:</label>
+                        <div class="copy-input-row">
+                          <input type="text" id="freshness-magic-link-input" class="modern-input" readonly />
+                          <button type="button" id="btn-copy-magic-link" class="btn btn-outline-sm">Kopyala</button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Toplu Gönderim Açıklaması (ALL seçildiğinde) -->
+                    <div id="freshness-bulk-info" class="selected-club-info-card is-hidden">
+                      <div class="bulk-alert">
+                        <strong>📢 Toplu Bilgi Güncelleme Talebi</strong><br />
+                        Tüm onaylı kulüplere özel veri tazeliği ve profil güncelleme bağlantısı iletilecektir. Güvenlik gereği işlem 2FA koduyla korunmaktadır.
+                      </div>
                     </div>
                   </div>
                 </div>
 
+                <!-- Sağ Kolon: Taslak E-posta & Gönderim -->
+                <div class="mail-card">
+                  <div class="mail-card-header">
+                    <h3>📝 Güncelleme E-posta Taslağı</h3>
+                    <span class="badge badge-primary">Düzenlenebilir</span>
+                  </div>
+                  <div class="mail-card-body">
+                    <div class="form-group">
+                      <label for="freshness-subject-input">E-posta Konusu:</label>
+                      <input type="text" id="freshness-subject-input" class="modern-input" value="[SporNerede] Kulüp Profilinizi Doğrulayın & Güncel Tutun" />
+                    </div>
+
+                    <div class="form-group">
+                      <label for="freshness-custom-msg">Kulübe Özel Ek Not (İsteğe Bağlı):</label>
+                      <textarea id="freshness-custom-msg" class="modern-textarea" rows="2" placeholder="Örn: Yeni sezon öncesi veli kayıtlarının aksamaması için antrenman gün ve saatlerinizi teyit ediniz."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                      <label>Canlı E-posta Önizlemesi:</label>
+                      <div class="freshness-preview-frame-wrap">
+                        <iframe id="freshness-preview-frame" class="mail-preview-iframe" title="Güncelleme Maili Önizleme"></iframe>
+                      </div>
+                    </div>
+
+                    <div class="freshness-send-actions mt-3">
+                      <button type="button" id="btn-send-freshness-test" class="btn btn-primary w-full">
+                        🚀 Kulübe Gönder (Test Modu - emrggck@gmail.com)
+                      </button>
+                      <button type="button" id="btn-send-freshness-real" class="btn btn-outline w-full mt-2">
+                        🌐 Gerçek Kulüp Adresine Gönder
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -2428,9 +2574,15 @@ const adminLocationData = {
                   <h3>Kulüp Bilgilerini Düzenle</h3>
                 </div>
                 <div class="form-layout">
-                  <div class="form-group">
-                    <label>Kulüp Adı</label>
-                    <input id="club-ad" class="modern-input" type="text" value="${club.ad || ''}" />
+                  <div class="form-row-2">
+                    <div class="form-group">
+                      <label>Kulüp Adı</label>
+                      <input id="club-ad" class="modern-input" type="text" value="${club.ad || ''}" />
+                    </div>
+                    <div class="form-group">
+                      <label>Kulüp Yetkilisi / Sorumlu Kişi</label>
+                      <input id="club-yetkili" class="modern-input" type="text" value="${club.yetkili || ''}" placeholder="Örn: Ahmet Yılmaz" />
+                    </div>
                   </div>
                   <div class="form-row-2">
                     <div class="form-group">
@@ -2502,6 +2654,43 @@ const adminLocationData = {
                     <span class="label">Yayınlanan Branş</span>
                     <span class="value">${club.bransSayisi || 1} branş</span>
                   </div>
+                </div>
+              </section>
+
+              <!-- Veri Güncelliği & Kulüp İletişim Bloğu -->
+              <section class="card-section border-freshness">
+                <div class="section-head">
+                  <span class="icon">🔄</span>
+                  <h3>Veri Güncelliği & Kulüp İletişimi</h3>
+                </div>
+                <div class="info-list">
+                  <div class="info-item">
+                    <span class="label">Kulüp İlgi Durumu</span>
+                    <span class="value" id="club-freshness-status-badge">
+                      ${club.bilgiGuncellendiAt 
+                        ? `<span class="status-badge status-approved">✅ İlgili Kulüp - Doğrulandı</span>`
+                        : club.sonGuncellemeTalebi
+                          ? `<span class="status-badge" style="background:#fef3c7;color:#b45309;">⏳ Doğrulama Bekleniyor</span>`
+                          : `<span class="status-badge" style="background:#f1f5f9;color:#64748b;">⚪ Henüz Talep Gönderilmedi</span>`
+                      }
+                    </span>
+                  </div>
+                  <div class="info-item">
+                    <span class="label">Son Talep Gönderimi</span>
+                    <span class="value" id="club-last-request-date">${club.sonGuncellemeTalebi ? formatDate(club.sonGuncellemeTalebi) : 'Yok'}</span>
+                  </div>
+                  <div class="info-item">
+                    <span class="label">Son Bilgi Doğrulama</span>
+                    <span class="value" id="club-last-verified-date">${club.bilgiGuncellendiAt ? formatDate(club.bilgiGuncellendiAt) : 'Henüz güncellenmedi'}</span>
+                  </div>
+                </div>
+                <div class="freshness-btn-group mt-3" style="display:flex; flex-direction:column; gap:8px;">
+                  <button type="button" class="btn btn-primary w-full" id="btn-club-send-freshness" data-club-id="${club.id}">
+                    📨 Bilgi Güncelleme Maili Yolla (Test Modu)
+                  </button>
+                  <button type="button" class="btn btn-outline w-full" id="btn-club-copy-link" data-club-id="${club.id}">
+                    🔗 Güncelleme Linkini Kopyala
+                  </button>
                 </div>
               </section>
 
@@ -2648,6 +2837,7 @@ const adminLocationData = {
         const collectClubUpdatePayload = () => ({
           id: clubId,
           ad: document.getElementById('club-ad')?.value || '',
+          yetkili: document.getElementById('club-yetkili')?.value || '',
           telefon: document.getElementById('club-telefon')?.value || '',
           email: document.getElementById('club-email')?.value || '',
           yasAraligi: document.getElementById('club-yas-araligi')?.value || '',
@@ -2678,6 +2868,7 @@ const adminLocationData = {
             const cached = cachedClubs.find((c) => c.id === clubId);
             if (cached) {
               cached.ad = payload.ad;
+              cached.yetkili = payload.yetkili;
               cached.il = payload.il;
               cached.ilce = payload.ilce;
               cached.telefon = payload.telefon;
@@ -2722,6 +2913,47 @@ const adminLocationData = {
         const saveBtn = document.getElementById('save-club-btn');
         saveBtn?.addEventListener('click', async () => {
           await saveClubUpdate(saveBtn, 'Kaydediliyor...', 'Değişiklikleri Kaydet');
+        });
+
+        const btnSendFreshness = document.getElementById('btn-club-send-freshness');
+        btnSendFreshness?.addEventListener('click', async () => {
+          btnSendFreshness.disabled = true;
+          btnSendFreshness.textContent = 'Mail Gönderiliyor...';
+          try {
+            const res = await apiPost('/api/admin/mail-service', {
+              action: 'send_club_freshness',
+              clubId,
+              isTest: true,
+            });
+            alert('✓ Bilgi güncelleme maili başarıyla gönderildi (Test Modu - emrggck@gmail.com).');
+            const badgeEl = document.getElementById('club-freshness-status-badge');
+            if (badgeEl) badgeEl.innerHTML = '<span class="status-badge" style="background:#fef3c7;color:#b45309;">⏳ Doğrulama Bekleniyor</span>';
+            const reqDateEl = document.getElementById('club-last-request-date');
+            if (reqDateEl) reqDateEl.textContent = 'Az önce';
+          } catch (err) {
+            alert('Mail gönderilemedi: ' + err.message);
+          } finally {
+            btnSendFreshness.disabled = false;
+            btnSendFreshness.textContent = '📨 Bilgi Güncelleme Maili Yolla (Test Modu)';
+          }
+        });
+
+        const btnCopyLink = document.getElementById('btn-club-copy-link');
+        btnCopyLink?.addEventListener('click', async () => {
+          try {
+            btnCopyLink.textContent = 'Alınıyor...';
+            const res = await apiGet(`/api/admin/mail-service?action=club_freshness_draft&clubId=${clubId}`);
+            if (res.magicLink) {
+              await navigator.clipboard.writeText(res.magicLink);
+              btnCopyLink.textContent = '✓ Link Kopyalandı!';
+              setTimeout(() => {
+                btnCopyLink.textContent = '🔗 Güncelleme Linkini Kopyala';
+              }, 2000);
+            }
+          } catch (err) {
+            btnCopyLink.textContent = '🔗 Güncelleme Linkini Kopyala';
+            alert('Link alınamadı: ' + err.message);
+          }
         });
 
         const saveSummaryBtn = document.getElementById('save-club-summary-btn');
@@ -7405,6 +7637,192 @@ const adminLocationData = {
         letter-spacing: 8px !important;
         padding: 0.6rem !important;
       }
+    }
+
+    /* Dashboard Activity Card & Feed */
+    .dashboard-activity-card {
+      background: var(--admin-surface);
+      border: 1px solid var(--admin-border);
+      border-radius: 1rem;
+      padding: 1.25rem 1.5rem;
+      margin-top: 1.5rem;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+    }
+
+    .dashboard-activity-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+    }
+
+    .dashboard-activity-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      padding: 0.85rem 1rem;
+      background: #f8fafc;
+      border: 1px solid var(--admin-border);
+      border-radius: 0.75rem;
+      transition: all 0.2s ease;
+    }
+
+    .dashboard-activity-item:hover {
+      background: #ffffff;
+      border-color: #cbd5e1;
+      transform: translateX(3px);
+    }
+
+    .activity-icon-badge {
+      font-size: 1.25rem;
+      background: #ffffff;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--admin-border);
+      flex-shrink: 0;
+    }
+
+    .activity-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .activity-top-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.25rem;
+    }
+
+    .activity-title {
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: var(--admin-text-main);
+    }
+
+    .activity-time {
+      font-size: 0.78rem;
+      color: var(--admin-text-muted);
+    }
+
+    .activity-desc {
+      margin: 0;
+      font-size: 0.86rem;
+      color: var(--admin-text-muted);
+    }
+
+    /* Mail Subnav */
+    .mail-subnav-bar {
+      display: flex;
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+      background: var(--admin-surface);
+      padding: 0.5rem;
+      border-radius: 0.75rem;
+      border: 1px solid var(--admin-border);
+    }
+
+    .mail-subnav-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.6rem 1.2rem;
+      border-radius: 0.5rem;
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: var(--admin-text-muted);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .mail-subnav-btn:hover {
+      color: var(--admin-text-main);
+      background: #f1f5f9;
+    }
+
+    .mail-subnav-btn.is-active {
+      background: var(--admin-primary);
+      color: #ffffff;
+      box-shadow: 0 4px 12px rgba(227, 10, 23, 0.25);
+    }
+
+    /* Freshness Panel Grid */
+    .freshness-panel-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+
+    @media (max-width: 960px) {
+      .freshness-panel-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .selected-club-info-card {
+      background: #f8fafc;
+      border: 1px solid var(--admin-border);
+      border-radius: 0.75rem;
+      padding: 1.25rem;
+      margin-top: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .club-info-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.9rem;
+    }
+
+    .club-info-item .info-label {
+      color: var(--admin-text-muted);
+    }
+
+    .club-info-item .info-val {
+      color: var(--admin-text-main);
+      font-weight: 700;
+    }
+
+    .magic-link-box {
+      margin-top: 0.5rem;
+      padding-top: 0.75rem;
+      border-top: 1px dashed var(--admin-border);
+    }
+
+    .magic-link-box label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--admin-text-muted);
+      margin-bottom: 0.35rem;
+      display: block;
+    }
+
+    .copy-input-row {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .freshness-preview-frame-wrap {
+      border: 1px solid var(--admin-border);
+      border-radius: 0.75rem;
+      overflow: hidden;
+      height: 380px;
+      background: #f8fafc;
+    }
+
+    .border-freshness {
+      border-left: 4px solid #0284c7 !important;
     }
   </style>
 )}

@@ -2,8 +2,8 @@ import type { APIRoute } from 'astro';
 import { isAdminAuthorized } from '../../../lib/adminAuth';
 import { getCurrentSessionUser } from '../../../lib/auth/session';
 import { getDb, hasDatabaseUrl } from '../../../db/client';
-import { listApprovedAdminClubs } from '../../../lib/repositories/adminClubs';
-import { buildApplicationNotificationMail, buildClubAnnouncementMail } from '../../../lib/mail/templates';
+import { listApprovedAdminClubs, getApprovedAdminClubById, createOrGetClubUpdateToken } from '../../../lib/repositories/adminClubs';
+import { buildApplicationNotificationMail, buildClubAnnouncementMail, buildClubFreshnessVerificationMail } from '../../../lib/mail/templates';
 import { sendDirectMail, enqueueMail } from '../../../lib/mail/service';
 import { requestBulkMailOtp, verifyBulkMailOtp } from '../../../lib/mail/otp';
 
@@ -85,6 +85,47 @@ export const GET: APIRoute = async ({ request }) => {
         headers: { 'Content-Type': 'application/json' },
       });
     }
+  }
+
+  if (action === 'club_freshness_draft') {
+    const clubId = Number(url.searchParams.get('clubId'));
+    if (!clubId) {
+      return new Response(JSON.stringify({ success: false, error: 'clubId parametresi zorunludur.' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    const club = await getApprovedAdminClubById(clubId);
+    if (!club) {
+      return new Response(JSON.stringify({ success: false, error: 'Kulüp bulunamadı.' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    const tokenData = await createOrGetClubUpdateToken(clubId);
+    const siteUrl = process.env.SITE_URL ?? 'https://spornerede.net';
+    const magicLink = `${siteUrl}/kulup-guncelle?token=${tokenData?.token}`;
+    const mail = buildClubFreshnessVerificationMail({
+      kulupAdi: club.ad,
+      yetkili: club.yetkili,
+      ilce: club.ilce,
+      il: club.il,
+      magicLink,
+    });
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        club,
+        token: tokenData?.token,
+        magicLink,
+        subject: mail.subject,
+        html: mail.html,
+      }),
+      { headers: { 'Content-Type': 'application/json' } }
+    );
   }
 
   return new Response(JSON.stringify({ error: 'Unknown action' }), { status: 400 });
@@ -357,6 +398,178 @@ export const POST: APIRoute = async ({ request }) => {
         success: true,
         queuedCount,
         message: `${queuedCount} kulüp için duyuru e-postası başarıyla gönderim kuyruğuna eklendi.`,
+      }),
+      { headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+
+  // 5. Send freshness verification mail to a specific club
+  if (action === 'send_club_freshness') {
+    const clubId = Number(payload.clubId);
+    const isTest = payload.isTest !== false; // default true for testing phase
+    const customMessage = payload.customMessage?.toString()?.trim() || '';
+    const overrideEmail = payload.overrideEmail?.toString()?.trim();
+
+    if (!clubId) {
+      return new Response(JSON.stringify({ success: false, error: 'Kulüp ID belirtilmelidir.' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    const club = await getApprovedAdminClubById(clubId);
+    if (!club) {
+      return new Response(JSON.stringify({ success: false, error: 'Kulüp bulunamadı.' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    const tokenData = await createOrGetClubUpdateToken(clubId);
+    const siteUrl = process.env.SITE_URL ?? 'https://spornerede.net';
+    const magicLink = `${siteUrl}/kulup-guncelle?token=${tokenData?.token}`;
+
+    const { subject, html } = buildClubFreshnessVerificationMail({
+      kulupAdi: club.ad,
+      yetkili: club.yetkili,
+      ilce: club.ilce,
+      il: club.il,
+      magicLink,
+      customMessage,
+    });
+
+    const targetEmail = isTest ? 'emrggck@gmail.com' : (overrideEmail || club.email || 'emrggck@gmail.com');
+
+    try {
+      await sendDirectMail({
+        toEmail: targetEmail,
+        subject: isTest ? `[TEST MODU] ${subject}` : subject,
+        html,
+      });
+
+      if (hasDatabaseUrl()) {
+        const db = await getDb();
+        await db.collection('admin_basvuru_loglari').create({
+          legacyId: Date.now(),
+          basvuruLegacyId: clubId,
+          aksiyon: 'freshness_mail_sent',
+          yeniDurum: 'approved',
+          islemYapanEmail: targetEmail,
+          notMetni: `Bilgi güncelleme maili ${targetEmail} adresine iletildi.`,
+          atananAdminEmail: '',
+          oncekiDurum: 'approved',
+        }).catch(() => null);
+      }
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          targetEmail,
+          magicLink,
+          message: `Bilgi güncelleme maili ${targetEmail} adresine iletildi.`,
+        }),
+        { headers: { 'Content-Type': 'application/json' } }
+      );
+    } catch (err: any) {
+      console.error('[send_club_freshness] error:', err);
+      return new Response(
+        JSON.stringify({ success: false, error: `Mail gönderilemedi: ${err?.message || 'Hata'}` }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+  }
+
+  // 6. Queue bulk freshness mail to all clubs (requires OTP)
+  if (action === 'queue_bulk_freshness') {
+    const otpCode = payload.otpCode?.toString().trim();
+    if (!otpCode || otpCode.length < 6) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Lütfen e-postanıza gönderilen 6 haneli güvenlik kodunu girin.',
+        }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const otpCheck = verifyBulkMailOtp(ADMIN_OTP_EMAIL, otpCode);
+    if (!otpCheck.valid) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: otpCheck.error || 'Geçersiz güvenlik kodu.',
+        }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const onlyTestEmail = payload.onlyTestEmail?.toString().trim();
+    const customMessage = payload.customMessage?.toString().trim() || '';
+
+    if (onlyTestEmail) {
+      const tokenData = await createOrGetClubUpdateToken(1787289523221).catch(() => null);
+      const siteUrl = process.env.SITE_URL ?? 'https://spornerede.net';
+      const magicLink = `${siteUrl}/kulup-guncelle?token=${tokenData?.token || 'test-token'}`;
+
+      const { subject, html } = buildClubFreshnessVerificationMail({
+        kulupAdi: 'Jas Campus (Test Kulübü)',
+        yetkili: 'Emir Göçük',
+        ilce: 'Çankaya',
+        il: 'Ankara',
+        magicLink,
+        customMessage,
+      });
+
+      await sendDirectMail({
+        toEmail: onlyTestEmail,
+        subject: `[TEST MODU - TOPLU BİLGİ GÜNCELLEME] ${subject}`,
+        html,
+      });
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          queuedCount: 1,
+          message: `Toplu güncelleme test maili ${onlyTestEmail} adresine başarıyla gönderildi!`,
+        }),
+        { headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const clubs = await listApprovedAdminClubs().catch(() => []);
+    const eligibleClubs = clubs.filter((c) => Boolean(c.email && c.email.includes('@')));
+
+    let queuedCount = 0;
+    const siteUrl = process.env.SITE_URL ?? 'https://spornerede.net';
+
+    for (const club of eligibleClubs) {
+      const tokenData = await createOrGetClubUpdateToken(club.id).catch(() => null);
+      const magicLink = `${siteUrl}/kulup-guncelle?token=${tokenData?.token || ''}`;
+
+      const { subject, html } = buildClubFreshnessVerificationMail({
+        kulupAdi: club.ad,
+        yetkili: club.yetkili,
+        ilce: club.ilce,
+        il: club.il,
+        magicLink,
+        customMessage,
+      });
+
+      await enqueueMail({
+        kind: 'club_announcement',
+        toEmail: club.email,
+        subject,
+        html,
+      }).catch((err) => console.warn(`[bulk-freshness] enqueue failed for ${club.email}:`, err));
+
+      queuedCount++;
+    }
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        queuedCount,
+        message: `${queuedCount} kulübe bilgi güncelleme talebi kuyruğa eklendi.`,
       }),
       { headers: { 'Content-Type': 'application/json' } }
     );

@@ -99,6 +99,7 @@ export const POST: APIRoute = async ({ request }) => {
     aciklama: body?.aciklama?.toString?.().slice(0, 5000) ?? '',
     yasAraligi: body?.yasAraligi?.toString?.().slice(0, 50) ?? '',
     fiyatBilgisi: body?.fiyatBilgisi?.toString?.().slice(0, 120) ?? '',
+    yetkili: body?.yetkili !== undefined ? body?.yetkili?.toString?.().slice(0, 100) : undefined,
     adminNotu: body?.adminNotu?.toString?.(),
     sorumluAdminEmail: body?.sorumluAdminEmail?.toString?.(),
     il: body?.il?.toString?.(),

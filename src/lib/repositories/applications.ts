@@ -46,6 +46,7 @@ export type AdminApplicationUpdateInput = {
   telefon?: string;
   email?: string;
   aciklama?: string;
+  yetkili?: string;
   ilanlar: { id: number; brans: string; yasAraligi?: string; aidatBilgisi?: string }[];
 };
 
@@ -197,6 +198,7 @@ export async function createClubApplication(input: ClubApplicationInput) {
     adres: input.adres ?? '',
     yasAraligi: input.yasaraligi ?? '',
     fiyatBilgisi: input.fiyat ?? '',
+    yetkili: input.yetkili ?? '',
     telefon: input.telefon,
     email: input.email,
     aciklama: input.aciklama ?? '',
@@ -257,6 +259,7 @@ export async function listAdminApplications() {
     return {
     id: Number(row.legacyId),
     ad: row.ad as string,
+    yetkili: (row.yetkili as string) ?? '',
     il: city ? displayIlAd(String(city.slug), String(city.ad)) : '',
     ilce: districtMap.get(Number(row.ilceLegacyId)) ?? '',
     durum: row.durum as 'pending' | 'approved' | 'rejected',
@@ -289,6 +292,7 @@ export async function getAdminApplicationById(id: number) {
   return {
     id: Number(row.legacyId),
     ad: row.ad as string,
+    yetkili: (row.yetkili as string) ?? '',
     il: displayIlAd(city?.slug as string | undefined, city?.ad as string | undefined),
     ilce: (district?.ad as string | undefined) ?? '',
     durum: row.durum as 'pending' | 'approved' | 'rejected',
@@ -353,6 +357,7 @@ export async function updateAdminApplicationFields(id: number, input: AdminAppli
     telefon: input.telefon?.trim() ?? '',
     email: input.email?.trim() ?? '',
     aciklama: input.aciklama?.trim() ?? '',
+    ...(input.yetkili !== undefined ? { yetkili: input.yetkili.trim().slice(0, 100) } : {}),
     yasAraligi: buildClubYasAraligiFromIlanlar(ilanlar),
     bransSayisi: Math.max(1, ilanlar.length),
   });

@@ -499,6 +499,159 @@ export function createMailServiceAdminClient(deps: ApiDeps) {
     }
   }
 
+  let clubsList: any[] = [];
+  let currentFreshnessClub: any = null;
+  let currentFreshnessMagicLink = '';
+
+  async function loadFreshnessClubs() {
+    const select = getEl<HTMLSelectElement>('freshness-club-select');
+    if (!select || select.options.length > 2) return;
+
+    try {
+      const res = await deps.apiGet('/api/admin/clubs');
+      clubsList = Array.isArray(res) ? res : res?.data || [];
+      select.innerHTML = '<option value="">-- Lütfen bir kulüp seçin --</option><option value="ALL">📢 [Tüm Onaylı Kulüpler - Toplu Gönderim]</option>';
+      clubsList.forEach((c) => {
+        const opt = document.createElement('option');
+        opt.value = String(c.id);
+        opt.textContent = `${c.ad} (${c.il || '-'} / ${c.ilce || '-'})`;
+        select.appendChild(opt);
+      });
+    } catch (err) {
+      console.error('Kulüpler yüklenemedi:', err);
+    }
+  }
+
+  async function onFreshnessClubChange(val: string) {
+    const infoCard = getEl('freshness-selected-club-info');
+    const bulkCard = getEl('freshness-bulk-info');
+    const previewFrame = getEl<HTMLIFrameElement>('freshness-preview-frame');
+
+    if (!val) {
+      infoCard?.classList.add('is-hidden');
+      bulkCard?.classList.add('is-hidden');
+      return;
+    }
+
+    if (val === 'ALL') {
+      infoCard?.classList.add('is-hidden');
+      bulkCard?.classList.remove('is-hidden');
+      currentFreshnessClub = null;
+      try {
+        const sampleClub = clubsList[0];
+        if (sampleClub) {
+          const draft = await deps.apiGet(`/api/admin/mail-service?action=club_freshness_draft&clubId=${sampleClub.id}`);
+          if (previewFrame && draft.html) previewFrame.srcdoc = draft.html;
+        }
+      } catch {}
+      return;
+    }
+
+    bulkCard?.classList.add('is-hidden');
+    infoCard?.classList.remove('is-hidden');
+
+    try {
+      const draft = await deps.apiGet(`/api/admin/mail-service?action=club_freshness_draft&clubId=${val}`);
+      if (draft.success) {
+        currentFreshnessClub = draft.club;
+        currentFreshnessMagicLink = draft.magicLink;
+
+        const elYetkili = getEl('info-yetkili');
+        const elPhone = getEl('info-phone');
+        const elEmail = getEl('info-email');
+        const elLoc = getEl('info-location');
+        const elBadge = getEl('info-freshness-badge');
+        const elLinkInput = getEl<HTMLInputElement>('freshness-magic-link-input');
+        const elSubject = getEl<HTMLInputElement>('freshness-subject-input');
+
+        if (elYetkili) elYetkili.textContent = draft.club.yetkili || 'Belirtilmedi';
+        if (elPhone) elPhone.textContent = draft.club.telefon || 'Belirtilmedi';
+        if (elEmail) elEmail.textContent = draft.club.email || 'Belirtilmedi';
+        if (elLoc) elLoc.textContent = `${draft.club.il || '-'} / ${draft.club.ilce || '-'}`;
+
+        if (elBadge) {
+          if (draft.club.bilgiGuncellendiAt) {
+            elBadge.className = 'badge badge-success';
+            elBadge.textContent = '✅ Doğrulandı';
+          } else if (draft.club.sonGuncellemeTalebi) {
+            elBadge.className = 'badge badge-warning';
+            elBadge.textContent = '⏳ Bekleniyor';
+          } else {
+            elBadge.className = 'badge badge-neutral';
+            elBadge.textContent = '⚪ Gönderilmedi';
+          }
+        }
+
+        if (elLinkInput) elLinkInput.value = draft.magicLink;
+        if (elSubject) elSubject.value = draft.subject;
+        if (previewFrame && draft.html) previewFrame.srcdoc = draft.html;
+      }
+    } catch (err: any) {
+      alert('Kulüp bilgileri alınamadı: ' + err.message);
+    }
+  }
+
+  async function sendFreshness(isTest: boolean) {
+    const select = getEl<HTMLSelectElement>('freshness-club-select');
+    const selectedVal = select?.value;
+    if (!selectedVal) {
+      alert('Lütfen bir kulüp seçin veya tüm kulüpleri işaretleyin.');
+      return;
+    }
+
+    const customMessage = getEl<HTMLTextAreaElement>('freshness-custom-msg')?.value?.trim() || '';
+
+    if (selectedVal === 'ALL') {
+      initiateBulkSendWithOtp(isTest ? 'emrggck@gmail.com' : undefined);
+      return;
+    }
+
+    const btnTest = getEl<HTMLButtonElement>('btn-send-freshness-test');
+    const btnReal = getEl<HTMLButtonElement>('btn-send-freshness-real');
+    const btn = isTest ? btnTest : btnReal;
+
+    if (!isTest) {
+      const confirmed = confirm(`${currentFreshnessClub?.ad} kulübünün kayıtlı e-posta adresine (${currentFreshnessClub?.email}) bilgi güncelleme maili gönderilsin mi?`);
+      if (!confirmed) return;
+    }
+
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Gönderiliyor...';
+    }
+
+    try {
+      const res = await deps.apiPost('/api/admin/mail-service', {
+        action: 'send_club_freshness',
+        clubId: Number(selectedVal),
+        isTest,
+        customMessage,
+      });
+
+      if (res.success) {
+        setStatusBanner(`✓ ${res.message}`);
+        alert(res.message);
+        if (currentFreshnessClub) {
+          currentFreshnessClub.sonGuncellemeTalebi = new Date().toISOString();
+          const elBadge = getEl('info-freshness-badge');
+          if (elBadge) {
+            elBadge.className = 'badge badge-warning';
+            elBadge.textContent = '⏳ Bekleniyor';
+          }
+        }
+      } else {
+        alert(res.error || 'Mail gönderilemedi.');
+      }
+    } catch (err: any) {
+      alert('Hata: ' + err.message);
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = isTest ? '🚀 Kulübe Gönder (Test Modu - emrggck@gmail.com)' : '🌐 Gerçek Kulüp Adresine Gönder';
+      }
+    }
+  }
+
   async function mount() {
     await loadStats();
 
@@ -509,6 +662,53 @@ export function createMailServiceAdminClient(deps: ApiDeps) {
 
     if (!isListenersBound) {
       isListenersBound = true;
+
+      // Subnav switching
+      const subnavBtns = document.querySelectorAll('.mail-subnav-btn');
+      subnavBtns.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const target = btn.getAttribute('data-mail-subnav');
+          subnavBtns.forEach((b) => b.classList.remove('is-active'));
+          btn.classList.add('is-active');
+
+          const panelAnnounce = getEl('mail-subpanel-announcements');
+          const panelFreshness = getEl('mail-subpanel-freshness');
+
+          if (target === 'freshness') {
+            panelAnnounce?.classList.add('is-hidden');
+            panelFreshness?.classList.remove('is-hidden');
+            loadFreshnessClubs();
+          } else {
+            panelFreshness?.classList.add('is-hidden');
+            panelAnnounce?.classList.remove('is-hidden');
+          }
+        });
+      });
+
+      // Freshness club dropdown
+      const freshnessSelect = getEl<HTMLSelectElement>('freshness-club-select');
+      freshnessSelect?.addEventListener('change', (e) => {
+        const val = (e.target as HTMLSelectElement).value;
+        onFreshnessClubChange(val);
+      });
+
+      // Copy magic link button
+      getEl('btn-copy-magic-link')?.addEventListener('click', async () => {
+        if (currentFreshnessMagicLink) {
+          await navigator.clipboard.writeText(currentFreshnessMagicLink);
+          const btn = getEl('btn-copy-magic-link');
+          if (btn) {
+            btn.textContent = '✓ Kopyalandı';
+            setTimeout(() => {
+              btn.textContent = 'Kopyala';
+            }, 2000);
+          }
+        }
+      });
+
+      // Send buttons for freshness
+      getEl('btn-send-freshness-test')?.addEventListener('click', () => sendFreshness(true));
+      getEl('btn-send-freshness-real')?.addEventListener('click', () => sendFreshness(false));
 
       // Listen to preset selector
       const presetSelect = getEl<HTMLSelectElement>('mail-preset-select');
