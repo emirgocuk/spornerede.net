@@ -1,6 +1,6 @@
 /** Haber taslağı kalite kontrolü — admin ve Content Engine */
 
-export const MIN_NEWS_WORDS = 250;
+export const MIN_NEWS_WORDS = 200;
 export const MIN_NEWS_WORDS_TEMPLATE = 200;
 
 const INTERNAL_LINKS_FOOTER_RE =

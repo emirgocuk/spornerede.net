@@ -27,6 +27,9 @@ Kurallar:
 - BASLIK KALITESI: Mevcut baslik jenerik ise ("hakkında güncel bilgiler", "ile ilgili bilgiler",
   "hakkında her şey", "rehberi" gibi dolgu kalıbı) MUTLAKA daha güçlü ve özgül bir başlıkla değiştir.
   İyi başlık: soru, somut fayda, hedef grup, pratik ipucu içermeli.
+- TÜRKÇE DİLBİLGİSİ: Devrik, çeviri kokan bozuk yapılar ("İlk Ay Ne Bekler Siz?" vb.) KESİNLİKLE YASAK!
+  Doğrusu: "İlk Ayda Sizi Neler Bekler?". Küçük harfli veya Türkçe karaktersiz başlıklar ("cankaya taekwondo...")
+  mutlaka düzgün Title Case Türkçe karakterli başlığa dönüştürülmelidir. Şehir/ilçe eklerini kesme işaretiyle yaz (Keçiören'de, Çankaya'da).
 
 Cikti formati:
 ---META---

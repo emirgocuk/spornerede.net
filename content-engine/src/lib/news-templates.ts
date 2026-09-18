@@ -13,9 +13,13 @@ export type NewsTemplate = {
 };
 
 function fill(s: string, k: ParsedKonu) {
+  const konuTitle = k.konuTitle || k.raw;
+  const konum = k.konumLabel || k.sehirLabel;
   return s
-    .replace(/\{\{KONU\}\}/g, k.raw)
-    .replace(/\{\{SEHIR\}\}/g, k.sehirLabel)
+    .replace(/\{\{KONU_TITLE\}\}/g, konuTitle)
+    .replace(/\{\{KONU\}\}/g, konuTitle)
+    .replace(/\{\{KONUM\}\}/g, konum)
+    .replace(/\{\{SEHIR\}\}/g, konum)
     .replace(/\{\{BRANS\}\}/g, k.bransLabel)
     .replace(/\{\{SEHIR_RAW\}\}/g, k.sehir || 'turkiye')
     .replace(/\{\{BRANS_RAW\}\}/g, k.brans || 'spor');
@@ -27,12 +31,12 @@ export const NEWS_TEMPLATES: NewsTemplate[] = [
     id: 'sehir_brans_kurs',
     name: 'Şehir + branş kursu',
     score: (k) =>
-      k.hasSehir && k.hasBrans && /\b(kursu|kurslari|kursları|kurs)\b/.test(k.lower) ? 100 : 0,
-    baslik: (k) => fill('{{SEHIR}} {{BRANS}} kursu: kayıt ve seçim rehberi', k),
-    seoTitle: (k) => fill('{{SEHIR}} {{BRANS}} kursu — kayıt rehberi', k).slice(0, 60),
+      (k.hasSehir || k.hasIlce) && k.hasBrans && /\b(kursu|kurslari|kursları|kurs|fiyatlari|fiyatları|kulupleri|kulüpleri)\b/.test(k.lower) ? 100 : 0,
+    baslik: (k) => fill('{{KONUM}} {{BRANS}} Kursu: Seçim ve Kayıt Rehberi', k),
+    seoTitle: (k) => fill('{{KONUM}} {{BRANS}} Kursu ve Kulüpleri', k).slice(0, 60),
     seoDescription: (k) =>
       fill(
-        '{{SEHIR}} bölgesinde {{BRANS}} kursu arayanlar için program, yaş grupları ve kayıt adımları. SporNerede ile yakınınızdaki kulüpleri karşılaştırın.',
+        '{{KONUM}} bölgesinde {{BRANS}} kursu ve kulübü arayanlar için fiyatlar, yaş grupları ve kayıt adımları. SporNerede ile yakınınızdaki kulüpleri karşılaştırın.',
         k,
       ).slice(0, 155),
     kategori: 'Spor',
@@ -273,26 +277,26 @@ export const NEWS_TEMPLATES: NewsTemplate[] = [
     id: 'platform_genel',
     name: 'Genel (yedek)',
     score: () => 1,
-    baslik: (k) => fill('{{KONU}} hakkında güncel bilgiler', k),
-    seoTitle: (k) => fill('{{KONU}} | SporNerede', k).slice(0, 60),
+    baslik: (k) => fill('{{KONU_TITLE}}: Kulüp Seçimi ve Güncel Kurs Bilgileri', k),
+    seoTitle: (k) => fill('{{KONU_TITLE}} — Güncel Kurs Detayları', k).slice(0, 60),
     seoDescription: (k) =>
-      fill('{{KONU}} ile ilgili spor kursu ve kulüp bilgileri. Türkiye geneli arama için SporNerede.', k).slice(0, 155),
+      fill('{{KONU_TITLE}} arayanlar için kulüp, program ve antrenman seçenekleri. Türkiye geneli spor arama rehberi SporNerede.', k).slice(0, 155),
     kategori: 'Duyuru',
     kategoriRenk: 'blue',
     body: (k) =>
       fill(
-        `<p>{{KONU}} hakkında güncel ve tarafsız bilgi arayanlar için SporNerede, kulüp ve kurs ilanlarını tek platformda toplar. Böylece farklı kaynaklara dağılmadan program ve konum karşılaştırması yapılabilir.</p>
-<h2>Neden platform kullanılır?</h2>
-<p>İlanların güncelliği, iletişim bilgisi ve branş filtreleri kayıt kararını hızlandırır. Aileler ve sporcular için şeffaf bir liste sunulması önceliklidir.</p>
-<h2>Nelere bakılmalı?</h2>
+        `<p>{{KONU_TITLE}} konusunda güvenilir ve doğrulanmış kulüp alternatifi arayanlar için SporNerede, güncel spor ilanlarını tek bir çatı altında toplar. Böylece farklı kanalları tek tek dolaşmadan yaş grubu, antrenman takvimi ve konum karşılaştırması yapabilirsiniz.</p>
+<h2>Kulüp seçerken nelere dikkat edilmeli?</h2>
+<p>İlanların güncelliği, iletişim şeffaflığı ve branş filtreleri kayıt kararını kolaylaştırır. Sporcular ve aileler için doğrudan kulüp yetkilisiyle temas kurabilmek en önemli önceliktir.</p>
+<h2>Kontrol listesi</h2>
 <ul>
-<li>Ders programı ve yaş grubu</li>
-<li>Tesis ve ulaşım</li>
-<li>Ücret ve deneme dersi imkânı</li>
+<li>Haftalık ders programı ve yaş grubu dağılımı</li>
+<li>Tesis kalitesi ve ulaşım rahatlığı</li>
+<li>Aylık aidat ve deneme dersi imkânı</li>
 </ul>
-<h2>Kayıt ve kayıt süreci</h2>
-<p>Arama sonuçlarından uygun kulübe tıklayarak detay sayfasına gidin ve kayıt için paylaşılan kanalı kullanın. <strong>SporNerede</strong> düzenli olarak yeni ilanlar ekler.</p>
-<p>{{KONU}} için SporNerede’de arama yaparak başlayın.</p>`,
+<h2>Kayıt ve başvuru adımları</h2>
+<p>Listelenen kulüpler arasından size en uygun olanın detay sayfasına giderek doğrudan telefon veya WhatsApp üzerinden iletişime geçebilirsiniz. <strong>SporNerede</strong> platformuna düzenli olarak yeni onaylı kulüpler ve kurs programları eklenmektedir.</p>
+<p>{{KONU_TITLE}} için SporNerede üzerinden hemen arama yapın ve size en yakın kulüple tanışın.</p>`,
         k,
       ),
   },

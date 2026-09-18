@@ -21,6 +21,10 @@ kategori_renk: (green | blue | ...)
 
 h2 yapisi (3-4 adet, konuya/aciya gore ozgun; sabit iskelet tekrarlama):
 - Basliklar konuya ve aciya gore degissin; ayni kaliplari her yazida kullanma
+- DEVRİK VEYA BOZUK TÜRKÇE CÜMLELER KESİNLİKLE YASAK:
+  "İlk Ay Ne Bekler Siz?" gibi saçma yapılar ASLA kullanılamaz; doğrusu "İlk Ayda Sizi Neler Bekler?".
+  Cümle veya başlık sonuna 'bekler siz', 'bekler bizi' gibi zamirler atılamaz.
+- Başlıklar ve SEO başlıkları asla tamamen küçük harfle yazılamaz ("cankaya taekwondo..." değil, "Çankaya Taekwondo...").
 - Hepsi dolu olmali (her h2 altinda dolu p veya ul)
 - Kayit / basvuru bilgisine bir yerde deginilebilir; ayri zorunlu "Kayit" h2 SART degil
 - Varsa platform verisindeki somut detaylari (semt, yas, gun/saat, ucret) koru ve dogal yedir; yeni sayi/isim uydurma

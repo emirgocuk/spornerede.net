@@ -23,6 +23,8 @@ function metaLine(block: string, key: string) {
 
 const RENKLER = new Set(['red', 'blue', 'green', 'orange', 'purple', 'gray']);
 
+import { repairTurkishGrammarInTitle, toTurkishTitleCase } from './turkish-text.js';
+
 export function parseNewsOutput(raw: string): ParsedNews {
   const meta = extractBlock(raw, '---META---', '---BODY---');
   const body = extractBlock(raw, '---BODY---', '---END---') || extractBlock(raw, '---BODY---', '');
@@ -40,12 +42,15 @@ export function parseNewsOutput(raw: string): ParsedNews {
     return t;
   };
 
-  baslik = normalizeCase(baslik);
-  seoTitle = normalizeCase(seoTitle);
+  baslik = repairTurkishGrammarInTitle(normalizeCase(baslik));
+  seoTitle = repairTurkishGrammarInTitle(normalizeCase(seoTitle));
   seoDescription = normalizeCase(seoDescription);
+  if (seoDescription) {
+    seoDescription = seoDescription.charAt(0).toLocaleUpperCase('tr-TR') + seoDescription.slice(1);
+  }
 
   if (!baslik || /^haber$/i.test(baslik)) {
-    baslik = seoTitle || 'Spor duyurusu';
+    baslik = seoTitle || 'Spor Duyurusu';
   }
   if (!seoTitle) seoTitle = baslik.slice(0, 60);
   if (!seoDescription) seoDescription = baslik.slice(0, 155);

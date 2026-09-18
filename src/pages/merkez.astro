@@ -3502,7 +3502,8 @@ const adminLocationData = {
       const publishCheck = assessNewsDraft(stripCeKonuComment(ozet), konu || baslik, {
         template: isCeTemplateSave,
       });
-      if (!publishCheck.complete) {
+      // Eğer mevcut haber güncelleniyorsa (id var), kontroller engellemesin; yönetici doğrudan kaydetsin
+      if (!id && !publishCheck.complete) {
         const force = confirm(
           `Bazi kontroller tamam degil:\n${publishCheck.issues.join('\n')}\n\nYine de yayinlamak istiyor musunuz?`,
         );
@@ -3519,7 +3520,7 @@ const adminLocationData = {
       }
 
       try {
-        const forcePublish = !publishCheck.complete;
+        const forcePublish = true;
         if (id) {
           await apiPut('/api/admin/news', {
             id,

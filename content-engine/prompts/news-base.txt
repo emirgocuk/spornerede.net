@@ -32,6 +32,12 @@ OZGUNLUK (cok onemli):
     "hakkında merak edilenler", "öğrenmek için bilmeniz gerekenler",
     "rehberi" (tek başına jenerik), "Güncel 2025/2026" (yıl dolgusu)
 - Baslik GUÇLÜ ve OZGUL olmali: soru sorusu, somut fayda, pratik ipucu, yas/hedef grubu vb.
+- DEVRİK VEYA BOZUK TÜRKÇE CÜMLELER KESİNLİKLE YASAK:
+    "İlk Ay Ne Bekler Siz?" gibi bozuk çeviri yapılar ASLA yazılamaz!
+    Doğrusu: "İlk Ayda Sizi Neler Bekler?", "İlk Ayda Ne Beklemelisiniz?", "Sizi Neler Bekliyor?".
+    Cümle sonuna 'bekler siz', 'bekler bizi' gibi zamirler atılamaz.
+- KÜÇÜK HARF VEYA TÜRKÇE KARAKTERSİZ BAŞLIK YASAK:
+    "cankaya taekwondo..." YASAK, "Çankaya Taekwondo..." DOĞRU. Özel isimler kesme işaretiyle ayrılır (Keçiören'de, Çankaya'da).
 - Her haberde farkli baslik tonu (soru, liste, ipucu, sezon, ebeveyn, deneme dersi vb.)
 - h2 basliklari konuya/aciya gore SERBEST ve ozgun olsun; sabit iskelet tekrarlama
 - Ilk paragraf diger haberlerden farkli girisle baslasin

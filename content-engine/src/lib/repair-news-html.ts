@@ -17,6 +17,12 @@ function normalizeH2Title(raw: string): string {
   t = t.replace(/Kayitve/gi, 'Kayıt ve');
   t = t.replace(/kayitsureci/gi, 'kayıt süreci');
   t = t.replace(/kayit\s*ve\s*kayit/gi, 'Kayıt ve kayıt');
+  t = t.replace(/(?:ilk\s+ay|ilk\s+ayda)\s+(?:ne|neler)\s+bekler\s+siz\b/gi, 'İlk Ayda Sizi Neler Bekler?');
+  t = t.replace(/(?:ne|neler)\s+bekler\s+siz\b\??/gi, 'Sizi Neler Bekler?');
+  t = t.replace(/\bbekler\s+siz\b\??/gi, 'Sizi Bekliyor');
+  t = t.replace(/\bbekler\s+sen\b\??/gi, 'Seni Bekliyor');
+  t = t.replace(/\s+hakkında\s+güncel\s+bilgiler$/gi, ': Güncel Bilgiler ve Rehber');
+  t = t.replace(/\s+hakkinda\s+guncel\s+bilgiler$/gi, ': Güncel Bilgiler ve Rehber');
   t = t.replace(/\s+/g, ' ');
   return t;
 }

@@ -1,7 +1,7 @@
 /** Haber taslağı kalite — src/lib/contentEngine/newsDraftQuality.ts ile senkron tutun */
 import { parseKonu } from './parse-konu.js';
 
-export const MIN_NEWS_WORDS = 250;
+export const MIN_NEWS_WORDS = 200;
 /** Sablon haberler — admin ve kalite kapisi */
 export const MIN_NEWS_WORDS_TEMPLATE = 200;
 

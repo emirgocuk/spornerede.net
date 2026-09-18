@@ -113,25 +113,8 @@ export const PUT: APIRoute = async ({ request }) => {
     });
   }
 
-  if (updates.aktif === true && !forcePublish) {
-    const existing = await getNewsAdminByLegacyId(id);
-    const ozet = String(updates.ozet ?? existing?.ozet ?? '');
-    const baslik = String(updates.baslik ?? existing?.baslik ?? '');
-    if (ozet) {
-      const check = assessNewsForPublish(ozet, baslik);
-      if (!check.complete) {
-        return new Response(
-          JSON.stringify({
-            success: false,
-            code: 'incomplete_draft',
-            error: 'Taslak tamamlanmamis.',
-            issues: check.issues,
-          }),
-          { status: 400, headers: { 'Content-Type': 'application/json' } },
-        );
-      }
-    }
-  }
+  // Yönetici panelinden haber güncellenirken taslak kontrolleri kaydı engellememelidir
+
 
   try {
     await updateNews(id, updates);

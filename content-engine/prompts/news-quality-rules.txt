@@ -7,7 +7,14 @@ Yapi:
 - h2 basliklari konuya/aciya gore ozgun olsun; sabit iskelet tekrarlama
 
 BASLIK KURALLARI (EN ONEMLI):
-- Baslik MUTLAKA Turkce ve anlamlı olacak; kelime atlama, harf karıştırma YOK
+- Baslik MUTLAKA kusursuz ve akici bir Turkiye Turkcesi ile yazilacak; imla veya gramer hatasi KESINLIKLE YASAKTIR.
+- DEVRİK VEYA İNGİLİZCE ÇEVİRİ CÜMLELER KESİNLİKLE YASAKTIR:
+    * "İlk Ay Ne Bekler Siz?" gibi saçma sapan yapılar ASLA YAZILAMAZ!
+    * Doğrusu: "İlk Ayda Sizi Neler Bekler?", "İlk Ayda Ne Beklemelisiniz?" veya "İlk Ayda Sizi Ne Bekliyor?".
+    * Cümle veya başlık sonuna asla "bekler siz", "bekler sen", "bekler bizi" gibi zamirler atılamaz. Türkçe nesne-yüklem kuralına uyulmalıdır: "Sizi neler bekler".
+- KÜÇÜK HARF VE KARAKTER HATALARI YASAKTIR:
+    * Başlıklar ASLA tamamen küçük harfle veya Türkçe karaktersiz yazılamaz ("cankaya taekwondo kursu fiyatlari" YASAK; "Çankaya Taekwondo Kursu Fiyatları ve Kulüpleri" DOĞRU).
+    * Şehir, ilçe ve özel isimler kesme işaretiyle doğru ayrılmalıdır: Keçiören'de, Çankaya'da, Kadıköy'de.
 - YASAK baslik kaliplari (bunlari ASLA kullanma):
     * "... hakkında güncel bilgiler"
     * "... ile ilgili bilgiler"
@@ -19,13 +26,15 @@ BASLIK KURALLARI (EN ONEMLI):
     * "... 2024 / 2025 / 2026 Güncel"  ← yıl etiketi ile dolgu YASAK
 - Baslik guclü ve ozgul olmali; soru, fayda odakli veya somut bilgi vermeli
 - Iyi baslik ornekleri:
+    * "Keçiören'de Pilatese Başlayanları İlk Ayda Neler Bekler?"
+    * "Çankaya'da Taekwondo Kursu Seçerken Dikkat Edilmesi Gerekenler"
     * "Bisiklete Kaç Yaşında Başlanır? Uzman Tavsiyesi"
-    * "Ankara'da Bisiklet Kursu Nasıl Seçilir"
-    * "Yetişkinler İçin Bisiklet Öğrenme Süresi Ne Kadar?"
-    * "İlk Kez Bisiklet Kullanacaklara 5 Pratik İpucu"
+    * "Ankara'da Çocuklar İçin Yüzme Kursu Fiyatları ve Kulüp Seçimi"
+    * "Yetişkinler İçin Tenis Öğrenme Süresi Ne Kadar?"
 - seo_title ve seo_description da baslik ile ayni kalite standardında olmali
 
 Yasaklar:
+- Devrik, İngilizce çeviri kokan saçma Türkçe yapılar ("Ne bekler siz" vb.) YASAK
 - Yarim baslik: "Kayit ve", "Program ve" gibi tek baslik YASAK
 - Yarim cumle ile bitirme YASAK
 - Ayni konuda iki ayni h2 (ornek iki kez "kayit") YASAK

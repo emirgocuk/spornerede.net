@@ -1,8 +1,13 @@
+import { toTurkishTitleCase } from './turkish-text.js';
+
 const SEHIRLER = ['istanbul', 'ankara', 'izmir', 'bursa', 'antalya', 'adana', 'konya'];
 const BRANSLAR = [
   'voleybol', 'basketbol', 'yuzme', 'yüzme', 'tenis', 'futbol', 'jimnastik', 'cimnastik', 'atletizm',
   'boks', 'judo', 'karate', 'hentbol', 'badminton', 'pilates', 'yoga', 'bisiklet',
   'oryantiring', 'satranc', 'satranç', 'gures', 'güreş', 'okculuk', 'okçuluk',
+  'taekwondo', 'tekvando', 'kick boks', 'kickboks', 'kick-boks', 'muay thai', 'muaythai',
+  'crossfit', 'fitness', 'dans', 'eskrim', 'halter', 'aikido', 'jiu jitsu', 'wushu',
+  'masa tenisi', 'su topu', 'kayak', 'paten', 'triatlon',
   'krav maga', 'krav-maga', 'kravmaga',
   'sualti hokeyi', 'sualtı hokeyi', 'sualti-hokeyi',
   'tai chi', 'taichi', 'qigong', 'qi gong', 'tai-chi-qigong', 'tai chi & qigong',
@@ -43,6 +48,26 @@ const BRANS_LABEL: Record<string, string> = {
   güreş: 'Güreş',
   okculuk: 'Okçuluk',
   okçuluk: 'Okçuluk',
+  taekwondo: 'Taekwondo',
+  tekvando: 'Tekvando',
+  'kick boks': 'Kick Boks',
+  kickboks: 'Kick Boks',
+  'kick-boks': 'Kick Boks',
+  'muay thai': 'Muay Thai',
+  muaythai: 'Muay Thai',
+  crossfit: 'Crossfit',
+  fitness: 'Fitness',
+  dans: 'Dans',
+  eskrim: 'Eskrim',
+  halter: 'Halter',
+  aikido: 'Aikido',
+  'jiu jitsu': 'Jiu Jitsu',
+  wushu: 'Wushu',
+  'masa tenisi': 'Masa Tenisi',
+  'su topu': 'Su Topu',
+  kayak: 'Kayak',
+  paten: 'Paten',
+  triatlon: 'Triatlon',
   'krav maga': 'Krav Maga',
   'krav-maga': 'Krav Maga',
   kravmaga: 'Krav Maga',
@@ -114,10 +139,12 @@ const ILCE_MAP: Record<string, { slug: string; label: string; sehir: string }> =
 export type ParsedKonu = {
   raw: string;
   lower: string;
+  konuTitle: string;
   sehir: string;
   sehirLabel: string;
   ilce: string;
   ilceLabel: string;
+  konumLabel: string;
   brans: string;
   bransLabel: string;
   hasSehir: boolean;
@@ -156,15 +183,20 @@ export function parseKonu(konu: string): ParsedKonu {
     }
   }
 
+  const sehirLabel = sehir ? (SEHIR_LABEL[sehir] ?? sehir) : 'Türkiye';
+  const konumLabel = ilceLabel || sehirLabel;
+
   return {
     raw,
     lower,
+    konuTitle: toTurkishTitleCase(raw),
     sehir,
-    sehirLabel: sehir ? (SEHIR_LABEL[sehir] ?? sehir) : 'Türkiye',
+    sehirLabel,
     ilce,
     ilceLabel,
+    konumLabel,
     brans,
-    bransLabel: brans ? (BRANS_LABEL[brans] ?? brans) : 'Spor',
+    bransLabel: brans ? (BRANS_LABEL[brans] ?? toTurkishTitleCase(brans)) : 'Spor',
     hasSehir: Boolean(sehir),
     hasIlce: Boolean(ilce),
     hasBrans: Boolean(brans),
