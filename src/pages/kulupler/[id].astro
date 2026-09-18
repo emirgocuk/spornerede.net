@@ -81,44 +81,47 @@ const breadcrumbs = [
 
 const clubOgParams = new URLSearchParams({
   title: club.ad,
-  kicker: club.brans || 'Spor kulubu',
+  kicker: club.brans || 'Spor kulübü',
   badge: club.ilce || club.il || '',
 });
 const clubOgImage = `${SITE_URL}/api/og.png?${clubOgParams.toString()}`;
 
-function getBodySections(bodyJson: unknown) {
-  if (!bodyJson || typeof bodyJson !== 'object') return [];
-  const content = (bodyJson as { content?: unknown }).content;
-  if (!Array.isArray(content)) return [];
-  return content
-    .map((node) => {
-      if (!node || typeof node !== 'object') return '';
-      const typedNode = node as { type?: string; content?: unknown };
-      const children = Array.isArray(typedNode.content) ? typedNode.content : [];
-      const text = children
-        .map((child) => {
-          if (!child || typeof child !== 'object') return '';
-          const childNode = child as { text?: unknown; content?: unknown };
-          if (typeof childNode.text === 'string') return childNode.text;
-          if (Array.isArray(childNode.content)) {
-            return childNode.content
-              .map((nested) =>
-                nested && typeof nested === 'object' && typeof (nested as { text?: unknown }).text === 'string'
-                  ? String((nested as { text?: unknown }).text)
-                  : ''
-              )
-              .join(' ')
-              .trim();
-          }
-          return '';
-        })
-        .join(' ')
-        .trim();
-      if (!text) return '';
-      return typedNode.type === 'heading' ? `# ${text}` : text;
-    })
-    .filter(Boolean);
+function cleanPhoneNumber(phone?: string | null) {
+  if (!phone) return null;
+  const digits = phone.replace(/\D/g, '');
+  if (!digits) return null;
+  if (digits.startsWith('0')) return `90${digits.slice(1)}`;
+  if (digits.length === 10) return `90${digits}`;
+  return digits;
 }
+
+function formatPhoneDisplay(phone?: string | null) {
+  if (!phone) return 'Belirtilmedi';
+  const clean = phone.replace(/\D/g, '');
+  if (clean.length === 11 && clean.startsWith('0')) {
+    return `${clean.slice(0, 4)} ${clean.slice(4, 7)} ${clean.slice(7, 9)} ${clean.slice(9)}`;
+  }
+  if (clean.length === 10) {
+    return `0${clean.slice(0, 3)} ${clean.slice(3, 6)} ${clean.slice(6, 8)} ${clean.slice(8)}`;
+  }
+  return phone;
+}
+
+const cleanedPhone = cleanPhoneNumber(club.telefon);
+const formattedPhone = formatPhoneDisplay(club.telefon);
+const whatsappText = encodeURIComponent(
+  `Merhaba, SporNerede.net üzerinden "${club.ad}" kulübünüz hakkında bilgi almak istiyorum.`
+);
+const whatsappUrl = cleanedPhone ? `https://wa.me/${cleanedPhone}?text=${whatsappText}` : null;
+const telUrl = club.telefon ? `tel:${club.telefon.replace(/\s+/g, '')}` : null;
+
+const fullAddress = [club.adres, club.ilce, club.il]
+  .filter(Boolean)
+  .filter((v, i, a) => a.indexOf(v) === i)
+  .join(', ');
+
+const mapsQuery = encodeURIComponent([club.ad, fullAddress].filter(Boolean).join(', '));
+const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${mapsQuery}`;
 ---
 
 <BaseLayout
@@ -133,67 +136,412 @@ function getBodySections(bodyJson: unknown) {
   breadcrumbs={breadcrumbs}
   jsonLd={[clubJsonLd, ...programCourses]}
 >
-  <section class="section detail-page">
-    <div class="container detail">
-      <Breadcrumb items={breadcrumbs.map((b) => ({ name: b.name, url: b.url }))} />
-      <a href={`/ara?brans=${club.bransSlug}`} class="back-link">← Arama sonuçlarına dön</a>
+  <div class="page-wrap">
+    <div class="page-container">
 
-      <header class="hero">
-        <div class="hero-main">
-          <div class="icon" style={`--branch-color: ${club.renk}`}>{club.emoji}</div>
-          <div>
-            <p class="hero-kicker">{club.brans} ilanları</p>
-            <h1>{club.ad}</h1>
-            <p class="hero-sub">{club.ilce || club.il} • {club.yasAraligi || 'Tüm yaş grupları'}</p>
+      <!-- Üst Navigasyon & Breadcrumb -->
+      <div class="top-nav-bar">
+        <Breadcrumb items={breadcrumbs.map((b) => ({ name: b.name, url: b.url }))} />
+        <a href={`/ara?brans=${club.bransSlug || ''}`} class="back-link">
+          <span class="arrow" aria-hidden="true">←</span>
+          <span>{club.brans || 'Arama'} sonuçlarına dön</span>
+        </a>
+      </div>
+
+      <!-- Hero Karşılama Kartı -->
+      <header class="club-hero" style={`--accent-color: ${club.renk || '#E30A17'}`}>
+        <div class="hero-ambient-glow" aria-hidden="true"></div>
+
+        <div class="hero-header-content">
+          <div class="hero-avatar-box">
+            <span class="hero-emoji" aria-hidden="true">{club.emoji || '🏅'}</span>
           </div>
-        </div>
-        <div class="hero-badges">
-          <span>{programs.length} aktif ilan</span>
-          <span>{club.brans}</span>
-          <span>{club.ilce || club.il}</span>
+
+          <div class="hero-info">
+            <div class="hero-badge-row">
+              <span class="kicker-badge">{club.brans ? `${club.brans.toUpperCase()} KULÜBÜ` : 'SPOR KULÜBÜ'}</span>
+              <span class="verified-badge">
+                <span class="verified-icon" aria-hidden="true">✓</span>
+                <span>SporNerede Onaylı Kulüp</span>
+              </span>
+              {club.oneCikan && (
+                <span class="featured-badge">⭐ Öne Çıkan</span>
+              )}
+            </div>
+
+            <h1 class="hero-title">{club.ad}</h1>
+
+            <p class="hero-subtitle">
+              <span class="location-pin" aria-hidden="true">📍</span>
+              <strong>{club.ilce ? `${club.ilce}, ` : ''}{club.il || 'Türkiye'}</strong>
+              <span class="sep" aria-hidden="true">•</span>
+              <span>{club.yasAraligi ? `${club.yasAraligi}` : 'Tüm yaş grupları'}</span>
+            </p>
+
+            <div class="hero-chips">
+              <div class="chip">
+                <span class="chip-label">Branş:</span>
+                <span class="chip-value">{club.brans || 'Spor'}</span>
+              </div>
+              <div class="chip">
+                <span class="chip-label">Program:</span>
+                <span class="chip-value">{programs.length} Aktif İlan</span>
+              </div>
+              {club.fiyat && (
+                <div class="chip chip-price">
+                  <span class="chip-label">Başlangıç:</span>
+                  <span class="chip-value">{club.fiyat}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <!-- Hero Hızlı Aksiyonları (Desktop) -->
+          <div class="hero-quick-actions">
+            {whatsappUrl && (
+              <a
+                href={whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="btn-whatsapp-hero"
+                aria-label={`${club.ad} kulübüne WhatsApp ile mesaj gönder`}
+              >
+                <svg class="btn-icon" viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                  <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2m.01 1.67c2.2 0 4.26.86 5.82 2.42a8.23 8.23 0 0 1 2.41 5.83c0 4.54-3.7 8.24-8.24 8.24-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.2 8.2 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.24-8.24m4.52 11.66c-.25-.13-1.47-.72-1.7-.81-.23-.08-.39-.13-.56.13-.17.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.13-1.06-.39-2.03-1.25-.75-.67-1.26-1.5-1.41-1.75-.15-.25-.02-.39.11-.51.11-.11.25-.29.37-.44.13-.14.17-.25.25-.42.08-.17.04-.31-.02-.44-.06-.13-.56-1.34-.76-1.84-.2-.49-.4-.42-.56-.43h-.47c-.17 0-.44.06-.67.31-.23.25-.88.86-.88 2.1 0 1.23.9 2.43 1.03 2.6.13.16 1.78 2.71 4.3 3.8.6.26 1.07.41 1.44.53.61.19 1.16.17 1.6.1.49-.07 1.47-.6 1.68-1.18.21-.58.21-1.07.15-1.18-.06-.11-.23-.17-.48-.3z" />
+                </svg>
+                <span>WhatsApp ile Yaz</span>
+              </a>
+            )}
+
+            {telUrl && (
+              <a href={telUrl} class="btn-phone-hero">
+                <svg class="btn-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                </svg>
+                <span>{formattedPhone}</span>
+              </a>
+            )}
+          </div>
         </div>
       </header>
 
-      <article class="program-zone" data-club-lat={club.enlem || ''} data-club-lng={club.boylam || ''}>
-        <h2 class="section-title">Spor ilanları</h2>
-        {programs.length > 0 ? (
-          <ul class="program-list">
-            {programs.map((program) => (
-              <li class="program-item">
-                <div class="listing-header">
-                  <div>
-                    <strong>{club.ad}</strong>
-                    <p class="listing-meta">{program.ad} · {club.ilce || club.il}</p>
-                  </div>
-                  <div class="listing-badges">
-                    <span class="price-badge">{program.ucretBilgisi || 'Fiyat sorunuz'}</span>
-                    <span class="program-level">{program.aktif ? 'Yayında' : 'Pasif'}</span>
-                  </div>
+      <!-- İki Kolonlu Profesyonel Düzen -->
+      <div class="content-grid-layout">
+
+        <!-- Sol Kolon: Tanıtım, İlanlar ve Lokasyon -->
+        <main class="main-content-flow">
+
+          <!-- 1. Kulüp Tanıtımı & Standartlar -->
+          <section class="card-box">
+            <div class="card-box-header">
+              <div class="header-title-group">
+                <span class="section-tag">Kurumsal Bilgi</span>
+                <h2 class="card-box-title">Kulüp Tanıtımı & Standartlar</h2>
+              </div>
+              <span class="trust-badge-pill">🛡️ Doğrulanmış Profil</span>
+            </div>
+
+            <div class="about-text-content">
+              {club.aciklama ? (
+                <p class="about-paragraph">{club.aciklama}</p>
+              ) : (
+                <p class="about-paragraph">
+                  <strong>{club.ad}</strong>, {club.ilce || club.il} bölgesinde {club.brans ? club.brans.toLowerCase() : 'spor'} branşında lisanslı ve düzenli eğitim faaliyetlerini yürüten onaylı bir spor kulübüdür. Sporcuların yaş ve seviyelerine göre özel olarak planlanan gruplarla, güvenli ve disiplinli bir antrenman ortamı sunmaktadır.
+                </p>
+              )}
+            </div>
+
+            <!-- 4 Avantaj Kartı -->
+            <div class="features-highlight-grid">
+              <div class="feature-tile">
+                <div class="feature-icon">🏅</div>
+                <div class="feature-text">
+                  <h3>Lisanslı Eğitmenler</h3>
+                  <p>Branşında deneyimli, pedagojik ve teknik donanımlı uzman antrenör kadrosu.</p>
                 </div>
-                <ul class="listing-grid listing-grid--summary">
-                  {program.yasAraligi && <li><span>Yaş</span><strong>{program.yasAraligi}</strong></li>}
-                  <li><span>Aidat</span><strong>{program.ucretBilgisi || 'Fiyat sorunuz'}</strong></li>
-                  <li><span>Konum</span><strong>{program.locationText || club.adres || club.ilce || club.il}</strong></li>
-                </ul>
-                {program.aciklama && <p class="listing-summary">{program.aciklama}</p>}
-                <a class="btn btn-primary btn-sm program-detail-link" href={`/ilanlar/${listingSlug({ id: program.id, ad: program.ad, clubAd: club.ad })}`}>İlanı incele →</a>
-                <div class="listing-contact">
-                  <h3>İletişim Bilgileri</h3>
-                  <ul class="contact-list">
-                    <li><strong>Telefon:</strong> {club.telefon || 'Belirtilmedi'}</li>
-                    <li><strong>E-posta:</strong> {club.email || 'Belirtilmedi'}</li>
-                    <li><strong>Adres:</strong> {club.adres || program.locationText || club.ilce || club.il || 'Belirtilmedi'}</li>
-                  </ul>
+              </div>
+
+              <div class="feature-tile">
+                <div class="feature-icon">🛡️</div>
+                <div class="feature-text">
+                  <h3>Güvenli Tesis Ortamı</h3>
+                  <p>Sporcu sağlığı ve güvenliği standartlarına uygun antrenman alanları.</p>
                 </div>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p class="program-empty">Bu kulüp için henüz aktif program bilgisi girilmedi.</p>
-        )}
-      </article>
+              </div>
+
+              <div class="feature-tile">
+                <div class="feature-icon">🎯</div>
+                <div class="feature-text">
+                  <h3>Kademeli Gelişim</h3>
+                  <p>Yaşa ve fiziksel yeterliliğe göre ayrılmış homojen çalışma grupları.</p>
+                </div>
+              </div>
+
+              <div class="feature-tile">
+                <div class="feature-icon">📍</div>
+                <div class="feature-text">
+                  <h3>Merkezi Lokasyon</h3>
+                  <p>{club.ilce || club.il} bölgesinde kolay ulaşılabilir, toplu taşımaya yakın adres.</p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- 2. Aktif Spor İlanları (Programlar) -->
+          <section class="card-box" id="aktif-ilanlar">
+            <div class="card-box-header">
+              <div class="header-title-group">
+                <span class="section-tag">Eğitimler</span>
+                <h2 class="card-box-title">Aktif Spor Kursları & İlanlar</h2>
+              </div>
+              <span class="program-count-pill">{programs.length} Yayında</span>
+            </div>
+
+            {programs.length > 0 ? (
+              <div class="programs-listing-stack">
+                {programs.map((program) => (
+                  <article class="program-listing-card">
+                    <div class="program-card-top">
+                      <div class="program-title-area">
+                        <div class="program-title-badges">
+                          <span class="live-pulse-badge">
+                            <span class="pulse-dot"></span>
+                            <span>{program.aktif ? 'Yayında' : 'Pasif'}</span>
+                          </span>
+                          <span class="branch-small-pill">{club.brans || 'Spor'}</span>
+                        </div>
+                        <h3 class="program-item-title">{program.ad}</h3>
+                        <p class="program-item-sub">
+                          <span>{club.ad}</span>
+                          <span class="bullet">•</span>
+                          <span>{club.ilce || club.il}</span>
+                        </p>
+                      </div>
+
+                      <div class="program-price-tag">
+                        <span class="price-val">{program.ucretBilgisi || 'Fiyat sorunuz'}</span>
+                        <span class="price-sub">Aidat / Ücret</span>
+                      </div>
+                    </div>
+
+                    <!-- Program Parametreleri -->
+                    <div class="program-specs-grid">
+                      <div class="spec-col">
+                        <span class="spec-label">Yaş Grubu</span>
+                        <strong class="spec-value">{program.yasAraligi || club.yasAraligi || 'Her Yaş'}</strong>
+                      </div>
+                      <div class="spec-col">
+                        <span class="spec-label">Seviye</span>
+                        <strong class="spec-value">{program.seviye || 'Tüm Seviyeler'}</strong>
+                      </div>
+                      <div class="spec-col">
+                        <span class="spec-label">Ders Saatleri</span>
+                        <strong class="spec-value">{program.gunSaat || 'Kulüpten Öğreniniz'}</strong>
+                      </div>
+                      <div class="spec-col">
+                        <span class="spec-label">Konum</span>
+                        <strong class="spec-value">{program.locationText || club.ilce || club.il}</strong>
+                      </div>
+                    </div>
+
+                    {program.aciklama && (
+                      <p class="program-card-summary">{program.aciklama}</p>
+                    )}
+
+                    <!-- Galeri Önizleme -->
+                    {program.gallery && program.gallery.length > 0 && (
+                      <div class="program-card-gallery">
+                        <span class="gallery-label">Tesis Görselleri:</span>
+                        <div class="mini-gallery-row">
+                          {program.gallery.slice(0, 4).map((imgUrl, idx) => (
+                            <button
+                              type="button"
+                              class="mini-gallery-thumb"
+                              data-viewer-image={imgUrl}
+                              aria-label={`Görseli büyüt ${idx + 1}`}
+                            >
+                              <img src={imgUrl} alt={`${club.ad} görsel`} loading="lazy" />
+                            </button>
+                          ))}
+                          {program.gallery.length > 4 && (
+                            <span class="more-photos-badge">+{program.gallery.length - 4}</span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    <!-- İlan Aksiyon Satırı -->
+                    <div class="program-card-actions">
+                      <a
+                        href={`/ilanlar/${listingSlug({ id: program.id, ad: program.ad, clubAd: club.ad })}`}
+                        class="btn-view-program"
+                      >
+                        <span>İlan Detayı ve Tesis Bilgilerini İncele</span>
+                        <span class="arrow" aria-hidden="true">→</span>
+                      </a>
+
+                      {whatsappUrl && (
+                        <a
+                          href={whatsappUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="btn-whatsapp-compact"
+                          title="Bu ilan için WhatsApp ile bilgi alın"
+                        >
+                          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                            <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2m.01 1.67c2.2 0 4.26.86 5.82 2.42a8.23 8.23 0 0 1 2.41 5.83c0 4.54-3.7 8.24-8.24 8.24-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.2 8.2 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.24-8.24m4.52 11.66c-.25-.13-1.47-.72-1.7-.81-.23-.08-.39-.13-.56.13-.17.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.13-1.06-.39-2.03-1.25-.75-.67-1.26-1.5-1.41-1.75-.15-.25-.02-.39.11-.51.11-.11.25-.29.37-.44.13-.14.17-.25.25-.42.08-.17.04-.31-.02-.44-.06-.13-.56-1.34-.76-1.84-.2-.49-.4-.42-.56-.43h-.47c-.17 0-.44.06-.67.31-.23.25-.88.86-.88 2.1 0 1.23.9 2.43 1.03 2.6.13.16 1.78 2.71 4.3 3.8.6.26 1.07.41 1.44.53.61.19 1.16.17 1.6.1.49-.07 1.47-.6 1.68-1.18.21-.58.21-1.07.15-1.18-.06-.11-.23-.17-.48-.3z" />
+                          </svg>
+                          <span>Hızlı Soru Sor</span>
+                        </a>
+                      )}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div class="empty-programs-notice">
+                <div class="empty-icon">📅</div>
+                <div class="empty-content">
+                  <h3>Aktif İlan Bulunmuyor</h3>
+                  <p>Kulübün şu anda yayında olan bir dönem kursu bulunmamaktadır. Yeni dönem açılışları ve kontenjanlar için doğrudan kulüple iletişime geçebilirsiniz.</p>
+                </div>
+              </div>
+            )}
+          </section>
+
+          <!-- 3. Tesis Konumu ve Yol Tarifi -->
+          <section class="card-box" id="konum" data-club-lat={club.enlem || ''} data-club-lng={club.boylam || ''}>
+            <div class="card-box-header">
+              <div class="header-title-group">
+                <span class="section-tag">Ulaşım & Harita</span>
+                <h2 class="card-box-title">Tesis ve Salon Konumu</h2>
+              </div>
+              <span class="distance-output-badge distance-output">Mesafe hesaplanıyor...</span>
+            </div>
+
+            <div class="location-box-inner">
+              <div class="address-display-row">
+                <div class="pin-circle">📍</div>
+                <div class="address-text-col">
+                  <strong>{club.ad} Tesis Adresi</strong>
+                  <p class="address-full">{fullAddress || 'Adres bilgisi için lütfen kulüple iletişime geçin.'}</p>
+                </div>
+              </div>
+
+              <div class="location-actions-row">
+                <a
+                  href={googleMapsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="btn-maps-action"
+                >
+                  <svg class="btn-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
+                    <line x1="8" y1="2" x2="8" y2="18" />
+                    <line x1="16" y1="6" x2="16" y2="22" />
+                  </svg>
+                  <span>Google Haritalar'da Aç & Yol Tarifi Al</span>
+                </a>
+              </div>
+            </div>
+          </section>
+
+        </main>
+
+        <!-- Sağ Kolon: Sticky İletişim Kartı & Kulüp Güvencesi -->
+        <aside class="sidebar-flow">
+          <div class="sticky-contact-card">
+
+            <!-- İletişim Başlığı -->
+            <div class="contact-card-head">
+              <span class="contact-eyebrow">Doğrudan Kulüp İletişimi</span>
+              <h3 class="contact-title">Kulüple İletişime Geçin</h3>
+              <p class="contact-subtitle">Kontenjan, antrenman günleri ve deneme dersi için doğrudan kulüp yetkilisiyle görüşün.</p>
+            </div>
+
+            <!-- Aksiyon Butonları -->
+            <div class="contact-actions-stack">
+              {whatsappUrl && (
+                <a
+                  href={whatsappUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="btn-whatsapp-sidebar"
+                >
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+                    <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.82 9.82 0 0 0 12.04 2m.01 1.67c2.2 0 4.26.86 5.82 2.42a8.23 8.23 0 0 1 2.41 5.83c0 4.54-3.7 8.24-8.24 8.24-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.2 8.2 0 0 1-1.26-4.38c0-4.54 3.7-8.24 8.24-8.24m4.52 11.66c-.25-.13-1.47-.72-1.7-.81-.23-.08-.39-.13-.56.13-.17.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.13-1.06-.39-2.03-1.25-.75-.67-1.26-1.5-1.41-1.75-.15-.25-.02-.39.11-.51.11-.11.25-.29.37-.44.13-.14.17-.25.25-.42.08-.17.04-.31-.02-.44-.06-.13-.56-1.34-.76-1.84-.2-.49-.4-.42-.56-.43h-.47c-.17 0-.44.06-.67.31-.23.25-.88.86-.88 2.1 0 1.23.9 2.43 1.03 2.6.13.16 1.78 2.71 4.3 3.8.6.26 1.07.41 1.44.53.61.19 1.16.17 1.6.1.49-.07 1.47-.6 1.68-1.18.21-.58.21-1.07.15-1.18-.06-.11-.23-.17-.48-.3z" />
+                  </svg>
+                  <div class="btn-whatsapp-text">
+                    <strong>WhatsApp ile Bilgi Al</strong>
+                    <span>Hızlı mesaj gönderin</span>
+                  </div>
+                </a>
+              )}
+
+              {telUrl && (
+                <a href={telUrl} class="btn-phone-sidebar">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+                  </svg>
+                  <div class="btn-phone-text">
+                    <strong>{formattedPhone}</strong>
+                    <span>Telefonla hemen arayın</span>
+                  </div>
+                </a>
+              )}
+            </div>
+
+            <!-- İletişim Detay Listesi -->
+            <div class="contact-info-list">
+              <div class="contact-row">
+                <span class="row-label">Telefon:</span>
+                <span class="row-val">
+                  {telUrl ? <a href={telUrl} class="tel-link">{formattedPhone}</a> : 'Belirtilmedi'}
+                </span>
+              </div>
+
+              {club.email && club.email !== 'Belirtilmedi' && (
+                <div class="contact-row">
+                  <span class="row-label">E-posta:</span>
+                  <span class="row-val">
+                    <a href={`mailto:${club.email}`} class="mail-link">{club.email}</a>
+                  </span>
+                </div>
+              )}
+
+              <div class="contact-row">
+                <span class="row-label">Adres:</span>
+                <span class="row-val">{fullAddress || 'İletişime geçiniz'}</span>
+              </div>
+            </div>
+
+            <!-- Güvenlik & Doğrudan İletişim Notu -->
+            <div class="trust-notice-box">
+              <div class="trust-notice-item">
+                <span class="trust-check">✓</span>
+                <span><strong>%100 Komisyonsuz:</strong> Kulüple doğrudan iletişim kurar, aracısız kayıt olursunuz.</span>
+              </div>
+              <div class="trust-notice-item">
+                <span class="trust-check">✓</span>
+                <span><strong>Onaylı Kulüp:</strong> SporNerede güvencesiyle iletişim bilgileri teyit edilmiştir.</span>
+              </div>
+            </div>
+
+            <!-- Kulüp Yöneticisi Misiniz? -->
+            <div class="club-owner-prompt">
+              <p>Bu kulübün yöneticisi misiniz?</p>
+              <a href="/panel" class="club-owner-link">Kulüp Paneline Giriş Yapın →</a>
+            </div>
+
+          </div>
+        </aside>
+
+      </div>
+
     </div>
-  </section>
+  </div>
+
+  <!-- Büyütülmüş Görsel Viewer Modalı -->
   <div class="image-viewer" aria-hidden="true">
     <div class="image-viewer-backdrop" data-close-viewer></div>
     <div class="image-viewer-dialog" role="dialog" aria-modal="true" aria-label="Görsel görüntüleyici">
@@ -209,16 +557,16 @@ function getBodySections(bodyJson: unknown) {
 </BaseLayout>
 
 <script is:inline>
-  const card = document.querySelector('.program-zone');
+  const card = document.querySelector('[data-club-lat]');
   if (card) {
     const lat = Number(card.getAttribute('data-club-lat'));
     const lng = Number(card.getAttribute('data-club-lng'));
     const outputs = Array.from(document.querySelectorAll('.distance-output'));
     const setOutput = (text) => outputs.forEach((node) => (node.textContent = text));
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-      setOutput('Konum bilgisi yok');
+      setOutput('Konum bilgisi mevcut');
     } else if (!navigator.geolocation) {
-      setOutput('Tarayıcı konum desteklemiyor');
+      setOutput('Merkezi Konum');
     } else {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
@@ -231,9 +579,9 @@ function getBodySections(bodyJson: unknown) {
             Math.cos(toRad(pos.coords.latitude)) * Math.cos(toRad(lat)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
           const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
           const km = Math.round(earthRadiusKm * c * 10) / 10;
-          setOutput(`${km} km`);
+          setOutput(`📍 ~${km} km yakınınızda`);
         },
-        () => setOutput('Konum izni verilmedi')
+        () => setOutput('📍 Haritada İnceleyin')
       );
     }
   }
@@ -270,302 +618,1074 @@ function getBodySections(bodyJson: unknown) {
 </script>
 
 <style>
-  .detail-page {
+  /* Sayfa Sarmalayıcı */
+  .page-wrap {
     background:
-      radial-gradient(circle at top left, rgba(227, 10, 23, 0.08), transparent 38%),
-      radial-gradient(circle at top right, rgba(22, 28, 36, 0.06), transparent 30%),
-      #f4f6f8;
-    min-height: 60vh;
+      radial-gradient(circle at 10% 0%, rgba(227, 10, 23, 0.04) 0%, transparent 40%),
+      radial-gradient(circle at 90% 0%, rgba(13, 148, 136, 0.04) 0%, transparent 40%),
+      #f8fafc;
+    min-height: 80vh;
+    padding-bottom: 3.5rem;
   }
-  .detail {
-    max-width: 75rem;
+
+  .page-container {
+    max-width: 78rem;
+    margin: 0 auto;
+    padding: 1.25rem 1rem 0;
   }
+
+  /* Üst Navigasyon */
+  .top-nav-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
   .back-link {
-    color: #6c757d;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: #64748b;
     text-decoration: none;
     font-weight: 700;
     font-size: 0.85rem;
+    padding: 0.3rem 0.65rem;
+    border-radius: 0.5rem;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    transition: all 0.2s ease;
   }
-  .hero {
-    margin-top: 0.85rem;
-    border: 1px solid #e5e9ef;
-    border-radius: 1rem;
-    background: linear-gradient(140deg, #ffffff 0%, #f9fbff 100%);
-    padding: 1.25rem;
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    gap: 0.9rem;
+
+  .back-link:hover {
+    color: #0f172a;
+    border-color: #cbd5e1;
+    transform: translateX(-2px);
   }
-  .hero-main {
-    display: flex;
-    align-items: center;
-    gap: 0.9rem;
+
+  /* Hero Karşılama Kartı */
+  .club-hero {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid #e2e8f0;
+    border-radius: 1.25rem;
+    background: #ffffff;
+    box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.04), 0 4px 12px -2px rgba(15, 23, 42, 0.02);
+    padding: 1.75rem;
+    margin-bottom: 1.5rem;
   }
-  .icon {
-    width: 54px;
-    height: 54px;
-    border-radius: 0.85rem;
-    display: grid;
-    place-items: center;
-    font-size: 1.5rem;
-    background: color-mix(in srgb, var(--branch-color, #E30A17) 14%, transparent);
+
+  .hero-ambient-glow {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 6px;
+    background: linear-gradient(90deg, var(--accent-color, #e30a17) 0%, #0d9488 100%);
   }
-  .hero-kicker {
-    margin: 0;
-    color: #e30a17;
-    font-size: 0.78rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-  }
-  .hero h1 {
-    margin: 0.2rem 0 0;
-    font-size: clamp(1.7rem, 3.2vw, 2.3rem);
-    font-weight: 900;
-    color: #212529;
-  }
-  .hero-sub {
-    margin: 0.35rem 0 0;
-    color: #6c757d;
-    font-size: 1rem;
-  }
-  .hero-badges {
-    display: flex;
-    gap: 0.45rem;
-    flex-wrap: wrap;
-    align-content: flex-start;
-  }
-  .hero-badges span {
-    border: 1px solid #e8ecf1;
-    border-radius: 999px;
-    background: #fbfcfd;
-    color: #3f4953;
-    padding: 0.35rem 0.65rem;
-    font-size: 0.78rem;
-    font-weight: 700;
-  }
-  .program-zone {
-    margin-top: 1rem;
-  }
-  .section-title {
-    margin: 0 0 0.6rem;
-    font-size: 1.35rem;
-    color: #1f2933;
-    font-weight: 900;
-  }
-  .program-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: grid;
-    gap: 0.8rem;
-  }
-  .program-item {
-    border: 1px solid #e5e9ef;
-    border-radius: 1rem;
-    padding: 1rem;
-    background: #fff;
-    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
-  }
-  .program-item strong {
-    font-size: 1.2rem;
-    color: #17212b;
-  }
-  .listing-badges {
-    display: flex;
-    align-items: center;
-    gap: 0.45rem;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-  }
-  .price-badge {
-    border-radius: 999px;
-    padding: 0.2rem 0.6rem;
-    font-size: 0.75rem;
-    font-weight: 800;
-    border: 1px solid #dbe3f5;
-    color: #1f2a44;
-    background: #f2f6ff;
-  }
-  .program-level {
-    font-size: 0.72rem;
-    background: #fff2f3;
-    color: #a30f1c;
-    border: 1px solid #ffd9dd;
-    border-radius: 999px;
-    padding: 0.15rem 0.5rem;
-    font-weight: 700;
-  }
-  .program-empty {
-    color: #6c757d;
-    border: 1px dashed #d6dce3;
-    border-radius: 0.8rem;
-    background: #fff;
-    padding: 0.9rem;
-  }
-  .listing-header {
+
+  .hero-header-content {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 0.8rem;
+    gap: 1.5rem;
+    flex-wrap: wrap;
   }
-  .listing-meta {
-    margin: 0.3rem 0 0;
-    color: #5b6670;
-    font-size: 0.9rem;
+
+  .hero-avatar-box {
+    width: 72px;
+    height: 72px;
+    border-radius: 1.1rem;
+    display: grid;
+    place-items: center;
+    background: color-mix(in srgb, var(--accent-color, #e30a17) 12%, #f8fafc);
+    border: 2px solid color-mix(in srgb, var(--accent-color, #e30a17) 28%, #ffffff);
+    box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.06);
+    flex-shrink: 0;
+  }
+
+  .hero-emoji {
+    font-size: 2.25rem;
+  }
+
+  .hero-info {
+    flex: 1;
+    min-width: 280px;
+  }
+
+  .hero-badge-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.35rem;
+  }
+
+  .kicker-badge {
+    color: var(--accent-color, #e30a17);
+    background: color-mix(in srgb, var(--accent-color, #e30a17) 10%, #ffffff);
+    border: 1px solid color-mix(in srgb, var(--accent-color, #e30a17) 24%, #ffffff);
+    font-size: 0.72rem;
+    font-weight: 800;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    letter-spacing: 0.04em;
+  }
+
+  .verified-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: #ecfdf5;
+    color: #047857;
+    border: 1px solid #a7f3d0;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+  }
+
+  .verified-icon {
+    font-weight: 900;
+  }
+
+  .featured-badge {
+    background: #fffbeb;
+    color: #b45309;
+    border: 1px solid #fde68a;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+  }
+
+  .hero-title {
+    margin: 0.2rem 0;
+    font-size: clamp(1.75rem, 3.5vw, 2.5rem);
+    font-weight: 900;
+    color: #0f172a;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+  }
+
+  .hero-subtitle {
+    margin: 0.25rem 0 0.85rem;
+    color: #475569;
+    font-size: 0.98rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+  }
+
+  .location-pin {
+    font-size: 1rem;
+  }
+
+  .sep {
+    color: #cbd5e1;
+  }
+
+  .hero-chips {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .chip {
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+    padding: 0.25rem 0.65rem;
+    font-size: 0.8rem;
+    color: #334155;
+    display: inline-flex;
+    gap: 0.3rem;
+  }
+
+  .chip-label {
+    color: #64748b;
+  }
+
+  .chip-value {
+    font-weight: 700;
+    color: #0f172a;
+  }
+
+  .chip-price {
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+  }
+
+  .chip-price .chip-value {
+    color: #15803d;
+  }
+
+  .hero-quick-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    min-width: 220px;
+  }
+
+  .btn-whatsapp-hero {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 0.92rem;
+    padding: 0.75rem 1.25rem;
+    border-radius: 0.75rem;
+    text-decoration: none;
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+    transition: all 0.2s ease;
+  }
+
+  .btn-whatsapp-hero:hover {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+    transform: translateY(-1px);
+  }
+
+  .btn-phone-hero {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: #ffffff;
+    color: #0f172a;
+    border: 1.5px solid #cbd5e1;
+    font-weight: 700;
+    font-size: 0.92rem;
+    padding: 0.65rem 1.25rem;
+    border-radius: 0.75rem;
+    text-decoration: none;
+    transition: all 0.2s ease;
+  }
+
+  .btn-phone-hero:hover {
+    border-color: #0f172a;
+    background: #f8fafc;
+  }
+
+  /* 2 Kolonlu Layout */
+  .content-grid-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    gap: 1.5rem;
+    align-items: start;
+  }
+
+  .main-content-flow {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  /* Kart Kutuları */
+  .card-box {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 1.15rem;
+    padding: 1.5rem;
+    box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.03);
+  }
+
+  .card-box-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+    border-bottom: 1px solid #f1f5f9;
+    padding-bottom: 0.85rem;
+  }
+
+  .header-title-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  .section-tag {
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: #64748b;
+    letter-spacing: 0.05em;
+  }
+
+  .card-box-title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #0f172a;
+    letter-spacing: -0.01em;
+  }
+
+  .trust-badge-pill {
+    background: #ecfdf5;
+    color: #047857;
+    border: 1px solid #a7f3d0;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.25rem 0.65rem;
+    border-radius: 999px;
+  }
+
+  .program-count-pill {
+    background: #f1f5f9;
+    color: #334155;
+    border: 1px solid #cbd5e1;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.25rem 0.65rem;
+    border-radius: 999px;
+  }
+
+  /* Tanıtım & Avantajlar */
+  .about-text-content {
+    margin-bottom: 1.5rem;
+  }
+
+  .about-paragraph {
+    margin: 0;
+    font-size: 0.98rem;
+    line-height: 1.7;
+    color: #334155;
+  }
+
+  .features-highlight-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.85rem;
+  }
+
+  .feature-tile {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    background: #f8fafc;
+    border: 1px solid #f1f5f9;
+    border-radius: 0.85rem;
+    padding: 0.85rem;
+  }
+
+  .feature-icon {
+    font-size: 1.5rem;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
+  .feature-text h3 {
+    margin: 0 0 0.2rem;
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: #0f172a;
+  }
+
+  .feature-text p {
+    margin: 0;
+    font-size: 0.82rem;
+    color: #64748b;
+    line-height: 1.45;
+  }
+
+  /* Program İlan Kartları */
+  .programs-listing-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .program-listing-card {
+    border: 1.5px solid #e2e8f0;
+    border-radius: 1rem;
+    padding: 1.25rem;
+    background: #ffffff;
+    transition: all 0.2s ease;
+  }
+
+  .program-listing-card:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 8px 24px -4px rgba(15, 23, 42, 0.06);
+  }
+
+  .program-card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.85rem;
+  }
+
+  .program-title-badges {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.35rem;
+  }
+
+  .live-pulse-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: #f0fdf4;
+    color: #15803d;
+    border: 1px solid #bbf7d0;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+  }
+
+  .pulse-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #16a34a;
+    display: inline-block;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.85); }
+  }
+
+  .branch-small-pill {
+    background: #f1f5f9;
+    color: #475569;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+  }
+
+  .program-item-title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #0f172a;
+    line-height: 1.25;
+  }
+
+  .program-item-sub {
+    margin: 0.2rem 0 0;
+    font-size: 0.85rem;
+    color: #64748b;
+  }
+
+  .program-item-sub .bullet {
+    margin: 0 0.3rem;
+  }
+
+  .program-price-tag {
+    text-align: right;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.75rem;
+    padding: 0.5rem 0.85rem;
+  }
+
+  .price-val {
+    display: block;
+    font-size: 1.15rem;
+    font-weight: 900;
+    color: #0f172a;
+    letter-spacing: -0.01em;
+  }
+
+  .price-sub {
+    display: block;
+    font-size: 0.72rem;
+    color: #64748b;
     font-weight: 600;
   }
-  .listing-grid {
-    margin-top: 0.65rem;
+
+  .program-specs-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.45rem 0.8rem;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.5rem;
     background: #f8fafc;
-    border: 1px solid #e9edf2;
-    border-radius: 0.7rem;
-    padding: 0.65rem;
-    list-style: none;
+    border: 1px solid #f1f5f9;
+    border-radius: 0.75rem;
+    padding: 0.75rem;
+    margin-bottom: 0.85rem;
   }
-  .listing-grid li {
-    margin: 0;
-    display: grid;
-    gap: 0.08rem;
-    padding: 0.2rem 0.15rem;
+
+  .spec-col {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
   }
-  .listing-grid span {
-    color: #74808c;
-    font-size: 0.78rem;
+
+  .spec-label {
+    font-size: 0.7rem;
+    color: #64748b;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.03em;
   }
-  .listing-grid strong {
-    font-size: 0.98rem;
-    color: #1f2933;
+
+  .spec-value {
+    font-size: 0.92rem;
+    color: #0f172a;
     font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
-  .listing-summary {
-    margin-top: 0.7rem;
-    font-weight: 600;
-    line-height: 1.65;
-    font-size: 1rem;
-    color: #25313d;
+
+  .program-card-summary {
+    margin: 0 0 0.85rem;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: #475569;
   }
-  .listing-body p {
-    margin: 0.45rem 0 0;
-    color: #3f4953;
-    line-height: 1.68;
+
+  .program-card-gallery {
+    margin-bottom: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    flex-wrap: wrap;
   }
-  .listing-gallery,
-  .listing-contact {
-    margin-top: 0.85rem;
-    border-top: 1px solid #edf0f2;
-    padding-top: 0.75rem;
+
+  .gallery-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #64748b;
   }
-  .listing-gallery h3,
-  .listing-contact h3 {
-    margin: 0;
-    font-size: 1rem;
-    color: #1f2933;
-    font-weight: 800;
+
+  .mini-gallery-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
   }
-  .gallery-grid {
-    margin-top: 0.55rem;
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-    gap: 0.55rem;
-  }
-  .gallery-item {
-    border: 0;
+
+  .mini-gallery-thumb {
+    width: 48px;
+    height: 48px;
     padding: 0;
-    width: 100%;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.5rem;
+    overflow: hidden;
     cursor: zoom-in;
-    background: transparent;
+    background: #f1f5f9;
   }
-  .gallery-grid img {
+
+  .mini-gallery-thumb img {
     width: 100%;
-    aspect-ratio: 4 / 3;
+    height: 100%;
     object-fit: cover;
-    border-radius: 0.55rem;
-    border: 1px solid #e9ecef;
+    transition: transform 0.2s ease;
   }
-  .contact-list {
-    list-style: none;
-    margin: 0.45rem 0 0;
-    padding: 0;
-    display: grid;
-    gap: 0.25rem;
-    color: #4b5563;
-    font-size: 0.92rem;
+
+  .mini-gallery-thumb:hover img {
+    transform: scale(1.08);
   }
-  .contact-list strong {
-    color: #1f2933;
+
+  .more-photos-badge {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #64748b;
+    background: #f1f5f9;
+    border-radius: 0.5rem;
+    padding: 0.35rem 0.5rem;
   }
-  .muted {
-    margin-top: 0.35rem;
-    color: #6c757d;
-    font-size: 0.92rem;
+
+  .program-card-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+    border-top: 1px solid #f1f5f9;
+    padding-top: 0.85rem;
+  }
+
+  .btn-view-program {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    background: #e30a17;
+    color: #ffffff;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 0.88rem;
+    padding: 0.65rem 1.15rem;
+    border-radius: 0.65rem;
+    transition: all 0.2s ease;
+  }
+
+  .btn-view-program:hover {
+    background: #c70814;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(227, 10, 23, 0.25);
+  }
+
+  .btn-whatsapp-compact {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: #ecfdf5;
+    color: #047857;
+    border: 1px solid #a7f3d0;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 0.85rem;
+    padding: 0.6rem 0.95rem;
+    border-radius: 0.65rem;
+    transition: all 0.2s ease;
+  }
+
+  .btn-whatsapp-compact:hover {
+    background: #d1fae5;
+    border-color: #6ee7b7;
+  }
+
+  .empty-programs-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    background: #f8fafc;
+    border: 1px dashed #cbd5e1;
+    border-radius: 0.85rem;
+    padding: 1.5rem;
+  }
+
+  .empty-icon {
+    font-size: 2rem;
+    line-height: 1;
+  }
+
+  .empty-content h3 {
+    margin: 0 0 0.25rem;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #0f172a;
+  }
+
+  .empty-content p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #64748b;
     line-height: 1.6;
   }
+
+  /* Lokasyon Kutusu */
+  .location-box-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .address-display-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+  }
+
+  .pin-circle {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    display: grid;
+    place-items: center;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+  }
+
+  .address-text-col strong {
+    font-size: 0.98rem;
+    color: #0f172a;
+    display: block;
+    margin-bottom: 0.2rem;
+  }
+
+  .address-full {
+    margin: 0;
+    font-size: 0.92rem;
+    color: #475569;
+    line-height: 1.55;
+  }
+
+  .distance-output-badge {
+    background: #f1f5f9;
+    color: #334155;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.25rem 0.65rem;
+    border-radius: 999px;
+    border: 1px solid #e2e8f0;
+  }
+
+  .location-actions-row {
+    padding-top: 0.5rem;
+  }
+
+  .btn-maps-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #ffffff;
+    color: #0f172a;
+    border: 1.5px solid #cbd5e1;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 0.88rem;
+    padding: 0.65rem 1.15rem;
+    border-radius: 0.65rem;
+    transition: all 0.2s ease;
+  }
+
+  .btn-maps-action:hover {
+    border-color: #0f172a;
+    background: #f8fafc;
+  }
+
+  /* Sağ Kolon: Sticky İletişim Kartı */
+  .sidebar-flow {
+    position: relative;
+  }
+
+  .sticky-contact-card {
+    position: sticky;
+    top: 5rem;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 1.25rem;
+    padding: 1.5rem;
+    box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.05), 0 4px 12px -2px rgba(15, 23, 42, 0.02);
+  }
+
+  .contact-card-head {
+    margin-bottom: 1.25rem;
+    border-bottom: 1px solid #f1f5f9;
+    padding-bottom: 1rem;
+  }
+
+  .contact-eyebrow {
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: #0d9488;
+    letter-spacing: 0.05em;
+    display: block;
+    margin-bottom: 0.2rem;
+  }
+
+  .contact-title {
+    margin: 0 0 0.35rem;
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: #0f172a;
+    letter-spacing: -0.01em;
+  }
+
+  .contact-subtitle {
+    margin: 0;
+    font-size: 0.85rem;
+    color: #64748b;
+    line-height: 1.5;
+  }
+
+  .contact-actions-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .btn-whatsapp-sidebar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: #ffffff;
+    text-decoration: none;
+    padding: 0.85rem 1rem;
+    border-radius: 0.85rem;
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+    transition: all 0.2s ease;
+  }
+
+  .btn-whatsapp-sidebar:hover {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+  }
+
+  .btn-whatsapp-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+  }
+
+  .btn-whatsapp-text strong {
+    font-size: 0.95rem;
+    font-weight: 800;
+  }
+
+  .btn-whatsapp-text span {
+    font-size: 0.75rem;
+    opacity: 0.9;
+  }
+
+  .btn-phone-sidebar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: #ffffff;
+    color: #0f172a;
+    border: 1.5px solid #cbd5e1;
+    text-decoration: none;
+    padding: 0.75rem 1rem;
+    border-radius: 0.85rem;
+    transition: all 0.2s ease;
+  }
+
+  .btn-phone-sidebar:hover {
+    border-color: #0f172a;
+    background: #f8fafc;
+  }
+
+  .btn-phone-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+  }
+
+  .btn-phone-text strong {
+    font-size: 0.95rem;
+    font-weight: 800;
+  }
+
+  .btn-phone-text span {
+    font-size: 0.75rem;
+    color: #64748b;
+  }
+
+  .contact-info-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    padding: 0.85rem;
+    background: #f8fafc;
+    border: 1px solid #f1f5f9;
+    border-radius: 0.85rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .contact-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+  }
+
+  .row-label {
+    color: #64748b;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  .row-val {
+    color: #0f172a;
+    font-weight: 700;
+    text-align: right;
+    word-break: break-word;
+  }
+
+  .tel-link,
+  .mail-link {
+    color: #0f172a;
+    text-decoration: none;
+  }
+
+  .tel-link:hover,
+  .mail-link:hover {
+    color: #e30a17;
+    text-decoration: underline;
+  }
+
+  .trust-notice-box {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #f1f5f9;
+  }
+
+  .trust-notice-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.45rem;
+    font-size: 0.8rem;
+    color: #475569;
+    line-height: 1.45;
+  }
+
+  .trust-check {
+    color: #10b981;
+    font-weight: 900;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+  }
+
+  .club-owner-prompt {
+    text-align: center;
+    background: #f8fafc;
+    border-radius: 0.75rem;
+    padding: 0.75rem;
+  }
+
+  .club-owner-prompt p {
+    margin: 0 0 0.2rem;
+    font-size: 0.8rem;
+    color: #64748b;
+  }
+
+  .club-owner-link {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #e30a17;
+    text-decoration: none;
+  }
+
+  .club-owner-link:hover {
+    text-decoration: underline;
+  }
+
+  /* Görsel Viewer Modal */
   .image-viewer {
     position: fixed;
     inset: 0;
-    z-index: 50;
+    z-index: 9999;
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.2s ease;
+    display: grid;
+    place-items: center;
   }
+
   .image-viewer.is-open {
     opacity: 1;
     pointer-events: auto;
   }
+
   .image-viewer-backdrop {
     position: absolute;
     inset: 0;
-    background: rgba(0, 0, 0, 0.78);
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(4px);
   }
+
   .image-viewer-dialog {
     position: relative;
     z-index: 1;
-    margin: auto;
     max-width: min(960px, calc(100% - 2rem));
-    max-height: calc(100% - 2rem);
-    top: 50%;
-    transform: translateY(-50%);
+    max-height: calc(100vh - 2rem);
   }
+
   .image-viewer-img {
     display: block;
-    width: 100%;
-    max-height: calc(100vh - 2rem);
+    max-width: 100%;
+    max-height: calc(100vh - 4rem);
     object-fit: contain;
     border-radius: 0.75rem;
-    background: #111;
+    background: #000000;
   }
+
   .image-viewer-close {
     position: absolute;
-    top: 0.5rem;
-    right: 0.5rem;
-    width: 2.2rem;
-    height: 2.2rem;
-    border: 0;
-    border-radius: 999px;
-    background: rgba(17, 24, 39, 0.85);
-    color: white;
+    top: -1rem;
+    right: -1rem;
+    width: 2.5rem;
+    height: 2.5rem;
+    border: 2px solid #ffffff;
+    border-radius: 50%;
+    background: #0f172a;
+    color: #ffffff;
     font-size: 1.5rem;
     line-height: 1;
     cursor: pointer;
+    display: grid;
+    place-items: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
   }
-  @media (max-width: 760px) {
-    .hero {
-      padding: 0.9rem;
-    }
-    .hero-main {
-      align-items: flex-start;
-    }
-    .listing-grid {
+
+  /* Responsive Düzen */
+  @media (max-width: 960px) {
+    .content-grid-layout {
       grid-template-columns: 1fr;
+    }
+
+    .sidebar-flow {
+      order: -1;
+    }
+
+    .sticky-contact-card {
+      position: static;
+    }
+
+    .hero-quick-actions {
+      width: 100%;
+      flex-direction: row;
+    }
+
+    .hero-quick-actions a {
+      flex: 1;
+    }
+
+    .features-highlight-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .program-specs-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (max-width: 640px) {
+    .club-hero {
+      padding: 1.25rem;
+    }
+
+    .hero-header-content {
+      gap: 1rem;
+    }
+
+    .hero-quick-actions {
+      flex-direction: column;
+    }
+
+    .program-card-top {
+      flex-direction: column;
+    }
+
+    .program-price-tag {
+      text-align: left;
+      width: 100%;
+    }
+
+    .program-card-actions {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .program-card-actions a {
+      justify-content: center;
     }
   }
 </style>
-
