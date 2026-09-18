@@ -12,6 +12,7 @@ import {
   withdrawClubApproval,
 } from '../../../lib/repositories/adminClubs';
 import { normalizeMembershipPeriod } from '../../../lib/repositories/memberships';
+import { normalizePhoneNumber } from '../../../lib/phone';
 
 export const prerender = false;
 
@@ -92,7 +93,7 @@ export const POST: APIRoute = async ({ request }) => {
 
   const updated = await updateApprovedAdminClub(id, {
     ad: body?.ad?.toString?.().slice(0, 160) ?? '',
-    telefon: body?.telefon?.toString?.().slice(0, 30) ?? '',
+    telefon: normalizePhoneNumber(body?.telefon?.toString?.()) || (body?.telefon?.toString?.().slice(0, 30) ?? ''),
     email: body?.email?.toString?.().slice(0, 180) ?? '',
     adres: body?.adres?.toString?.().slice(0, 5000) ?? '',
     aciklama: body?.aciklama?.toString?.().slice(0, 5000) ?? '',

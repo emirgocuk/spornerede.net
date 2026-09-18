@@ -9,6 +9,7 @@ import { enqueueMail, processMailQueue } from '../../lib/mail/service';
 import { buildApplicationNotificationMail } from '../../lib/mail/templates';
 import { getClientIp, checkRateLimit } from '../../lib/security/rateLimiter';
 import { isValidDocumentSignature } from '../../lib/security/fileValidation';
+import { normalizePhoneNumber } from '../../lib/phone';
 
 export const prerender = false;
 
@@ -163,7 +164,8 @@ export const POST: APIRoute = async ({ request }) => {
     const fiyat = formData.get('fiyat')?.toString().trim() || '';
     const aciklama = formData.get('aciklama')?.toString().trim() || '';
     const yetkili = formData.get('yetkili')?.toString().trim() || '';
-    const telefon = formData.get('telefon')?.toString().trim() || '';
+    const rawTelefon = formData.get('telefon')?.toString().trim() || '';
+    const telefon = normalizePhoneNumber(rawTelefon) || rawTelefon;
     const email = formData.get('email')?.toString().trim() || '';
     const paket = formData.get('paket')?.toString().trim() || 'ucretsiz';
     const bransSayisiRaw = Number(formData.get('bransSayisi')?.toString().trim() || '1');

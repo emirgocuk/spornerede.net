@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 import { requirePanelClubAccess } from '../../../lib/auth/guards';
 import { getPanelProfile, updatePanelProfile } from '../../../lib/repositories/panelProfile';
+import { normalizePhoneNumber } from '../../../lib/phone';
 
 export const prerender = false;
 
@@ -27,7 +28,8 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   const formData = await request.formData().catch(() => null);
-  const telefon = formData?.get('telefon')?.toString() ?? '';
+  const rawTelefon = formData?.get('telefon')?.toString() ?? '';
+  const telefon = normalizePhoneNumber(rawTelefon) || rawTelefon;
   const email = formData?.get('email')?.toString() ?? '';
   const adres = formData?.get('adres')?.toString() ?? '';
   const aciklama = formData?.get('aciklama')?.toString() ?? '';

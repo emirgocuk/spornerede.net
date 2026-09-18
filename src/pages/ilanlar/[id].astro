@@ -102,26 +102,7 @@ function scheduleText() {
   return [days, time].filter(Boolean).join(' · ');
 }
 
-function cleanPhoneNumber(phone?: string | null) {
-  if (!phone) return null;
-  const digits = phone.replace(/\D/g, '');
-  if (!digits) return null;
-  if (digits.startsWith('0')) return `90${digits.slice(1)}`;
-  if (digits.length === 10) return `90${digits}`;
-  return digits;
-}
-
-function formatPhoneDisplay(phone?: string | null) {
-  if (!phone) return 'Belirtilmedi';
-  const clean = phone.replace(/\D/g, '');
-  if (clean.length === 11 && clean.startsWith('0')) {
-    return `${clean.slice(0, 4)} ${clean.slice(4, 7)} ${clean.slice(7, 9)} ${clean.slice(9)}`;
-  }
-  if (clean.length === 10) {
-    return `0${clean.slice(0, 3)} ${clean.slice(3, 6)} ${clean.slice(6, 8)} ${clean.slice(8)}`;
-  }
-  return phone;
-}
+import { cleanPhoneNumber, formatPhoneDisplay, formatPhoneTelLink } from '../../lib/phone';
 
 const cleanedPhone = cleanPhoneNumber(listing.club.telefon);
 const formattedPhone = formatPhoneDisplay(listing.club.telefon);
@@ -129,7 +110,7 @@ const whatsappText = encodeURIComponent(
   `Merhaba, SporNerede.net üzerinden "${listing.club.ad} - ${listing.ad}" programınız hakkında bilgi almak istiyorum.`
 );
 const whatsappUrl = cleanedPhone ? `https://wa.me/${cleanedPhone}?text=${whatsappText}` : null;
-const telUrl = listing.club.telefon ? `tel:${listing.club.telefon.replace(/\s+/g, '')}` : null;
+const telUrl = formatPhoneTelLink(listing.club.telefon);
 
 const fullAddress = [listing.club.adres, listing.locationText, listing.club.ilce, listing.club.il]
   .filter(Boolean)
@@ -179,6 +160,8 @@ const breadcrumbs = [
   },
   { name: `${listing.club.ad} — ${listing.ad}`, url: canonicalUrl },
 ];
+
+const clubProfileUrl = `/kulupler/${clubSlug({ id: listing.club.id, ad: listing.club.ad })}`;
 
 const ogParams = new URLSearchParams({
   title: listing.club.ad,
@@ -230,7 +213,11 @@ const courseTitle = formatCourseTitle(listing.ad);
         </div>
 
         <div class="hero-content">
-          <h1 class="hero-title">{listing.club.ad}</h1>
+          <h1 class="hero-title">
+            <a href={clubProfileUrl} class="hero-club-link" title={`${listing.club.ad} kulüp profilini görüntüle`}>
+              {listing.club.ad}
+            </a>
+          </h1>
           <p class="hero-subtitle">{courseTitle}</p>
 
           <div class="hero-pills">
@@ -383,6 +370,13 @@ const courseTitle = formatCourseTitle(listing.ad);
               </div>
             </div>
 
+            <div class="club-profile-cta">
+              <a href={clubProfileUrl} class="btn-club-profile">
+                <span>Kulüp Sayfası & Tüm İlanları</span>
+                <span class="arrow" aria-hidden="true">→</span>
+              </a>
+            </div>
+
             <div class="trust-box">
               <strong>%100 Doğrudan İletişim</strong>
               <p>SporNerede bir aracı değildir. Yapacağınız tüm görüşmeler doğrudan spor kulübü yetkilisiyle gerçekleştirilir.</p>
@@ -483,12 +477,51 @@ const courseTitle = formatCourseTitle(listing.ad);
 
 
   .hero-title {
-    font-size: clamp(1.6rem, 3.2vw, 2.2rem);
-    font-weight: 900;
-    color: #212529;
     margin: 0 0 0.25rem;
+    font-size: clamp(1.4rem, 2.5vw, 1.9rem);
+    font-weight: 800;
+    color: #0f172a;
     line-height: 1.2;
     letter-spacing: -0.02em;
+  }
+
+  .hero-club-link {
+    color: inherit;
+    text-decoration: none;
+    transition: color 0.2s ease;
+  }
+
+  .hero-club-link:hover {
+    color: var(--color-primary, #e30a17);
+  }
+
+  .club-profile-cta {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #f1f5f9;
+  }
+
+  .btn-club-profile {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border-radius: 0.75rem;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    color: #1e293b;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition: all 0.2s ease;
+  }
+
+  .btn-club-profile:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+    color: #e30a17;
+    transform: translateX(2px);
   }
 
   .hero-subtitle {
