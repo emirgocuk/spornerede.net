@@ -59,6 +59,7 @@ export const BRANCHES: Branch[] = [
   { slug: 'krav-maga', isim: 'Krav Maga', emoji: '🥋', renk: '#DC2626', aciklama: 'Yakın dövüş, taktik savunma ve refleks' },
   { slug: 'sualti-hokeyi', isim: 'Sualtı Hokeyi', emoji: '🤿', renk: '#0EA5E9', aciklama: 'Havuz dibinde palet ve şnorkelle oynanan dinamik takım sporu' },
   { slug: 'tai-chi-qigong', isim: 'Tai Chi & Qigong', emoji: '☯️', renk: '#0D9488', aciklama: 'Denge, nefes, içsel enerji ve zihin-beden uyumu sağlayan hareket sanatı' },
+  { slug: 'sayokan', isim: 'Sayokan', emoji: '🥋', renk: '#DC2626', aciklama: 'Türk savaş sanatı, kişisel savunma ve disiplin eğitimi' },
 ];
 
 export const CLUBS: Club[] = [

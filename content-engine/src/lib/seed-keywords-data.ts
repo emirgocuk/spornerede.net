@@ -28,6 +28,7 @@ const BRANSLAR = [
   'krav-maga',
   'sualti-hokeyi',
   'tai-chi-qigong',
+  'sayokan',
 ];
 
 // Ebeveyn karar süreçleri ve genel yüksek niyetli rehber anahtar kelimeler

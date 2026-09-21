@@ -50,6 +50,7 @@ const BRANS_MAP: Record<string, { slug: string; name: string }> = {
   qigong: { slug: 'tai-chi-qigong', name: 'Tai Chi & Qigong' },
   'qi gong': { slug: 'tai-chi-qigong', name: 'Tai Chi & Qigong' },
   'qi-gong': { slug: 'tai-chi-qigong', name: 'Tai Chi & Qigong' },
+  sayokan: { slug: 'sayokan', name: 'Sayokan' },
 };
 
 function normalize(text: string) {

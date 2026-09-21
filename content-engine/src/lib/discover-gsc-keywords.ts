@@ -32,6 +32,7 @@ const SPORT_HINTS = [
   'tai chi',
   'taichi',
   'qigong',
+  'sayokan',
 ];
 
 const MIN_IMPRESSIONS = 15;

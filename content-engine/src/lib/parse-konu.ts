@@ -11,6 +11,7 @@ const BRANSLAR = [
   'krav maga', 'krav-maga', 'kravmaga',
   'sualti hokeyi', 'sualtı hokeyi', 'sualti-hokeyi',
   'tai chi', 'taichi', 'qigong', 'qi gong', 'tai-chi-qigong', 'tai chi & qigong',
+  'sayokan',
 ];
 
 const SEHIR_LABEL: Record<string, string> = {
@@ -80,6 +81,7 @@ const BRANS_LABEL: Record<string, string> = {
   'qi gong': 'Tai Chi & Qigong',
   'tai-chi-qigong': 'Tai Chi & Qigong',
   'tai chi & qigong': 'Tai Chi & Qigong',
+  sayokan: 'Sayokan',
 };
 
 const ILCE_MAP: Record<string, { slug: string; label: string; sehir: string }> = {

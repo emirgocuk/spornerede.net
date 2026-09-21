@@ -170,6 +170,7 @@ export function getSportsImageForTopic(topicOrTitle: string): SportsImageMeta {
     t.includes('taekwondo') ||
     t.includes('judo') ||
     t.includes('krav') ||
+    t.includes('sayokan') ||
     t.includes('savunma')
   ) {
     pool = SPORTS_IMAGE_MAP.savunma;

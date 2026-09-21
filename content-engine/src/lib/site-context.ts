@@ -175,6 +175,9 @@ export function buildInternalLinks(anahtar: string): string {
   if (lower.includes('tai chi') || lower.includes('qigong') || lower.includes('taichi')) {
     links.push(`<a href="${cfg.siteUrl}/branslar/tai-chi-qigong">Tai Chi & Qigong branşları</a>`);
   }
+  if (lower.includes('sayokan')) {
+    links.push(`<a href="${cfg.siteUrl}/branslar/sayokan">Sayokan branşları</a>`);
+  }
   if (lower.includes('istanbul') || lower.includes('İstanbul')) {
     links.push(`<a href="${cfg.siteUrl}/ara?il=istanbul">İstanbul kursları</a>`);
   }

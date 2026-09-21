@@ -18,6 +18,7 @@ const BRANSLAR = [
   'krav maga', 'krav-maga', 'kravmaga',
   'sualti hokeyi', 'sualtı hokeyi', 'sualti-hokeyi',
   'tai chi', 'taichi', 'qigong', 'qi gong', 'tai-chi-qigong', 'tai chi & qigong',
+  'sayokan',
 ];
 
 const INCOMPLETE_TAIL = /\b(ve|ile|icin|için|olan|olarak|kayit|kayıt|den|da|de|bir|the)\s*$/i;
@@ -188,6 +189,9 @@ export function buildNewsInternalLinksHtml(konu: string, siteUrl: string): strin
   if (lower.includes('satranc') || lower.includes('satranç')) links.push(`<a href="${base}/branslar/satranc">Satranç branşları</a>`);
   if (lower.includes('tai chi') || lower.includes('qigong') || lower.includes('taichi')) {
     links.push(`<a href="${base}/branslar/tai-chi-qigong">Tai Chi & Qigong branşları</a>`);
+  }
+  if (lower.includes('sayokan')) {
+    links.push(`<a href="${base}/branslar/sayokan">Sayokan branşları</a>`);
   }
   if (lower.includes('istanbul') || lower.includes('İstanbul')) links.push(`<a href="${base}/ara?il=istanbul">İstanbul kursları</a>`);
   if (lower.includes('ankara')) links.push(`<a href="${base}/ara?il=ankara">Ankara kursları</a>`);

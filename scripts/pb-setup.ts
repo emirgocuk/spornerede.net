@@ -385,6 +385,55 @@ async function ensureCollection(pb: PocketBase, def: CollectionDef) {
     });
     console.log(`+ ${def.name} olusturuldu`);
   }
+function makeLegacyId(...parts: string[]) {
+  const key = parts.join('|');
+  let hash = 2166136261;
+  for (let i = 0; i < key.length; i += 1) {
+    hash ^= key.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return Math.abs(hash >>> 0);
+}
+
+const ESSENTIAL_BRANCHES = [
+  {
+    ad: 'Sayokan',
+    slug: 'sayokan',
+    emoji: '🥋',
+    renk: '#DC2626',
+    aciklama: 'Türk savaş sanatı, kişisel savunma ve disiplin eğitimi',
+  },
+  {
+    ad: 'Tai Chi & Qigong',
+    slug: 'tai-chi-qigong',
+    emoji: '☯️',
+    renk: '#0D9488',
+    aciklama: 'Denge, nefes, içsel enerji ve zihin-beden uyumu sağlayan hareket sanatı',
+  },
+];
+
+async function ensureCoreBranches(pb: PocketBase) {
+  for (const branch of ESSENTIAL_BRANCHES) {
+    try {
+      const existing = await pb.collection('branslar').getFirstListItem(`slug = "${branch.slug}"`).catch(() => null);
+      if (!existing) {
+        const legacyId = makeLegacyId('branch', branch.slug);
+        await pb.collection('branslar').create({
+          legacyId,
+          ad: branch.ad,
+          slug: branch.slug,
+          emoji: branch.emoji,
+          renk: branch.renk,
+          aciklama: branch.aciklama,
+        });
+        console.log(`+ Branş eklendi: ${branch.ad} (${branch.slug})`);
+      } else {
+        console.log(`- Branş mevcut: ${branch.ad}`);
+      }
+    } catch (err) {
+      console.warn(`! Branş kontrolü atlandı (${branch.slug}):`, err);
+    }
+  }
 }
 
 async function main() {
@@ -394,6 +443,7 @@ async function main() {
   for (const collection of COLLECTIONS) {
     await ensureCollection(pb, collection);
   }
+  await ensureCoreBranches(pb);
   console.log('PocketBase koleksiyon kurulumu tamamlandi.');
 }
 
