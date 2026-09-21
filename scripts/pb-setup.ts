@@ -385,6 +385,8 @@ async function ensureCollection(pb: PocketBase, def: CollectionDef) {
     });
     console.log(`+ ${def.name} olusturuldu`);
   }
+}
+
 function makeLegacyId(...parts: string[]) {
   const key = parts.join('|');
   let hash = 2166136261;
