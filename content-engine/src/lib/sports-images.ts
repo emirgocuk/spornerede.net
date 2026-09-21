@@ -29,8 +29,8 @@ const SPORTS_IMAGE_MAP: Record<string, SportsImageMeta[]> = {
       caption: 'Genç sporcular için temel basketbol teknikleri',
     },
     {
-      url: 'https://images.unsplash.com/photo-1519766304817-4f37bda74a29?auto=format&fit=crop&w=1200&q=80',
-      alt: 'Basketbol takımı antrenmanı',
+      url: 'https://images.unsplash.com/photo-1519861531473-9200262188bf?auto=format&fit=crop&w=1200&q=80',
+      alt: 'Basketbol takımı antrenmanı ve pota çalışması',
       caption: 'Basketbol altyapı takımlarında takım disiplini ve kondisyon',
     },
   ],
@@ -91,6 +91,13 @@ const SPORTS_IMAGE_MAP: Record<string, SportsImageMeta[]> = {
       caption: 'Geleneksel ve olimpik okçuluk kursu çalışmaları',
     },
   ],
+  eskrim: [
+    {
+      url: 'https://images.unsplash.com/photo-1589487391730-58f20eb2c308?auto=format&fit=crop&w=1200&q=80',
+      alt: 'Eskrim antrenmanı ve kılıç sporu eğitimi',
+      caption: 'Eskrim sporunda refleks, taktik ve koordinasyon çalışmaları',
+    },
+  ],
   bisiklet: [
     {
       url: 'https://images.unsplash.com/photo-1485965120184-e220f721d03e?auto=format&fit=crop&w=1200&q=80',
@@ -117,7 +124,7 @@ const SPORTS_IMAGE_MAP: Record<string, SportsImageMeta[]> = {
   ],
   ebeveyn: [
     {
-      url: 'https://images.unsplash.com/photo-1526676037777-05a232554f77?auto=format&fit=crop&w=1200&q=80',
+      url: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=1200&q=80',
       alt: 'Ebeveyn ve çocuk spor rehberi',
       caption: 'Ebeveynler için doğru spor kulübü ve branş seçimi kılavuzu',
     },
@@ -129,7 +136,7 @@ const SPORTS_IMAGE_MAP: Record<string, SportsImageMeta[]> = {
   ],
   genel: [
     {
-      url: 'https://images.unsplash.com/photo-1526676037777-05a232554f77?auto=format&fit=crop&w=1200&q=80',
+      url: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=1200&q=80',
       alt: 'Çocuklar için spor okulu ve fiziksel gelişim',
       caption: 'SporNerede — Çocuklar ve gençler için doğru spor kulübü seçimi',
     },
@@ -176,6 +183,8 @@ export function getSportsImageForTopic(topicOrTitle: string): SportsImageMeta {
     pool = SPORTS_IMAGE_MAP.savunma;
   } else if (t.includes('okcu') || t.includes('okçu') || t.includes('yay')) {
     pool = SPORTS_IMAGE_MAP.okculuk;
+  } else if (t.includes('eskrim') || t.includes('fencing') || t.includes('kılıç') || t.includes('kilic')) {
+    pool = SPORTS_IMAGE_MAP.eskrim;
   } else if (
     t.includes('ebeveyn') ||
     t.includes('yas') ||

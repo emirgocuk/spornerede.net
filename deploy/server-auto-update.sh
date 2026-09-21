@@ -89,8 +89,8 @@ mkdir -p "${RELEASES_DIR}"
 
 cd "${APP_REPO_DIR}"
 
-if [[ -n "$(git status --porcelain)" ]]; then
-  log "UYARI: repo temiz degil, otomatik guncelleme atlandi."
+if [[ -n "$(git status --porcelain -uno)" ]]; then
+  log "UYARI: repo temiz degil (degistirilmis dosyalar var), otomatik guncelleme atlandi."
   exit 0
 fi
 

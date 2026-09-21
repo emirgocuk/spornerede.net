@@ -22,6 +22,16 @@ export function sanitizeArticleHtml(html: string): string {
   out = out.replace(/\sclass="[^"]*"/gi, '');
   out = out.replace(/\sstyle="[^"]*"/gi, '');
   out = out.replace(/\sdata-[a-z-]+="[^"]*"/gi, '');
+
+  // Kırık / 404 veren Unsplash spor görsellerini çalışan yüksek kaliteli görsellerle güncelle
+  out = out.replace(
+    /https:\/\/images\.unsplash\.com\/photo-1526676037777-05a232554f77[^\s"']*/gi,
+    'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&w=1200&q=80',
+  );
+  out = out.replace(
+    /https:\/\/images\.unsplash\.com\/photo-1519766304817-4f37bda74a29[^\s"']*/gi,
+    'https://images.unsplash.com/photo-1519861531473-9200262188bf?auto=format&fit=crop&w=1200&q=80',
+  );
   out = out.replace(/<p>(\s|&nbsp;|<br\s*\/?>)*<\/p>/gi, '');
   out = out.replace(/<p[^>]*>\s*(?:<strong>\s*)?Kay[ıi]t\s+ve\s*(?:<\/strong>\s*)?<\/p>/gi, '');
 
