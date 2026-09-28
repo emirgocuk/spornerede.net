@@ -412,6 +412,27 @@ const ESSENTIAL_BRANCHES = [
     renk: '#0D9488',
     aciklama: 'Denge, nefes, içsel enerji ve zihin-beden uyumu sağlayan hareket sanatı',
   },
+  {
+    ad: 'Hokey',
+    slug: 'hokey',
+    emoji: '🏑',
+    renk: '#10B981',
+    aciklama: 'Açık alan ve salon hokeyi; strateji, hız, çeviklik ve dinamik takım oyunu eğitimi',
+  },
+  {
+    ad: 'MMA',
+    slug: 'mma',
+    emoji: '🥊',
+    renk: '#DC2626',
+    aciklama: 'Karma dövüş sanatları; boks, güreş, jiu-jitsu ve tekme-yumruk tekniklerini birleştiren tam temaslı mücadele sporu',
+  },
+  {
+    ad: 'Hemsball',
+    slug: 'hemsball',
+    emoji: '🏓',
+    renk: '#F59E0B',
+    aciklama: 'Milli spor dalımız; refleks, odaklanma, el-göz koordinasyonu ve denge geliştiren dinamik raket sporu',
+  },
 ];
 
 async function ensureCoreBranches(pb: PocketBase) {

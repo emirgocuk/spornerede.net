@@ -163,7 +163,7 @@ export function getSportsImageForTopic(topicOrTitle: string): SportsImageMeta {
     pool = SPORTS_IMAGE_MAP.voleybol;
   } else if (t.includes('fut')) {
     pool = SPORTS_IMAGE_MAP.futbol;
-  } else if (t.includes('tenis') || t.includes('kort')) {
+  } else if (t.includes('tenis') || t.includes('kort') || t.includes('hemsball')) {
     pool = SPORTS_IMAGE_MAP.tenis;
   } else if (t.includes('jimnastik') || t.includes('cimnastik') || t.includes('denge')) {
     pool = SPORTS_IMAGE_MAP.jimnastik;
@@ -178,6 +178,7 @@ export function getSportsImageForTopic(topicOrTitle: string): SportsImageMeta {
     t.includes('judo') ||
     t.includes('krav') ||
     t.includes('sayokan') ||
+    t.includes('mma') ||
     t.includes('savunma')
   ) {
     pool = SPORTS_IMAGE_MAP.savunma;

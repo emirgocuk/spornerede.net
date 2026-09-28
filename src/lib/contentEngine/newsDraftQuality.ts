@@ -19,6 +19,9 @@ const BRANSLAR = [
   'sualti hokeyi', 'sualtı hokeyi', 'sualti-hokeyi',
   'tai chi', 'taichi', 'qigong', 'qi gong', 'tai-chi-qigong', 'tai chi & qigong',
   'sayokan',
+  'hokey',
+  'mma',
+  'hemsball',
 ];
 
 const INCOMPLETE_TAIL = /\b(ve|ile|icin|için|olan|olarak|kayit|kayıt|den|da|de|bir|the)\s*$/i;
@@ -192,6 +195,15 @@ export function buildNewsInternalLinksHtml(konu: string, siteUrl: string): strin
   }
   if (lower.includes('sayokan')) {
     links.push(`<a href="${base}/branslar/sayokan">Sayokan branşları</a>`);
+  }
+  if (lower.includes('hokey') && !lower.includes('sualti') && !lower.includes('sualtı') && !lower.includes('buz')) {
+    links.push(`<a href="${base}/branslar/hokey">Hokey branşları</a>`);
+  }
+  if (lower.includes('mma') || lower.includes('karma dövüş') || lower.includes('karma dovus')) {
+    links.push(`<a href="${base}/branslar/mma">MMA branşları</a>`);
+  }
+  if (lower.includes('hemsball')) {
+    links.push(`<a href="${base}/branslar/hemsball">Hemsball branşları</a>`);
   }
   if (lower.includes('istanbul') || lower.includes('İstanbul')) links.push(`<a href="${base}/ara?il=istanbul">İstanbul kursları</a>`);
   if (lower.includes('ankara')) links.push(`<a href="${base}/ara?il=ankara">Ankara kursları</a>`);

@@ -33,6 +33,9 @@ const SPORT_HINTS = [
   'taichi',
   'qigong',
   'sayokan',
+  'hokey',
+  'mma',
+  'hemsball',
 ];
 
 const MIN_IMPRESSIONS = 15;

@@ -49,8 +49,14 @@ const BRANS_MAP: Record<string, { slug: string; name: string }> = {
   taichi: { slug: 'tai-chi-qigong', name: 'Tai Chi & Qigong' },
   qigong: { slug: 'tai-chi-qigong', name: 'Tai Chi & Qigong' },
   'qi gong': { slug: 'tai-chi-qigong', name: 'Tai Chi & Qigong' },
-  'qi-gong': { slug: 'tai-chi-qigong', name: 'Tai Chi & Qigong' },
   sayokan: { slug: 'sayokan', name: 'Sayokan' },
+  'buz-hokeyi': { slug: 'buz-hokeyi', name: 'Buz Hokeyi' },
+  'buz hokeyi': { slug: 'buz-hokeyi', name: 'Buz Hokeyi' },
+  hokey: { slug: 'hokey', name: 'Hokey' },
+  mma: { slug: 'mma', name: 'MMA' },
+  'karma dovus': { slug: 'mma', name: 'MMA' },
+  'karma-dovus': { slug: 'mma', name: 'MMA' },
+  hemsball: { slug: 'hemsball', name: 'Hemsball' },
 };
 
 function normalize(text: string) {

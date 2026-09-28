@@ -38,6 +38,9 @@ const BRANSLAR = [
   'tai-chi-qigong',
   'tai chi & qigong',
   'sayokan',
+  'hokey',
+  'mma',
+  'hemsball',
 ];
 
 export function topicSignature(konu: string): string {

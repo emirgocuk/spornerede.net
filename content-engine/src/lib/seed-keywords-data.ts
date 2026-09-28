@@ -29,6 +29,9 @@ const BRANSLAR = [
   'sualti-hokeyi',
   'tai-chi-qigong',
   'sayokan',
+  'hokey',
+  'mma',
+  'hemsball',
 ];
 
 // Ebeveyn karar süreçleri ve genel yüksek niyetli rehber anahtar kelimeler

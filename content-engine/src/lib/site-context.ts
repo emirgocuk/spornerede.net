@@ -178,6 +178,15 @@ export function buildInternalLinks(anahtar: string): string {
   if (lower.includes('sayokan')) {
     links.push(`<a href="${cfg.siteUrl}/branslar/sayokan">Sayokan branşları</a>`);
   }
+  if (lower.includes('hokey') && !lower.includes('sualti') && !lower.includes('sualtı') && !lower.includes('buz')) {
+    links.push(`<a href="${cfg.siteUrl}/branslar/hokey">Hokey branşları</a>`);
+  }
+  if (lower.includes('mma') || lower.includes('karma dövüş') || lower.includes('karma dovus')) {
+    links.push(`<a href="${cfg.siteUrl}/branslar/mma">MMA branşları</a>`);
+  }
+  if (lower.includes('hemsball')) {
+    links.push(`<a href="${cfg.siteUrl}/branslar/hemsball">Hemsball branşları</a>`);
+  }
   if (lower.includes('istanbul') || lower.includes('İstanbul')) {
     links.push(`<a href="${cfg.siteUrl}/ara?il=istanbul">İstanbul kursları</a>`);
   }
