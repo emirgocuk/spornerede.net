@@ -167,7 +167,7 @@ export function getSportsImageForTopic(topicOrTitle: string): SportsImageMeta {
     pool = SPORTS_IMAGE_MAP.tenis;
   } else if (t.includes('jimnastik') || t.includes('cimnastik') || t.includes('denge')) {
     pool = SPORTS_IMAGE_MAP.jimnastik;
-  } else if (t.includes('bisiklet') || t.includes('pedal') || t.includes('surus')) {
+  } else if (t.includes('bisiklet') || t.includes('pedal') || t.includes('surus') || t.includes('kaykay') || t.includes('paten')) {
     pool = SPORTS_IMAGE_MAP.bisiklet;
   } else if (t.includes('atletizm') || t.includes('kosu') || t.includes('koşu')) {
     pool = SPORTS_IMAGE_MAP.atletizm;

@@ -57,6 +57,12 @@ const BRANS_MAP: Record<string, { slug: string; name: string }> = {
   'karma dovus': { slug: 'mma', name: 'MMA' },
   'karma-dovus': { slug: 'mma', name: 'MMA' },
   hemsball: { slug: 'hemsball', name: 'Hemsball' },
+  kaykay: { slug: 'kaykay', name: 'Kaykay' },
+  paten: { slug: 'paten', name: 'Paten' },
+  'tekerlekli paten': { slug: 'paten', name: 'Paten' },
+  'tekerlekli-paten': { slug: 'paten', name: 'Paten' },
+  'inline paten': { slug: 'paten', name: 'Paten' },
+  'inline-paten': { slug: 'paten', name: 'Paten' },
 };
 
 function normalize(text: string) {

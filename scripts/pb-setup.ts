@@ -433,6 +433,20 @@ const ESSENTIAL_BRANCHES = [
     renk: '#F59E0B',
     aciklama: 'Milli spor dalımız; refleks, odaklanma, el-göz koordinasyonu ve denge geliştiren dinamik raket sporu',
   },
+  {
+    ad: 'Kaykay',
+    slug: 'kaykay',
+    emoji: '🛹',
+    renk: '#F97316',
+    aciklama: 'Sokak ve park kaykayı; denge, koordinasyon, akrobasi ve serbest stil sürüş eğitimi',
+  },
+  {
+    ad: 'Paten',
+    slug: 'paten',
+    emoji: '🛼',
+    renk: '#EC4899',
+    aciklama: 'Tekerlekli ve inline paten; denge, temel sürüş teknikleri, çeviklik ve serbest stil paten eğitimi',
+  },
 ];
 
 async function ensureCoreBranches(pb: PocketBase) {

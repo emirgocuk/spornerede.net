@@ -122,7 +122,9 @@ set(
   '#DB2777',
 );
 set(SLUG_VISUAL, ['Bale'], '🩰', '#F472B6');
-set(SLUG_VISUAL, ['Buz Pateni', 'Artistik Buz Pateni', 'Sürat Pateni', 'Surat Pateni', 'Rulman Pateni', 'Tekerlekli Paten'], '⛸️', '#60A5FA');
+set(SLUG_VISUAL, ['Buz Pateni', 'Artistik Buz Pateni', 'Sürat Pateni', 'Surat Pateni'], '⛸️', '#60A5FA');
+set(SLUG_VISUAL, ['Paten', 'Tekerlekli Paten', 'Inline Paten', 'Rulman Pateni'], '🛼', '#EC4899');
+set(SLUG_VISUAL, ['Kaykay', 'Skateboard', 'Skateboarding'], '🛹', '#F97316');
 set(SLUG_VISUAL, ['Kayak', 'Alp Disiplini', 'Kayakla Atlama'], '⛷️', '#93C5FD');
 set(SLUG_VISUAL, ['Kuzey Kayağı', 'Kuzey Kayagi', 'Kuzey Disiplini'], '🎿', '#93C5FD');
 set(SLUG_VISUAL, ['Snowboard'], '🏂', '#60A5FA');
@@ -205,11 +207,13 @@ function matchByPattern(slug: string, name: string): BranchVisual | null {
   if (/dans|zumba|salsa|tango|halk-oyun/.test(haystack)) return { emoji: '💃', renk: '#DB2777' };
   if (/buz.*hokey/.test(haystack)) return { emoji: '🏒', renk: '#2563EB' };
   if (/hokey|cim.*hokey|çim.*hokey/.test(haystack)) return { emoji: '🏑', renk: '#10B981' };
+  if (/kaykay|skateboard/.test(haystack)) return { emoji: '🛹', renk: '#F97316' };
   if (/paten|kayak|snowboard|biathlon|biatlon|curling|körling/.test(haystack)) {
     if (/curling|körling/.test(haystack)) return { emoji: '🥌', renk: '#64748B' };
     if (/snowboard/.test(haystack)) return { emoji: '🏂', renk: '#60A5FA' };
     if (/kuzey/.test(haystack)) return { emoji: '🎿', renk: '#93C5FD' };
-    if (/paten/.test(haystack)) return { emoji: '⛸️', renk: '#60A5FA' };
+    if (/buz.*paten/.test(haystack)) return { emoji: '⛸️', renk: '#60A5FA' };
+    if (/paten|inline/.test(haystack)) return { emoji: '🛼', renk: '#EC4899' };
     return { emoji: '⛷️', renk: '#93C5FD' };
   }
   if (/okculuk|okçuluk/.test(haystack)) return { emoji: '🏹', renk: '#65A30D' };

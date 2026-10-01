@@ -32,6 +32,8 @@ const BRANSLAR = [
   'hokey',
   'mma',
   'hemsball',
+  'kaykay',
+  'paten',
 ];
 
 // Ebeveyn karar süreçleri ve genel yüksek niyetli rehber anahtar kelimeler

@@ -15,6 +15,7 @@ const BRANSLAR = [
   'hokey',
   'mma',
   'hemsball',
+  'kaykay',
 ];
 
 const SEHIR_LABEL: Record<string, string> = {
@@ -88,6 +89,7 @@ const BRANS_LABEL: Record<string, string> = {
   hokey: 'Hokey',
   mma: 'MMA',
   hemsball: 'Hemsball',
+  kaykay: 'Kaykay',
 };
 
 const ILCE_MAP: Record<string, { slug: string; label: string; sehir: string }> = {

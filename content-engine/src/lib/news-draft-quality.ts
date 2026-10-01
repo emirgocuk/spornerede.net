@@ -25,6 +25,8 @@ const BRANSLAR = [
   'hokey',
   'mma',
   'hemsball',
+  'kaykay',
+  'paten',
 ];
 
 const INCOMPLETE_TAIL = /\b(ve|ile|icin|için|olan|olarak|kayit|kayıt|den|da|de|bir|the)\s*$/i;

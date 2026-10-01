@@ -79,6 +79,8 @@ const TURKISH_ASCII_WORD_MAP: Record<string, string> = {
   hokey: 'Hokey',
   mma: 'MMA',
   hemsball: 'Hemsball',
+  kaykay: 'Kaykay',
+  paten: 'Paten',
 };
 
 const LOWERCASE_CONJUNCTIONS = new Set(['ve', 'ile', 'için', 'icin', 'de', 'da', 'mi', 'mı', 'mu', 'mü']);

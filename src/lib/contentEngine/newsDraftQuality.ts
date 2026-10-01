@@ -22,6 +22,8 @@ const BRANSLAR = [
   'hokey',
   'mma',
   'hemsball',
+  'kaykay',
+  'paten',
 ];
 
 const INCOMPLETE_TAIL = /\b(ve|ile|icin|için|olan|olarak|kayit|kayıt|den|da|de|bir|the)\s*$/i;
@@ -204,6 +206,12 @@ export function buildNewsInternalLinksHtml(konu: string, siteUrl: string): strin
   }
   if (lower.includes('hemsball')) {
     links.push(`<a href="${base}/branslar/hemsball">Hemsball branşları</a>`);
+  }
+  if (lower.includes('kaykay')) {
+    links.push(`<a href="${base}/branslar/kaykay">Kaykay branşları</a>`);
+  }
+  if (lower.includes('paten') && !lower.includes('buz')) {
+    links.push(`<a href="${base}/branslar/paten">Paten branşları</a>`);
   }
   if (lower.includes('istanbul') || lower.includes('İstanbul')) links.push(`<a href="${base}/ara?il=istanbul">İstanbul kursları</a>`);
   if (lower.includes('ankara')) links.push(`<a href="${base}/ara?il=ankara">Ankara kursları</a>`);

@@ -187,6 +187,12 @@ export function buildInternalLinks(anahtar: string): string {
   if (lower.includes('hemsball')) {
     links.push(`<a href="${cfg.siteUrl}/branslar/hemsball">Hemsball branşları</a>`);
   }
+  if (lower.includes('kaykay')) {
+    links.push(`<a href="${cfg.siteUrl}/branslar/kaykay">Kaykay branşları</a>`);
+  }
+  if (lower.includes('paten') && !lower.includes('buz')) {
+    links.push(`<a href="${cfg.siteUrl}/branslar/paten">Paten branşları</a>`);
+  }
   if (lower.includes('istanbul') || lower.includes('İstanbul')) {
     links.push(`<a href="${cfg.siteUrl}/ara?il=istanbul">İstanbul kursları</a>`);
   }

@@ -36,6 +36,8 @@ const SPORT_HINTS = [
   'hokey',
   'mma',
   'hemsball',
+  'kaykay',
+  'paten',
 ];
 
 const MIN_IMPRESSIONS = 15;

@@ -41,6 +41,8 @@ const BRANSLAR = [
   'hokey',
   'mma',
   'hemsball',
+  'kaykay',
+  'paten',
 ];
 
 export function topicSignature(konu: string): string {

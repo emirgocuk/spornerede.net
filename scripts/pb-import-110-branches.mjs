@@ -135,6 +135,8 @@ const BRANCH_NAMES = [
   'Artistik Buz Pateni',
   'Sürat Pateni',
   'Rulman Pateni',
+  'Paten',
+  'Kaykay',
   'Kayak',
   'Alp Disiplini',
   'Kuzey Kayağı',
